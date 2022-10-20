@@ -1,5 +1,6 @@
 import os
-from psycopg2 import connect
+# from psycopg2 import connect
+import mysql.connector
 from global_vars import log
 
 class DbConnector:
@@ -15,7 +16,7 @@ class DbConnector:
     def open_db_connection(self):
         if self.cnx is None or self.cur is None:
             # Open database connection
-            self.cnx = connect(
+            self.cnx = mysql.connector.connect(
                 host=self.host,
                 user=self.user,
                 password=self.password,
@@ -98,3 +99,22 @@ class DbConnector:
         except Exception as e:
             log.error(str(e).strip())
         self.close_db_connection()
+
+    def insert_message(self, message_text):
+        self.open_db_connection()
+        try:
+            fields = {
+                'message': message_text,
+            }
+            placeholders = ', '.join(['%s'] * len(fields))
+            columns = ', '.join(fields.keys())
+            self.cur.execute(
+                (f"INSERT INTO messages ({columns}) VALUES ({placeholders})"),
+                tuple(fields.values())
+            )
+            self.close_db_connection()
+        except Exception as e:
+            log.error(e)
+            self.close_db_connection()
+            raise
+        

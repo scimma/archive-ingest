@@ -18,3 +18,5 @@ RUN pip install --user --no-cache-dir -r requirements.txt
 
 COPY --chown=worker:worker src/ src/
 WORKDIR /home/worker/src
+# USER root
+# RUN echo test | nc -w 10 kafka.scimma.org 9092; echo $?

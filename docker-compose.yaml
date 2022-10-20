@@ -5,13 +5,13 @@ networks:
     external: false
 
 volumes:
-  postgres: {}
-  waitforit: {}
+  dbdata: {}
+  # waitforit: {}
   # hopauth: {}
 
 services:
   db:
-    image: 'postgres:latest'
+    image: bitnami/mariadb:10.5
     container_name: hop-ingest-db
     env_file: .env
     ports:
@@ -19,30 +19,30 @@ services:
     networks:
       - internal
     volumes:
-      - postgres:/var/lib/postgresql
-  app-init-db:
-    image: 'postgres:latest'
-    container_name: hop-ingest-db-init
-    env_file: .env
-    depends_on:
-      - db
-    networks:
-      - internal
-    command:
-      - sh
-      - -c
-      - >
-        until pg_isready \
-            --username=${POSTGRES_USER} \
-            --dbname=${POSTGRES_DB} \
-            --host=${DB_HOST} \
-            --port=5432;
-          do echo waiting for database;
-          sleep 2;
-          done;
-          touch /tmp/db_ready;
-    volumes:
-      - waitforit:/tmp
+      - dbdata:/bitnami/mariadb
+  # app-init-db:
+  #   image: bitnami/mariadb:10.5
+  #   container_name: hop-ingest-db-init
+  #   env_file: .env
+  #   depends_on:
+  #     - db
+  #   networks:
+  #     - internal
+  #   command:
+  #     - sh
+  #     - -c
+  #     - >
+  #       until pg_isready \
+  #           --username=${POSTGRES_USER} \
+  #           --dbname=${POSTGRES_DB} \
+  #           --host=${DB_HOST} \
+  #           --port=5432;
+  #         do echo waiting for database;
+  #         sleep 2;
+  #         done;
+  #         touch /tmp/db_ready;
+  #   volumes:
+  #     - waitforit:/tmp
   # app-init-hop-auth:
   #   # image: ubuntu:20.04
   #   image: scimma/hop-ingest:dev
@@ -76,7 +76,7 @@ services:
     env_file: .env
     depends_on:
       - db
-      - app-init-db
+      # - app-init-db
       # - app-init-hop-auth
     ports:
       - 8000:8000
@@ -90,7 +90,7 @@ services:
     volumes:
       - ./src:/home/worker/src
       - ./src/config.yaml:/home/worker/src/config.yaml:ro
-      - waitforit:/tmp
+      # - waitforit:/tmp
       # - hopauth:/home/worker/.config/hop
       # - type: bind
       #   source: ./src/config.yaml

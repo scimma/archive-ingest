@@ -7,10 +7,10 @@ with open('config.yaml', "r") as conf_file:
     config = yaml.load(conf_file, Loader=yaml.FullLoader)
 
 ## Load secrets from env vars (compatible with Kubernetes Secrets)
-config['db']['host'] = os.environ['DB_HOST']
-config['db']['user'] = os.environ['POSTGRES_USER']
-config['db']['pass'] = os.environ['POSTGRES_PASSWORD']
-config['db']['database'] = os.environ['POSTGRES_DB']
+config['db']['host'] = os.environ['MARIADB_HOST']
+config['db']['user'] = os.environ['MARIADB_USER']
+config['db']['pass'] = os.environ['MARIADB_PASSWORD']
+config['db']['database'] = os.environ['MARIADB_DATABASE']
 
 # Configure logging
 logging.basicConfig(
@@ -18,7 +18,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("app")
 try:
-    log.setLevel(config['server']['logLevel'].upper())
+    log.setLevel(config['logLevel'].upper())
 except:
     log.setLevel('WARNING')
 

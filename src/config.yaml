@@ -5,10 +5,10 @@ hop:
 ## Configuration of the SQL database
 db:
   ## The database config is loaded from env vars
-  ##   DB_HOST
-  ##   POSTGRES_USER
-  ##   POSTGRES_PASSWORD
-  ##   POSTGRES_DB
+  ##   MARIADB_HOST
+  ##   MARIADB_USER
+  ##   MARIADB_PASSWORD
+  ##   MARIADB_DATABASE
   host: ""
   user: ""
   pass: ""
