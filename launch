@@ -1,0 +1,52 @@
+#!/bin/bash
+
+## Detect the Docker Compose base command
+dc_version="$(docker-compose version 2>/dev/null)"
+if [[ $? != 0 ]] ; then
+  dc_version="$(docker compose version 2>/dev/null)"
+  if [[ $? != 0 ]] ; then
+    echo "Please install a supported version of Docker Compose."
+    exit 1
+  else
+    dc_cmd="docker compose"
+  fi
+else
+  dc_cmd="docker-compose"
+fi
+
+## Initialize environment config file
+if [[ ! -f .env ]]; then
+  echo "Environment config file \".env\" missing. Initializing..."
+  cp env.tpl .env
+else
+  echo "Environment config file \".env\" exists."
+fi
+
+echo "Applying environment config file \".env\"..."
+if [[ "$1" == "--dev" ]]; then
+  source .env.dev || source .env
+else
+  source .env
+fi
+
+## Set CUID and CGID
+if [[ "${CUID}x" == "x" ]]; then
+  export CUID=$(id -u)
+  echo "Setting CUID=${CUID}"
+else
+  echo "Using CUID=${CUID}"
+fi
+if [[ "${CGID}x" == "x" ]]; then
+  export CGID=$(id -g)
+  echo "Setting CGID=${CGID}"
+else
+  echo "Using CGID=${CGID}"
+fi
+
+## Ignition
+$dc_cmd --file docker-compose.yaml up --build
+# if [[ "$1" == "--dev" ]]; then
+#   $dc_cmd --file docker-compose.yaml up --build
+# else
+#   $dc_cmd pull && $dc_cmd up
+# fi

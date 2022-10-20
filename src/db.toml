@@ -1,0 +1,21 @@
+[log]
+filename = "output/hopstream.log" 
+level = "DEBUG"
+
+
+[sql]
+file = "output/hopstream.db"
+rdms = "sqlite"
+dbapi = "pysqlite"
+echo = true
+pool_pre_ping = true
+future = false 
+
+
+[hop]
+username = "parvizim-3f2c2ae7"
+hostname = "kafka.scimma.org"
+groupname = "hopstream"
+port = 9092
+until_eos = false 
+admin_topics = ["sys.heartbeat", "__consumer_offsets"]

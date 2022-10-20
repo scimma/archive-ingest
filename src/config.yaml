@@ -1,0 +1,15 @@
+logLevel: "DEBUG"
+hop:
+  source:
+    url: kafka://kafka.scimma.org/sys.heartbeat
+## Configuration of the SQL database
+db:
+  ## The database config is loaded from env vars
+  ##   DB_HOST
+  ##   POSTGRES_USER
+  ##   POSTGRES_PASSWORD
+  ##   POSTGRES_DB
+  host: ""
+  user: ""
+  pass: ""
+  database: ""

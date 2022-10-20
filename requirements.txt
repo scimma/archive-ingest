@@ -1,0 +1,5 @@
+psycopg2-binary
+tzdata
+hop-client >= 0.7.0
+pyyaml
+pyjson
