@@ -6,10 +6,13 @@ This repo will build and run an app container and a postgersql database containe
 
 ## Local development with Docker Compose
 
-To run locally via Docker Compose, launch the application with
+You can run this locally via Docker Compose.
+
+First copy `env.tpl` to `.env` and fill in your Hopskotch credentials.
+
+Then launch the application with
 
 ```bash
-cd /path/to/this/repo/clone
 ./launch
 ```
 

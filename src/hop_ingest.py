@@ -31,20 +31,20 @@ def main():
         ## Track number of ingested alerts
         num_ingested = 0
         for message, metadata in hop_stream.read(metadata=True):
-            ## Parse headers
-            try:
-                headers = {}
-                for header in metadata.headers:
-                    headers[header[0]] = header[1].decode('utf-8')
-                log.debug(json.dumps(headers))
-            except Exception as e:
-                log.error(f'''Error parsing headers: "{e}".''')
-            ## Construct alert object
-            alert = {
-                'headers': headers,
-                'message': message,
-            }
-            log.debug(f'''\nAlert:\n{alert['message']}''')
+            # ## Parse headers
+            # try:
+            #     headers = {}
+            #     for header in metadata.headers:
+            #         headers[header[0]] = header[1].decode('utf-8')
+            #     log.debug(json.dumps(headers))
+            # except Exception as e:
+            #     log.error(f'''Error parsing headers: "{e}".''')
+            # ## Construct alert object
+            # alert = {
+            #     'headers': headers,
+            #     'message': message,
+            # }
+            # log.debug(f'''\nAlert:\n{alert['message']}''')
             log.debug(f'''{message.serialize()}''')
             message_serialized = message.serialize()
             if message_serialized['format'] == 'json':
