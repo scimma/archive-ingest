@@ -1,9 +1,22 @@
 #!/Usr/bin/python3
 
-'''
-Pr-Alpha, Created on Jul 8, 2021
+'''Log messages and metadata to a database.
+
+In production, log events from selected Hopscotch public
+topics into the AWS-resident production housekeeping database.
+
+Events may be also logged to the AWS-resident development
+database, to a local sqilite database, or a "mock" database
+that just discards them.
+
+Events can be sourced from hopskotch, or from a "mock" source.  The
+development direction for the mock source is to allow for stressing
+the database engines and database provisioning to ensure they form a
+robust store that is critical to SCiMMA operations.
 
 @author: Mahmoud Parvizi (parvizim@msu.edu)
+@author: Don Petravick (petravick@illinois.edu)
+
 '''
 
 from random import random
@@ -15,7 +28,7 @@ import pdb
 from sqlalchemy import Column, Integer, String, create_engine, exc
 from sqlalchemy.orm import Session, declarative_base
 
-#from hop.io import Stream, StartPosition, list_topics
+from hop.io import Stream, StartPosition, list_topics
 
 ##################################
 #   Data Base 
@@ -70,6 +83,9 @@ class DbFactory:
         stanza = args.database_stanza
         logging.info(f"using dabase stanza {stanza}")
         config    = toml_data.get(stanza, None)
+        if not config:
+            logging.fatal("could not find {stanza} in {args.toml_file}")
+            exit (1)
 
         #instantiate, then return db object of correct type.
         if config["type"] == "mock"  : self.db =  Mock_db(args, config)  ; return 
@@ -97,14 +113,14 @@ class Base_db:
         self.session = Session(self.engine)
 
     
-    def insert(self, metadata, message):
-        
+    def insert(self, payload, metadata):
+
         # Create 'mapped' values to be inserted into the database
         values = MessagesTable(
             uid = None, #autoincremented integer as primary key
             topic = metadata.topic,
             timestamp = metadata.timestamp,
-            payload = str(message) 
+            payload = str(payload) 
         )  
         
         # insert values into the database
@@ -120,8 +136,11 @@ class Base_db:
         if self.n_insert %  self.n_insert == 0:
             logging.info(f"inserted {self.n_insert} records so far.")
         pass
-    
 
+    def launch_query(self):
+        logging.fatal(f"Query tool not supported for this database")
+        exit(1)
+        
 class Mock_db(Base_db):
     """
     a mock DB that does nothing -- support debug and devel.
@@ -135,7 +154,7 @@ class Mock_db(Base_db):
         pass
 
 
-    def insert(self, topic, payload):
+    def insert(self, payload, message):
         self.n_insert += 1
         if self.n_insert %  self.n_insert == 0:
             logging.info(f"inserted {self.n_insert} records so far.")
@@ -214,6 +233,7 @@ class AWS_db(Base_db):
         self.password = password
 
     def set_connect_info(self):
+        "set connection variables fo connecting to AWS DB"
         import boto3
         from botocore.exceptions import ClientError
         session = boto3.session.Session()
@@ -228,6 +248,14 @@ class AWS_db(Base_db):
         self.DBName         = result['DBName']
         self.Address        = result['Endpoint']['Address']
         self.Port           = result['Endpoint']['Port']
+
+    def launch_query(self):
+        "lauch a query tool for AWS databases"
+        print (f"use password: {self.password}")
+        import subprocess 
+        cmd = f"psql --dbname {self.DBName} --host={self.Address} --username={self.MasterUserName} --password"
+        subprocess.run(cmd, shell=True)
+        
 
 ##################################
 #   Sources 
@@ -247,10 +275,12 @@ class SourceFactory:
         
         #instantiate, then return source object of correct type.
         if config["type"] == "mock" : self.source =  Mock_source(args, config) ; return
+        if config["type"] == "hop"  : self.source =  Hop_source(args, config)  ; return
         logging.fatal(f"source {type} not supported")
         exit (1)
         
     def get_source(self):
+        "return the srouce sppecified in the toml file"
         return self.source
     
 
@@ -278,44 +308,72 @@ class Mock_source:
         metadata = MockMetadata()
         metadata.topic     = "mock topic"
         metadata.timestamp = int(time.time())
-        return (metadata, "mock  event payload")
-    
-class Hop:
-    def __init__(self, args):
-        toml_data = toml.load(args.toml_file_name)
-        config    = toml_data[args.source_stanza]    
-        self.url = (
-                f"kafka://"
-                f"{self.hop_data['username']}@"
-                f"{self.hop_data['hostname']}:"
-                f"{self.hop_data['port']}/"
-            )
-        logging.info(f"Hop Source configured: {self.url}")
+        return ("mock  event payload", metadata)
 
+
+class Hop_source:
+    def __init__(self, args, config):
+        toml_data    =   toml.load(args.toml_file)
+        config       =   toml_data[args.source_stanza]
+        admin_topics =   config["admin_topics"]
+        self.username =  config["username"]
+        self.groupname = config["groupname"]
+        self.until_eos = config["until_eos"]
+
+        self.url = (
+                f"kafka://"   \
+                f"{config['username']}@" \
+                f"{config['hostname']}:" \
+                f"{config['port']}/"
+            )
+        
+        # Read the available topics from the given broker
+        topic_dict = list_topics(url=self.url)
+        
+        # Concatinate the avilable topics with the broker address
+        # omit "adminstrative topics
+        topics = ','.join([t for t in topic_dict.keys() if t not in admin_topics])
+        self.url = (f"{self.url}{topics}")
+
+        logging.info(f"Hop Source configured: {self.url}")
+  
     def connect(self):
-        pass
+
+        # Instance :class:"hop.io.Stream" with auth configured via 'auth=True'
+        start_at = StartPosition.EARLIEST
+        stream = Stream(auth=True, start_at=start_at, until_eos=self.until_eos)
+        
+        # Return the connection to the client as :class:"hop.io.Consumer" instance
+        # :meth:"random" included for pre-Aplha development only
+        # Remove :meth:"random" for implemented versions
+        group_id = f"{self.username}-{self.groupname}{random()}" 
+        self.current =stream.open(url=self.url, group_id=group_id)
 
     def is_active(self):
         return True
 
     def get_next(self):
-        "get mock event"
-        #jsut ashell of what we need for capacityh testing.
-        return (["fake topic", "fake event payload"])
- 
+        message, metadata = next(self.current.read(metadata=True, autocommit=False))
+        print(message)
+        print(metadata)
+        return (message, metadata)
+
 def housekeep(args):
     """
     Acquire data from the specified source and log to specified DB
     """
-    import pdb
     make_logging(args)
     db     = DbFactory(args).get_db()
     source = SourceFactory(args).get_source()
     db.connect()
     source.connect()
     while source.is_active():
-        metadata, payload  = source.get_next()
-        db.insert(metadata, payload)
+        payload, metadata  = source.get_next()
+        db.insert(payload, metadata)
+
+def query(args):
+    "get connect info and launch a query engine"
+    DbFactory(args).get_db().launch_query()
 
 if __name__ == "__main__":
 
@@ -335,18 +393,23 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--source_stanza", help = "source config  stanza", default="mock-source")
 
     #local -- use local SQLlite, hop as defaults  (eventually)
-    parser = subparsers.add_parser('local', help="house keep w/(defulat postgres and mock hop")
+    parser = subparsers.add_parser('local', help="house keep w/(defaultsqllite and hop")
     parser.set_defaults(func=housekeep)
     parser.add_argument("-d", "--database_stanza", help = "database-config-stanza", default="mysql")
-    parser.add_argument("-s", "--source_stanza", help = "source config  stanza", default="mock-source")
+    parser.add_argument("-s", "--source_stanza", help = "source config  stanza", default="hop")
 
     #dev --- use Scimma AWS development 
-    parser = subparsers.add_parser('dev', help="house keep w/(defulat postgres and mock hop")
+    parser = subparsers.add_parser('dev', help="house keep w/(default postgres and mock hop")
     parser.set_defaults(func=housekeep)
     parser.add_argument("-d", "--database_stanza", help = "database-config-stanza", default="aws-dev-db")
-    parser.add_argument("-s", "--source_stanza", help = "source config  stanza", default="mock-source")
 
     #prod -- use scimma prod infra
+
+    #query --- launch a query tool against AWS 
+    parser = subparsers.add_parser('query', help="Launch a query tool against AWS databases")
+    parser.set_defaults(func=query)
+    parser.add_argument("-q", "--database_stanza", help = "database-config-stanza", default="aws-dev-db")
+
     pass
 
     args = main_parser.parse_args()

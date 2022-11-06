@@ -140,7 +140,6 @@ class Settings:
         
         Agrs:
             url: The sqlalchemy connection url of the database to be opened.
-            
         Returns:
             An sqlalchemy.orm session as a :class:'Session' instance.
             
@@ -206,7 +205,6 @@ class Settings:
         return stream.open(url=self.make_hop_url(), group_id=group_id)
 
     
-
     
     
 def insert_messages(session, current):
