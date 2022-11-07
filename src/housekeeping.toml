@@ -1,10 +1,10 @@
 [log]
 filename = "output/hopstream.log" 
-level = "DEBUG"
+level = "INFO"
 
 
-[mysql]
-type = "mysql"
+[SQlite]
+type = "SQlite"
 file = "hopstream.db"
 rdms = "sqlite"
 dbapi = "pysqlite"

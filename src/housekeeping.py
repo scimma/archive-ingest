@@ -1,4 +1,4 @@
-#!/Usr/bin/python3
+#!/usr/bin/python3
 
 '''Log messages and metadata to a database.
 
@@ -18,20 +18,25 @@ robust store that is critical to SCiMMA operations.
 @author: Don Petravick (petravick@illinois.edu)
 
 '''
+import psycopg2
+import psycopg2.extensions
 
 from random import random
 import toml
 import logging
 import argparse
 import pdb
+import time
+import random
 
-from sqlalchemy import Column, Integer, String, create_engine, exc
-from sqlalchemy.orm import Session, declarative_base
+from sqlalchemy import Column, Integer, String, create_engine, exc, engine, MetaData, Table, Sequence
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
+import sqlalchemy
 
 from hop.io import Stream, StartPosition, list_topics
 
 ##################################
-#   Data Base 
+#   environment
 ##################################
 
 def make_logging(args):
@@ -49,31 +54,13 @@ def make_logging(args):
     logging.basicConfig(level=level, format=format)
     logging.info(f"Basic logging is configured at {level}")
 
-
-Base = declarative_base()  
-class MessagesTable(Base):
-    
-    """Defines the database table where message, metadata are inserted.
-
-    """
-    
-    __tablename__ = 'Streamed_Messages'
-    
-    uid = Column(Integer, primary_key=True) #autoincremented unique id
-    topic = Column(String, nullable=False)
-    timestamp = Column(Integer)
-    payload = Column(String)
-    
-    # def __repr__(self):
-    #     return (
-    #         f"Streamed_Messages(uid={self.uid!r}, "
-    #         f"topic={self.topic!r}, "
-    #         f"timestamp={self.timestamp!r}, "
-    #         f"payload={self.payload!r})"
-    #     )
-        
+##################################
+# schema
+##################################
 
 
+
+    
 class DbFactory:
     """
     Factory class to create Mock, MySQL, or AWS postgres DB objects 
@@ -85,12 +72,11 @@ class DbFactory:
         config    = toml_data.get(stanza, None)
         if not config:
             logging.fatal("could not find {stanza} in {args.toml_file}")
-            exit (1)
 
         #instantiate, then return db object of correct type.
-        if config["type"] == "mock"  : self.db =  Mock_db(args, config)  ; return 
-        if config["type"] == "mysql" : self.db =  Mysql_db(args, config) ; return 
-        if config["type"] == "aws"   : self.db   =  AWS_db(args, config) ; return 
+        if config["type"] == "mock"  : self.db  =  Mock_db(args, config)  ; return 
+        if config["type"] == "SQlite" : self.db =  Mysql_db(args, config) ; return 
+        if config["type"] == "aws"   : self.db  =  AWS_db(args, config) ; return 
         logging.fatal(f"database {type} not supported")
         exit (1)
         
@@ -101,41 +87,33 @@ class DbFactory:
 
 class Base_db:
     
-    def connect(self):
-        logging.info(f"connecting to: {self.url}")
-        self.engine = create_engine(self.url,
-                                    echo=self.echo,
-                                    pool_pre_ping=self.pool_pre_ping,
-                                    future=self.future)
-        # Create the table(s) defined via sqlalchemy.orm.declarative_base()
-        # Observed behavios -- onlyif tables do ot exist?
-        Base.metadata.create_all(self.engine)
-        self.session = Session(self.engine)
 
-    
+    def make_schema(self):
+        "Make the housekeePing  schema, if not already present in db"
+        import pdb; pdb.set_trace()
+        Base = declarative_base()
+        class Message(Base):
+            __tablename__ = "Message",
+            uid = Column(Integer, Sequence("message_sequence"), primary_key=True) #autoincremented unique id
+            topic = Column(String, nullable=False)
+            timestamp = Column(Integer)
+            payload = Column(String)   
+
+        Base.metadata.create_all(bind=engine)       
+        self.Message = Message
+            
     def insert(self, payload, metadata):
 
-        # Create 'mapped' values to be inserted into the database
-        values = MessagesTable(
-            uid = None, #autoincremented integer as primary key
-            topic = metadata.topic,
-            timestamp = metadata.timestamp,
-            payload = str(payload) 
-        )  
-        
-        # insert values into the database
-        try:
-            self.session.add(values)
-            self.session.commit() 
-        except exc.OperationalError as database_error:
-            session.rollback()  
-            logging.critical(f"database_error = {database_error}")  
-            raise RuntimeError(database_error)
-            
+        import pdb; pdb.set_trace()
+        """ message_data  = self.Message(
+            uid = None,
+            topic = {metadata.topic},
+            timestamp = {metadata.timestamp},
+            payload = {str(payload})
+            )
+        self.session.add(message_data)
+            """ 
         self.n_insert += 1
-        if self.n_insert %  self.n_insert == 0:
-            logging.info(f"inserted {self.n_insert} records so far.")
-        pass
 
     def launch_query(self):
         logging.fatal(f"Query tool not supported for this database")
@@ -149,8 +127,13 @@ class Mock_db(Base_db):
         logging.info(f"Mock Database configured")
         self.n_insert = 0
         self.log_every = 1
+
+    def make_schema(self):
+        "no schema to make"
+        pass 
     
     def connect(self):
+        "nothing to connect to"
         pass
 
 
@@ -161,9 +144,9 @@ class Mock_db(Base_db):
         pass
 
     
-class Mysql_db(Base_db):
+class SQLite_db(Base_db):
     """
-    Logging to Mysql to support development.
+    Logging to SQLlite to support development.
     """
     def __init__(self, args, config):
         # SQLite:///D:/Mar9.db
@@ -203,7 +186,7 @@ class AWS_db(Base_db):
         self.n_insert           = 0
 
         # go off and get the real connections  information from AWS
-        self.set_password()
+        self.set_password_info()
         self.set_connect_info()
         self.n_insert = 0
 
@@ -211,12 +194,12 @@ class AWS_db(Base_db):
         self.url = f"postgresql://" \
             f"{self.MasterUserName}:{self.password}@{self.Address}/{self.DBName}"
         
-        logging.info(f"MySQL Database: {self.url}")
+        logging.info(f"SQLlite Database: {self.url}")
         logging.info(f"engine option echo: {self.echo}")
         logging.info(f"engine option pre_ping: {self.pool_pre_ping}")
         logging.info(f"engine option future: {self.future}")
 
-    def set_password(self):
+    def set_password_info(self):
         "retrieve postgress password from its AWS secret"
         import boto3
         from botocore.exceptions import ClientError
@@ -248,6 +231,81 @@ class AWS_db(Base_db):
         self.DBName         = result['DBName']
         self.Address        = result['Endpoint']['Address']
         self.Port           = result['Endpoint']['Port']
+
+    def connect(self):
+        self.conn = psycopg2.connect(
+            dbname  = self.DBName,
+            user    = self.MasterUserName,
+            password = self.password,
+            host     = self.Address
+        )
+        self.cur = self.conn.cursor()
+
+    def make_schema(self):
+        sql =  """
+        CREATE SEQUENCE IF NOT EXISTS global_uid;
+        
+        CREATE TABLE IF NOT EXISTS
+        text_messages(
+          uid  BIGINT   PRIMARY KEY,                                  
+          topic TEXT,
+          timestamp INTEGER,
+          payload TEXT
+        );
+        
+        CREATE TABLE IF NOT EXISTS
+        blob_messages(
+          uid  BIGINT  PRIMARY KEY,                                  
+          topic TEXT,
+          timestamp INTEGER,
+          payload bytea
+        );
+        COMMIT; ; 
+        """
+        self.cur.execute(sql)
+
+    def insert(self, payload, metadata):
+
+        sql = "SELECT nextval('global_uid')"
+        pass
+        self.cur.execute(sql,[])
+        bigint = self.cur.fetchone()[0]
+
+        blob = True
+        try :
+            utf8_payload = payload.decode('UTF-8')
+        except UnicodeDecodeError:
+            blob = True
+        else :
+            if utf8_payload.isprintable() : blob = False
+            
+        if blob:
+            #Payload assessed as a blob.
+            self.insert_blob(bigint, payload, metadata)
+        else:
+            #Payload assessed as a text string of some kind
+            self.insert_text(bigint, utf8_payload, metadata)
+
+        self.n_insert += 1
+
+    def insert_text(self, bigint, payload, metadata):
+        "insert text falsues into TEXT table using global sequence number"
+        sql = f"""
+        INSERT INTO text_messages 
+          (uid, topic, timestamp, payload)
+          VALUES (%s, %s, %s, %s) ;
+        COMMIT ; """
+        self.cur.execute(sql, [bigint, metadata.topic, metadata.timestamp, str(payload)])
+
+    def insert_blob(self, bigint, payload, metadata):
+        "insert blob into blob table, using global sequence number"  
+        sql = f"""
+        INSERT INTO blob_messages 
+          (uid, topic, timestamp, payload)
+          VALUES (%s, %s, %s, %s) ;
+        COMMIT ; """
+        self.cur.execute(sql, [bigint, metadata.topic, metadata.timestamp, payload])
+
 
     def launch_query(self):
         "lauch a query tool for AWS databases"
@@ -291,8 +349,23 @@ class Mock_source:
 
     def __init__(self, args, config):
         logging.info(f"Mock Source configured")
-        self.n_events = 3
-
+        import os
+        #Move these to config file once we are happy
+        small_text      = b"500 Text  " * 50       #500 bytes
+        large_text      = b"5K Text   " * 500      #5000 bytes
+        xlarge_text     = b"50K text  " * 5000     #50000 bytes
+        max_text       = b"50K text  " * 3000000   #3 meg
+        
+        small_binary    = os.urandom(500)       #500 bytes
+        large_binary    = os.urandom(5000)      #5000 bytes
+        xlarge_binary   = os.urandom(50000)     #50000 byte
+        max_binary      = os.urandom(3000000)   #3 meg
+        self.messages  = [small_text, large_text, xlarge_text, small_binary, large_binary, xlarge_binary, max_binary,max_text]
+        self.n_sent    = 0
+        self.n_events  = 1000
+        self.total_message_bytes = 0
+        self.t0 =  time.time()
+        
     def connect(self):
         pass
     
@@ -304,12 +377,24 @@ class Mock_source:
             return False
 
     def get_next(self):
-        import time
+        "get next mock message"
+        
         metadata = MockMetadata()
-        metadata.topic     = "mock topic"
+        metadata.topic     = """mock "' topic"""
         metadata.timestamp = int(time.time())
-        return ("mock  event payload", metadata)
+        payload = self.messages[random.randrange(0,len(self.messages))]
+        self.total_message_bytes += len(payload)
+        self.record()
+        return (payload, metadata)
+    
+    def record(self):
+        if self.n_sent % 100 == 0 :
+            delta = time.time() - self.t0
+            logging.info(f"{self.n_sent} in {delta} total:{self.total_message_bytes:,}")
+            self.t0 = time.time()
 
+        self.n_sent += 1
+        
 
 class Hop_source:
     def __init__(self, args, config):
@@ -353,6 +438,7 @@ class Hop_source:
         return True
 
     def get_next(self):
+        pdb.set_trace()
         message, metadata = next(self.current.read(metadata=True, autocommit=False))
         print(message)
         print(metadata)
@@ -366,6 +452,7 @@ def housekeep(args):
     db     = DbFactory(args).get_db()
     source = SourceFactory(args).get_source()
     db.connect()
+    db.make_schema()
     source.connect()
     while source.is_active():
         payload, metadata  = source.get_next()
@@ -402,6 +489,7 @@ if __name__ == "__main__":
     parser = subparsers.add_parser('dev', help="house keep w/(default postgres and mock hop")
     parser.set_defaults(func=housekeep)
     parser.add_argument("-d", "--database_stanza", help = "database-config-stanza", default="aws-dev-db")
+    parser.add_argument("-s", "--source_stanza", help = "source config  stanza", default="mock-source")
 
     #prod -- use scimma prod infra
 
