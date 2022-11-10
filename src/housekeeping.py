@@ -20,7 +20,7 @@ robust store that is critical to SCiMMA operations.
 '''
 import psycopg2
 import psycopg2.extensions
-
+import boto3
 from random import random
 import toml
 import logging
@@ -28,10 +28,7 @@ import argparse
 import pdb
 import time
 import random
-
-from sqlalchemy import Column, Integer, String, create_engine, exc, engine, MetaData, Table, Sequence
-from sqlalchemy.orm import Session, declarative_base, sessionmaker
-import sqlalchemy
+import datetime
 
 from hop.io import Stream, StartPosition, list_topics
 
@@ -74,9 +71,10 @@ class DbFactory:
             logging.fatal("could not find {stanza} in {args.toml_file}")
 
         #instantiate, then return db object of correct type.
-        if config["type"] == "mock"  : self.db  =  Mock_db(args, config)  ; return 
+        if config["type"] == "mock"   : self.db  =  Mock_db(args, config)  ; return 
         if config["type"] == "SQlite" : self.db =  Mysql_db(args, config) ; return 
-        if config["type"] == "aws"   : self.db  =  AWS_db(args, config) ; return 
+        if config["type"] == "aws"    : self.db  =  AWS_db(args, config) ; return 
+        if config["type"] == "S3"     : self.db  =  S3_db(args, config) ; return 
         logging.fatal(f"database {type} not supported")
         exit (1)
         
@@ -88,36 +86,38 @@ class DbFactory:
 class Base_db:
     
 
-    def make_schema(self):
-        "Make the housekeePing  schema, if not already present in db"
-        import pdb; pdb.set_trace()
-        Base = declarative_base()
-        class Message(Base):
-            __tablename__ = "Message",
-            uid = Column(Integer, Sequence("message_sequence"), primary_key=True) #autoincremented unique id
-            topic = Column(String, nullable=False)
-            timestamp = Column(Integer)
-            payload = Column(String)   
-
-        Base.metadata.create_all(bind=engine)       
-        self.Message = Message
-            
-    def insert(self, payload, metadata):
-
-        import pdb; pdb.set_trace()
-        """ message_data  = self.Message(
-            uid = None,
-            topic = {metadata.topic},
-            timestamp = {metadata.timestamp},
-            payload = {str(payload})
-            )
-        self.session.add(message_data)
-            """ 
-        self.n_insert += 1
-
     def launch_query(self):
         logging.fatal(f"Query tool not supported for this database")
         exit(1)
+
+    def make_schema(self):
+        "no schema to make"
+        pass 
+    
+    def connect(self):
+        "nothing to connect to"
+        pass
+
+class S3_db(Base_db):
+    "sent things to s3, not a dbms"
+    def __init__(self, args, config):
+        self.bucket = "scimma-housekeeping"
+        self.n_objects = 0
+        
+    def connect(self):
+        pdb.set_trace()
+        self.client = boto3.client('s3')
+
+    def insert(self, payload, metadata):
+        import uuid
+        bucket = self.bucket
+        topic = metadata.topic
+        t = time.gmtime(metadata.timestamp)
+        key = (f"{topic}/{t.tm_year}/{t.tm_mon}/{t.tm_mday}/{t.tm_hour}/{uuid.uuid1().urn}")
+        logging.debug(key)
+        self.client.put_object(Body=payload, Bucket=bucket, Key=key)        
+        self.n_objects += 1
+
         
 class Mock_db(Base_db):
     """
@@ -127,14 +127,6 @@ class Mock_db(Base_db):
         logging.info(f"Mock Database configured")
         self.n_insert = 0
         self.log_every = 1
-
-    def make_schema(self):
-        "no schema to make"
-        pass 
-    
-    def connect(self):
-        "nothing to connect to"
-        pass
 
 
     def insert(self, payload, message):
@@ -151,20 +143,11 @@ class SQLite_db(Base_db):
     def __init__(self, args, config):
         # SQLite:///D:/Mar9.db
         self.file           = config['file']
-        self.echo           = config["echo"]
-        self.pool_pre_ping  = config["pool_pre_ping"]
-        self.future         = config["future"]
-        
-        self.url = f"{config['rdms']}+" \
-            f"{config['dbapi']}:///" \
-            f"{config['file']}"
         
         self.n_insert = 0
         self.log_every = 1
-        logging.info(f"MySQL Database: {self.url}")
-        logging.info(f"engine option echo: {self.echo}")
-        logging.info(f"engine option pre_ping: {self.pool_pre_ping}")
-        logging.info(f"engine option future: {self.future}")
+        logging.fatal ("SQLite need re-implementing")
+        exit(1)
 
 class AWS_db(Base_db):
     """
@@ -179,9 +162,6 @@ class AWS_db(Base_db):
         self.aws_region_name    = "us-west-2"
         self.secret_name        = "housekeeping-db-password"
         self.region_name        = "us-west-2"
-        self.echo               = True
-        self.pool_pre_ping      = True
-        self.future             = False
         self.log_every          = 1
         self.n_insert           = 0
 
@@ -189,16 +169,8 @@ class AWS_db(Base_db):
         self.set_password_info()
         self.set_connect_info()
         self.n_insert = 0
-
-        #"postgresql+pyscopg2://scott:tiger@hostname/dbname"        
-        self.url = f"postgresql://" \
-            f"{self.MasterUserName}:{self.password}@{self.Address}/{self.DBName}"
-        
-        logging.info(f"SQLlite Database: {self.url}")
-        logging.info(f"engine option echo: {self.echo}")
-        logging.info(f"engine option pre_ping: {self.pool_pre_ping}")
-        logging.info(f"engine option future: {self.future}")
-
+        logging.info(f"aws db name, secret, region: {self.aws_db_name}, {self.aws_db_secret_name}, {self.region_name } ")
+        logging.info(f"aws dataasee, user, port, address: {self.DBName}, {self.MasterUserName}, {self.Port} ,{self.Address}")
     def set_password_info(self):
         "retrieve postgress password from its AWS secret"
         import boto3
@@ -260,7 +232,12 @@ class AWS_db(Base_db):
           timestamp INTEGER,
           payload bytea
         );
-        COMMIT; ; 
+        CREATE INDEX IF NOT EXISTS timestamp_text_idx ON text_messages (timestamp);
+        CREATE INDEX IF NOT EXISTS timestamp_blob_idx ON blob_messages (timestamp);
+        CREATE INDEX IF NOT EXISTS     topic_text_idx ON text_messages (topic);
+        CREATE INDEX IF NOT EXISTS     topic_blob_idx ON blob_messages (topic);
+        COMMIT;
+        
         """
         self.cur.execute(sql)
 
@@ -351,18 +328,20 @@ class Mock_source:
         logging.info(f"Mock Source configured")
         import os
         #Move these to config file once we are happy
-        small_text      = b"500 Text  " * 50       #500 bytes
-        large_text      = b"5K Text   " * 500      #5000 bytes
-        xlarge_text     = b"50K text  " * 5000     #50000 bytes
-        max_text       = b"50K text  " * 3000000   #3 meg
+        small_text      = b"500 Text  " * 50      #500 bytes
+        medium_text      = b"5K Text   " * 500    #5000 bytes
+        large_text     = b"50K text  " * 5000     #50000 bytes
+        xlarge_text     = b"50K text  " * 50000   #500000 bytes
+        max_text       = b"50K text  " * 3000000  #3 meg
         
         small_binary    = os.urandom(500)       #500 bytes
-        large_binary    = os.urandom(5000)      #5000 bytes
-        xlarge_binary   = os.urandom(50000)     #50000 byte
+        mediumbinary    = os.urandom(5000)      #5000 bytes
+        large_binary   = os.urandom(50000)      #50000 byte
+        xlarge_binary   = os.urandom(500000)    #50000 byte
         max_binary      = os.urandom(3000000)   #3 meg
-        self.messages  = [small_text, large_text, xlarge_text, small_binary, large_binary, xlarge_binary, max_binary,max_text]
+        self.messages  = [large_text, large_text, xlarge_text, xlarge_text, large_binary, large_binary, xlarge_binary, xlarge_binary]
         self.n_sent    = 0
-        self.n_events  = 1000
+        self.n_events  = 200
         self.total_message_bytes = 0
         self.t0 =  time.time()
         
@@ -379,14 +358,30 @@ class Mock_source:
     def get_next(self):
         "get next mock message"
         
-        metadata = MockMetadata()
-        metadata.topic     = """mock "' topic"""
-        metadata.timestamp = int(time.time())
-        payload = self.messages[random.randrange(0,len(self.messages))]
-        self.total_message_bytes += len(payload)
-        self.record()
-        return (payload, metadata)
-    
+        #put spread in times for S3 testing.
+        early_time = int(time.time()) - (60*60*24*5)  
+        late_time  = int(time.time()) + (60*60*24*5)
+        #vary names near the root for S3 testing
+        anumber  = random.randrange(0,20)
+        for message in self.messages:
+            #do fewer 
+            import math
+            message_size = len(message)
+            #hack to scal down # interations with message size.
+            n_iter = int(2000/math.log(message_size,1.8))
+            total_b = 0
+            t0 = time.time()
+            for i in range(n_iter):
+                metadata = MockMetadata()
+                anumber  = random.randrange(0,20)
+                metadata.topic     = "mockgroup{anumber}.mocktopic"
+                metadata.timestamp = random.randrange(early_time,late_time)        
+                payload = message
+                total_b += len(payload)
+                yield (payload, metadata)
+            duration = int(time.time() - t0) 
+            logging.info(f"msize, niter duration, totalb :{message_size}, {n_iter}, {duration}, {total_b}" )
+
     def record(self):
         if self.n_sent % 100 == 0 :
             delta = time.time() - self.t0
@@ -454,8 +449,7 @@ def housekeep(args):
     db.connect()
     db.make_schema()
     source.connect()
-    while source.is_active():
-        payload, metadata  = source.get_next()
+    for payload, metadata in source.get_next():
         db.insert(payload, metadata)
 
 def query(args):
@@ -476,7 +470,7 @@ if __name__ == "__main__":
     #mock -- use local mock source and sinks as defaults 
     parser = subparsers.add_parser('mock', help= "house keep w/(defaults) all mocks")
     parser.set_defaults(func=housekeep)
-    parser.add_argument("-d", "--database_stanza", help = "database-config-stanza", default="mock-db")
+    parser.add_argument("-d", "--database_stanza", help = "database-config-stanza", default="S3-db")
     parser.add_argument("-s", "--source_stanza", help = "source config  stanza", default="mock-source")
 
     #local -- use local SQLlite, hop as defaults  (eventually)

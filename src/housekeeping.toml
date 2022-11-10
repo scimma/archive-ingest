@@ -22,6 +22,9 @@ type = "mock"
 [aws-dev-db]
 type = "aws"
 
+[S3-db]
+type = "S3"
+
 [hop-test]
 port = 9092
 
