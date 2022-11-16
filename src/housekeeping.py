@@ -52,10 +52,8 @@ def make_logging(args):
     logging.info(f"Basic logging is configured at {level}")
 
 ##################################
-# schema
+# recorders e.g "databases"
 ##################################
-
-
 
     
 class DbFactory:
@@ -72,7 +70,6 @@ class DbFactory:
 
         #instantiate, then return db object of correct type.
         if config["type"] == "mock"   : self.db  =  Mock_db(args, config)  ; return 
-        if config["type"] == "SQlite" : self.db =  Mysql_db(args, config) ; return 
         if config["type"] == "aws"    : self.db  =  AWS_db(args, config) ; return 
         if config["type"] == "S3"     : self.db  =  S3_db(args, config) ; return 
         logging.fatal(f"database {type} not supported")
@@ -83,9 +80,7 @@ class DbFactory:
     
 
 
-class Base_db:
-    
-
+class Base_db:    
     def launch_query(self):
         logging.fatal(f"Query tool not supported for this database")
         exit(1)
@@ -99,21 +94,23 @@ class Base_db:
         pass
 
 class S3_db(Base_db):
-    "sent things to s3, not a dbms"
+    "send things to s3, not a dbms"
     def __init__(self, args, config):
         self.bucket = "scimma-housekeeping"
         self.n_objects = 0
         
     def connect(self):
+        "obtain an S3 Client"
         pdb.set_trace()
         self.client = boto3.client('s3')
 
     def insert(self, payload, metadata):
+        """place data, metadata as an object in S3"""
         import uuid
         bucket = self.bucket
         topic = metadata.topic
         t = time.gmtime(metadata.timestamp)
-        key = (f"{topic}/{t.tm_year}/{t.tm_mon}/{t.tm_mday}/{t.tm_hour}/{uuid.uuid1().urn}")
+        key = (f"{topic}/{t.tm_year}/{t.tm_mon}/{t.tm_mday}/{t.tm_hour}/{uuid.uuid4().urn}")
         logging.debug(key)
         self.client.put_object(Body=payload, Bucket=bucket, Key=key)        
         self.n_objects += 1
@@ -135,27 +132,11 @@ class Mock_db(Base_db):
             logging.info(f"inserted {self.n_insert} records so far.")
         pass
 
-    
-class SQLite_db(Base_db):
-    """
-    Logging to SQLlite to support development.
-    """
-    def __init__(self, args, config):
-        # SQLite:///D:/Mar9.db
-        self.file           = config['file']
-        
-        self.n_insert = 0
-        self.log_every = 1
-        logging.fatal ("SQLite need re-implementing")
-        exit(1)
-
 class AWS_db(Base_db):
     """
     Logging to AWS postgres DBs
     """
     def __init__(self, args, config):
-        
- 
         # get these from the configuration file
         self.aws_db_name        = "housekeeping-test-postgres" 
         self.aws_db_secret_name = "housekeeping-db-password"
@@ -170,7 +151,8 @@ class AWS_db(Base_db):
         self.set_connect_info()
         self.n_insert = 0
         logging.info(f"aws db name, secret, region: {self.aws_db_name}, {self.aws_db_secret_name}, {self.region_name } ")
-        logging.info(f"aws dataasee, user, port, address: {self.DBName}, {self.MasterUserName}, {self.Port} ,{self.Address}")
+        logging.info(f"aws database, user, port, address: {self.DBName}, {self.MasterUserName}, {self.Port} ,{self.Address}")
+        
     def set_password_info(self):
         "retrieve postgress password from its AWS secret"
         import boto3
@@ -188,7 +170,7 @@ class AWS_db(Base_db):
         self.password = password
 
     def set_connect_info(self):
-        "set connection variables fo connecting to AWS DB"
+        "set connection variabable from AWS"
         import boto3
         from botocore.exceptions import ClientError
         session = boto3.session.Session()
@@ -205,6 +187,7 @@ class AWS_db(Base_db):
         self.Port           = result['Endpoint']['Port']
 
     def connect(self):
+        "make a seesion to postgres"
         self.conn = psycopg2.connect(
             dbname  = self.DBName,
             user    = self.MasterUserName,
@@ -214,6 +197,7 @@ class AWS_db(Base_db):
         self.cur = self.conn.cursor()
 
     def make_schema(self):
+        "Declare tables" 
         sql =  """
         CREATE SEQUENCE IF NOT EXISTS global_uid;
         
@@ -242,7 +226,7 @@ class AWS_db(Base_db):
         self.cur.execute(sql)
 
     def insert(self, payload, metadata):
-
+        "instert one record into the DB"
         sql = "SELECT nextval('global_uid')"
         pass
         self.cur.execute(sql,[])
@@ -328,18 +312,18 @@ class Mock_source:
         logging.info(f"Mock Source configured")
         import os
         #Move these to config file once we are happy
-        small_text      = b"500 Text  " * 50      #500 bytes
-        medium_text      = b"5K Text   " * 500    #5000 bytes
-        large_text     = b"50K text  " * 5000     #50000 bytes
-        xlarge_text     = b"50K text  " * 50000   #500000 bytes
-        max_text       = b"50K text  " * 3000000  #3 meg
+        small_text     =  b"500 Text " * 50      #500 bytes
+        medium_text    =  b"5K Text   " * 500    #5000 bytes
+        large_text     =  b"50K text  " * 5000     #50000 bytes
+        xlarge_text    =  b"50K text  " * 50000   #500000 bytes
+        max_text       =  b"50K text  " * 3000000  #3 meg
         
-        small_binary    = os.urandom(500)       #500 bytes
-        mediumbinary    = os.urandom(5000)      #5000 bytes
+        small_binary   = os.urandom(500)       #500 bytes
+        medium_binary  = os.urandom(5000)      #5000 bytes
         large_binary   = os.urandom(50000)      #50000 byte
-        xlarge_binary   = os.urandom(500000)    #50000 byte
-        max_binary      = os.urandom(3000000)   #3 meg
-        self.messages  = [large_text, large_text, xlarge_text, xlarge_text, large_binary, large_binary, xlarge_binary, xlarge_binary]
+        xlarge_binary  = os.urandom(500000)    #50000 byte
+        max_binary     = os.urandom(3000000)   #3 meg
+        self.messages  = [small_text, medium_text, large_text, xlarge_text, max_text, small_binary, medium_binary, large_binary, xlarge_binary, max_binary]
         self.n_sent    = 0
         self.n_events  = 200
         self.total_message_bytes = 0
@@ -395,30 +379,38 @@ class Hop_source:
     def __init__(self, args, config):
         toml_data    =   toml.load(args.toml_file)
         config       =   toml_data[args.source_stanza]
-        admin_topics =   config["admin_topics"]
+        self.admin_topics =   config["admin_topics"]
         self.username =  config["username"]
         self.groupname = config["groupname"]
         self.until_eos = config["until_eos"]
-
-        self.url = (
+        self.base_url = (
                 f"kafka://"   \
                 f"{config['username']}@" \
                 f"{config['hostname']}:" \
                 f"{config['port']}/"
             )
+
+        self.refresh_url_every =  1000  # make this a config
+        self.n_recieved = 0
+        self.refresh_url()          #set ural with topics.
         
+    def refresh_url(self):
+        "initalize/refresh the list of public topics to record PRN"
+
+        #return if not not needed.
+        if self.n_recieved  % self.refresh_url_every != 0: return
+            
         # Read the available topics from the given broker
-        topic_dict = list_topics(url=self.url)
+        topic_dict = list_topics(url=self.base_url)
         
         # Concatinate the avilable topics with the broker address
         # omit "adminstrative topics
-        topics = ','.join([t for t in topic_dict.keys() if t not in admin_topics])
-        self.url = (f"{self.url}{topics}")
-
-        logging.info(f"Hop Source configured: {self.url}")
+        topics = ','.join([t for t in topic_dict.keys() if t not in self.admin_topics])
+        self.url = (f"{self.base_url}{topics}")
+        logging.info(f"Hop Url (re)configured: {self.url} excluding {self.admin_topics}")
+    
   
     def connect(self):
-
         # Instance :class:"hop.io.Stream" with auth configured via 'auth=True'
         start_at = StartPosition.EARLIEST
         stream = Stream(auth=True, start_at=start_at, until_eos=self.until_eos)
@@ -426,18 +418,26 @@ class Hop_source:
         # Return the connection to the client as :class:"hop.io.Consumer" instance
         # :meth:"random" included for pre-Aplha development only
         # Remove :meth:"random" for implemented versions
-        group_id = f"{self.username}-{self.groupname}{random()}" 
-        self.current =stream.open(url=self.url, group_id=group_id)
+        group_id = f"{self.username}-{self.groupname}{random.randint(0,10000)}" 
+        self.client = stream.open(url=self.url, group_id=group_id)
 
     def is_active(self):
         return True
 
     def get_next(self):
-        pdb.set_trace()
-        message, metadata = next(self.current.read(metadata=True, autocommit=False))
-        print(message)
-        print(metadata)
-        return (message, metadata)
+        for result in self.client.read(metadata=True, autocommit=False):
+            # What happens on error? GEt nothing back? None?
+            # -- seems to stall in self.client.read
+            # Cannot log an  python object -- message, metatdata are obncet
+            # have to serializes -- going with  hack below for now.
+
+            #message = result[0].serialize().__repr__()
+            message = result[1]._raw.value()      #fixme
+            metadata =  result[1]
+            self.n_recieved  += 1
+            self.refresh_url()
+            #logging.info(f"topic, msg size, meta size: {metadata.topic} {len(message)}")
+            yield (message, metadata)
 
 def housekeep(args):
     """
@@ -449,13 +449,22 @@ def housekeep(args):
     db.connect()
     db.make_schema()
     source.connect()
-    for payload, metadata in source.get_next():
+    for x in source.get_next():
+        payload = x[0]
+        metadata = x[1]
         db.insert(payload, metadata)
 
 def query(args):
     "get connect info and launch a query engine"
     DbFactory(args).get_db().launch_query()
 
+def list(args):
+    "list the stanzas so I dont have to grep toml files"
+    import pprint
+    dict = toml.load(args.toml_file)
+    print (args.toml_file)
+    pprint.pprint(dict)
+    
 if __name__ == "__main__":
 
     #main_parser = argparse.ArgumentParser(add_help=False)
@@ -467,32 +476,21 @@ if __name__ == "__main__":
     main_parser.add_argument("-l", "--log_stanza", help = "log config stanza", default="log")
 
     subparsers = main_parser.add_subparsers()   
-    #mock -- use local mock source and sinks as defaults 
-    parser = subparsers.add_parser('mock', help= "house keep w/(defaults) all mocks")
+    #run -- perform housekeeping with  
+    parser = subparsers.add_parser('run', help= "house keep w/(defaults) all mocks")
     parser.set_defaults(func=housekeep)
-    parser.add_argument("-d", "--database_stanza", help = "database-config-stanza", default="S3-db")
+    parser.add_argument("-d", "--database_stanza", help = "database-config-stanza", default="mock-db")
     parser.add_argument("-s", "--source_stanza", help = "source config  stanza", default="mock-source")
 
-    #local -- use local SQLlite, hop as defaults  (eventually)
-    parser = subparsers.add_parser('local', help="house keep w/(defaultsqllite and hop")
-    parser.set_defaults(func=housekeep)
-    parser.add_argument("-d", "--database_stanza", help = "database-config-stanza", default="mysql")
-    parser.add_argument("-s", "--source_stanza", help = "source config  stanza", default="hop")
-
-    #dev --- use Scimma AWS development 
-    parser = subparsers.add_parser('dev', help="house keep w/(default postgres and mock hop")
-    parser.set_defaults(func=housekeep)
-    parser.add_argument("-d", "--database_stanza", help = "database-config-stanza", default="aws-dev-db")
-    parser.add_argument("-s", "--source_stanza", help = "source config  stanza", default="mock-source")
-
-    #prod -- use scimma prod infra
+    #list -- list stanzas 
+    parser = subparsers.add_parser('list', help="list stanzas")
+    parser.set_defaults(func=list)
 
     #query --- launch a query tool against AWS 
     parser = subparsers.add_parser('query', help="Launch a query tool against AWS databases")
     parser.set_defaults(func=query)
     parser.add_argument("-q", "--database_stanza", help = "database-config-stanza", default="aws-dev-db")
 
-    pass
 
     args = main_parser.parse_args()
     

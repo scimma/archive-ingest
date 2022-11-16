@@ -37,4 +37,4 @@ hostname = "kafka.scimma.org"
 groupname = "hopstream"
 port = 9092
 until_eos = false 
-admin_topics = ["sys.heartbeat", "__consumer_offsets"]
+admin_topics = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
