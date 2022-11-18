@@ -68,10 +68,11 @@ class StoreFactory:
         if not config:
             logging.fatal("could not find {stanza} in {args.toml_file}")
 
+        type = config["type"]
         #instantiate, then return db object of correct type.
-        if config["type"] == "mock"   : self.store  =  Mock_store(args, config) ; return 
-        #if config["type"] == "S3"     : self.store  =  S3_store  (args, config) ; return 
-        logging.fatal(f"stere {type} not supported")
+        if type == "mock" : self.store  =  Mock_store(args, config) ; return 
+        if type == "S3"   : self.store  =  S3_store  (args, config) ; return 
+        logging.fatal(f"store {type} not supported")
         exit (1)
         
     def get_store(self):
@@ -82,11 +83,9 @@ class Store_info:
     pass
 
 class Base_store:
-
     def __init__(self, args, config):
         self.n_stored = 0
-        self.log_every = 100
-
+        self.log_every = 100   #move to config file.
     
     def connect(self):
         pass
@@ -94,7 +93,7 @@ class Base_store:
     def log(self, storeinfo):
         "log storage informmation, but not too often"
         msg1 = f"stored {self.n_stored} objects."
-        msg2 = f"This object: {storeinfo.size} bytes to {storeinfo.bucket} {storeinfo.path}"
+        msg2 = f"This object: {storeinfo.size} bytes to {storeinfo.bucket} {storeinfo.key}"
         if self.n_stored < 5 :
             logging.info(msg1)
             logging.info(msg2)
@@ -103,12 +102,43 @@ class Base_store:
             logging.info(msg2)
 
     def get_key(self, metadata):
+        'compute the "path" to the object' 
         topic = metadata.topic
         t = time.gmtime(metadata.timestamp/1000)
         key = f"{topic}/{t.tm_year}/{t.tm_mon}/{t.tm_mday}/{t.tm_hour}/{uuid.uuid4().urn}"
         return key
-               
 
+    def get_storeinfo(self, key, size):
+        storeinfo = Store_info()
+        storeinfo.size = size
+        storeinfo.key = key
+        storeinfo.bucket = self.bucket
+        return storeinfo
+        
+class S3_store(Base_store):
+    "send things to s3, not a dbms"
+    def __init__(self, args, config):
+        self.bucket = "scimma-housekeeping"
+        super().__init__(args, config)
+        
+    def connect(self):
+        "obtain an S3 Client"
+        pdb.set_trace()
+        self.client = boto3.client('s3')
+
+    def store(self, payload, metadata):
+        """place data, metadata as an object in S3"""
+        
+        bucket = self.bucket
+        key = self.get_key(metadata)
+        self.client.put_object(Body=payload, Bucket=bucket, Key=key)        
+        self.n_stored += 1
+        storeinfo = self.get_storeinfo(key, len(payload))
+        self.log(storeinfo)
+        return storeinfo
+
+
+               
 class Mock_store(Base_store):
     """
     a mock store that does nothing -- support debug and devel.
@@ -123,15 +153,13 @@ class Mock_store(Base_store):
     def store(self, payload, metadata):
         "mock operation of storing in s3"    
         self.n_stored += 1
-        path = self.get_key(metadata)
-        storeinfo = Store_info()
-        storeinfo.size = len(payload) + 100
-        storeinfo.path = path
-        storeinfo.bucket = self.bucket
+        key = self.get_key(metadata)
+        size = len(payload) + 132
+        storeinfo = self.get_storeinfo(key, size)
         self.log(storeinfo)
         return storeinfo
 
-        
+
 
 ##################################
 # "databases"
@@ -150,10 +178,10 @@ class DbFactory:
         if not config:
             logging.fatal("could not find {stanza} in {args.toml_file}")
 
+        type = config["type"]
         #instantiate, then return db object of correct type.
-        if config["type"] == "mock"   : self.db  =  Mock_db(args, config)  ; return 
-        if config["type"] == "aws"    : self.db  =  AWS_db(args, config) ; return 
-        if config["type"] == "S3"     : self.db  =  S3_db(args, config) ; return 
+        if type == "mock"   : self.db  =  Mock_db(args, config)  ; return 
+        if type == "aws"    : self.db  =  AWS_db(args, config) ; return 
         logging.fatal(f"database {type} not supported")
         exit (1)
         
@@ -174,28 +202,6 @@ class Base_db:
     def connect(self):
         "nothing to connect to"
         pass
-
-class S3_db(Base_db):
-    "send things to s3, not a dbms"
-    def __init__(self, args, config):
-        self.bucket = "scimma-housekeeping"
-        self.n_objects = 0
-        
-    def connect(self):
-        "obtain an S3 Client"
-        pdb.set_trace()
-        self.client = boto3.client('s3')
-
-    def insert(self, payload, metadata):
-        """place data, metadata as an object in S3"""
-        
-        bucket = self.bucket
-        topic = metadata.topic
-        t = time.gmtime(metadata.timestamp)
-        key = (f"{topic}/{t.tm_year}/{t.tm_mon}/{t.tm_mday}/{t.tm_hour}/{uuid.uuid4().urn}")
-        logging.debug(key)
-        self.client.put_object(Body=payload, Bucket=bucket, Key=key)        
-        self.n_objects += 1
 
         
 class Mock_db(Base_db):
@@ -373,10 +379,11 @@ class SourceFactory:
     def __init__(self, args):
         toml_data = toml.load(args.toml_file)
         config    = toml_data.get(args.hop_stanza, None)
-        
+
+        type = config["type"]
         #instantiate, then return source object of correct type.
-        if config["type"] == "mock" : self.source =  Mock_source(args, config) ; return
-        if config["type"] == "hop"  : self.source =  Hop_source(args, config)  ; return
+        if type == "mock" : self.source =  Mock_source(args, config) ; return
+        if type == "hop"  : self.source =  Hop_source(args, config)  ; return
         logging.fatal(f"source {type} not supported")
         exit (1)
         
@@ -534,6 +541,7 @@ def housekeep(args):
     db.connect()
     db.make_schema()
     source.connect()
+    store.connect()
     for x in source.get_next():
         payload = x[0]
         metadata = x[1]

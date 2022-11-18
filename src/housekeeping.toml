@@ -2,9 +2,6 @@
 filename = "output/hopstream.log" 
 level = "INFO"
 
-[mock-store]
-type = "mock"
-
 [SQlite]
 type = "SQlite"
 file = "hopstream.db"
@@ -22,11 +19,16 @@ type = "mock"
 [aws-dev-db]
 type = "aws"
 
-[S3-db]
+###########
+# storage 
+###########
+
+[S3-dev]
 type = "S3"
 
-[hop-test]
-port = 9092
+[mock-store]
+type = "mock"
+
 
 ###########
 # hop
