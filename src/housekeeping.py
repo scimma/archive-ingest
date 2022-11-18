@@ -69,33 +69,44 @@ class StoreFactory:
             logging.fatal("could not find {stanza} in {args.toml_file}")
 
         #instantiate, then return db object of correct type.
-        if config["type"] == "mock"   : self.store  =  Mock_Store(args, config) ; return 
-        #if config["type"] == "S3"     : self.store  =  S3_Store  (args, config) ; return 
+        if config["type"] == "mock"   : self.store  =  Mock_store(args, config) ; return 
+        #if config["type"] == "S3"     : self.store  =  S3_store  (args, config) ; return 
         logging.fatal(f"stere {type} not supported")
         exit (1)
         
-    def get_db(self):
+    def get_store(self):
         return self.store
 
-class StoreInfo:
+class Store_info:
     "a namespace for storage data"
     pass
 
 class Base_store:
 
+    def __init__(self, args, config):
+        self.n_stored = 0
+        self.log_every = 100
+
+    
     def connect(self):
         pass
 
-    def log(self, path, size):
+    def log(self, storeinfo):
+        "log storage informmation, but not too often"
+        msg1 = f"stored {self.n_stored} objects."
+        msg2 = f"This object: {storeinfo.size} bytes to {storeinfo.bucket} {storeinfo.path}"
         if self.n_stored < 5 :
-            logging.info(f"stored {sixe} bytes to {path}")
-        elif self.n_stores % self.self.log_every == 0:
-            logging.info(f"stored {sixe} bytes to {path}")
+            logging.info(msg1)
+            logging.info(msg2)
+        elif self.n_stored % self.log_every == 0:
+            logging.info(msg1)
+            logging.info(msg2)
 
-    def path(self, metadata):
+    def get_key(self, metadata):
         topic = metadata.topic
         t = time.gmtime(metadata.timestamp/1000)
         key = f"{topic}/{t.tm_year}/{t.tm_mon}/{t.tm_mday}/{t.tm_hour}/{uuid.uuid4().urn}"
+        return key
                
 
 class Mock_store(Base_store):
@@ -105,20 +116,19 @@ class Mock_store(Base_store):
     
     def __init__(self, args, config):
         self.bucket = "scimma-housekeeping"
-        self.n_stored = 0
-        self.log_every = 1
+        super().__init__(args, config)
         logging.info(f"Mock store configured")
 
 
     def store(self, payload, metadata):
         "mock operation of storing in s3"    
-        self.n_insert += 1
-        path = self.path(metadata)
-        storeinfo = Storeinfo()
+        self.n_stored += 1
+        path = self.get_key(metadata)
+        storeinfo = Store_info()
         storeinfo.size = len(payload) + 100
         storeinfo.path = path
         storeinfo.bucket = self.bucket
-        self.log(path, size)
+        self.log(storeinfo)
         return storeinfo
 
         
@@ -198,7 +208,7 @@ class Mock_db(Base_db):
         self.log_every = 1
 
 
-    def insert(self, payload, message):
+    def insert(self, payload, message, storeinfo):
         self.n_insert += 1
         if self.n_insert %  self.n_insert == 0:
             logging.info(f"inserted {self.n_insert} records so far.")
@@ -297,7 +307,7 @@ class AWS_db(Base_db):
         """
         self.cur.execute(sql)
 
-    def insert(self, payload, metadata):
+    def insert(self, payload, metadata, storeinfo):
         "instert one record into the DB"
         sql = "SELECT nextval('global_uid')"
         pass
@@ -430,9 +440,9 @@ class Mock_source:
             for i in range(n_iter):
                 metadata = MockMetadata()
                 anumber  = random.randrange(0,20)
-                metadata.topic     = "mockgroup{anumber}.mocktopic"
+                metadata.topic     = f"mockgroup{anumber}.mocktopic"
                 metadata.timestamp = random.randrange(early_time,late_time)*1000
-                metdata.uuid = uuid.uuid4().urn
+                metadata.uuid = uuid.uuid4().urn
                 payload = message
                 total_b += len(payload)
                 yield (payload, metadata)
@@ -520,13 +530,15 @@ def housekeep(args):
     make_logging(args)
     db     = DbFactory(args).get_db()
     source = SourceFactory(args).get_source()
+    store =  StoreFactory(args).get_store()
     db.connect()
     db.make_schema()
     source.connect()
     for x in source.get_next():
         payload = x[0]
         metadata = x[1]
-        db.insert(payload, metadata)
+        storeinfo = store.store(payload, metadata)
+        db.insert(payload, metadata, storeinfo)
 
 def query(args):
     "get connect info and launch a query engine"
@@ -555,7 +567,7 @@ if __name__ == "__main__":
     parser.set_defaults(func=housekeep)
     parser.add_argument("-d", "--database_stanza", help = "database-config-stanza", default="mock-db")
     parser.add_argument("-s", "--source_stanza", help = "source config  stanza", default="mock-source")
-
+    parser.add_argument("-x","--store_stanza", help = "storage config stanza", default="mock-store")
     #list -- list stanzas 
     parser = subparsers.add_parser('list', help="list stanzas")
     parser.set_defaults(func=list)

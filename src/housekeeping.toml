@@ -2,6 +2,8 @@
 filename = "output/hopstream.log" 
 level = "INFO"
 
+[mock-store]
+type = "mock"
 
 [SQlite]
 type = "SQlite"
