@@ -190,7 +190,12 @@ class DbFactory:
     
 
 
-class Base_db:    
+class Base_db:
+
+    def __init__(self, args, config):
+        self.n_inserted = 0
+        self.log_every  = 100 # get from config file 
+         
     def launch_query(self):
         logging.fatal(f"Query tool not supported for this database")
         exit(1)
@@ -202,7 +207,16 @@ class Base_db:
     def connect(self):
         "nothing to connect to"
         pass
+    
+    def log(self):
+        "log db informmation, but not too often"
+        msg1 = f"insterted  {self.n_inserted} objects."
+        if self.n_inserted < 5 :
+            logging.info(msg1)
+        elif self.n_inserted % self.log_every == 0:
+            logging.info(msg1)
 
+    
         
 class Mock_db(Base_db):
     """
@@ -210,15 +224,12 @@ class Mock_db(Base_db):
     """
     def __init__(self, args, config):
         logging.info(f"Mock Database configured")
-        self.n_insert = 0
-        self.log_every = 1
-
+        super().__init__(args, config)
+       
 
     def insert(self, payload, message, storeinfo):
-        self.n_insert += 1
-        if self.n_insert %  self.n_insert == 0:
-            logging.info(f"inserted {self.n_insert} records so far.")
-        pass
+        self.n_inserted += 1
+
 
 class AWS_db(Base_db):
     """
@@ -231,13 +242,11 @@ class AWS_db(Base_db):
         self.aws_region_name    = "us-west-2"
         self.secret_name        = "housekeeping-db-password"
         self.region_name        = "us-west-2"
-        self.log_every          = 1
-        self.n_insert           = 0
-
+        super().__init__(args, config)
+        
         # go off and get the real connections  information from AWS
         self.set_password_info()
         self.set_connect_info()
-        self.n_insert = 0
         logging.info(f"aws db name, secret, region: {self.aws_db_name}, {self.aws_db_secret_name}, {self.region_name } ")
         logging.info(f"aws database, user, port, address: {self.DBName}, {self.MasterUserName}, {self.Port} ,{self.Address}")
         
@@ -287,75 +296,37 @@ class AWS_db(Base_db):
     def make_schema(self):
         "Declare tables" 
         sql =  """
-        CREATE SEQUENCE IF NOT EXISTS global_uid;
-        
         CREATE TABLE IF NOT EXISTS
-        text_messages(
-          uid  BIGINT   PRIMARY KEY,                                  
-          topic TEXT,
-          timestamp INTEGER,
-          payload TEXT
+        messages(
+          id  BIGSERIAL PRIMARY KEY,                                  
+          topic     TEXT,
+          timestamp BIGINT,
+          uuid      TEXT,
+          size      INTEGER,
+          key       TEXT
         );
         
-        CREATE TABLE IF NOT EXISTS
-        blob_messages(
-          uid  BIGINT  PRIMARY KEY,                                  
-          topic TEXT,
-          timestamp INTEGER,
-          payload bytea
-        );
-        CREATE INDEX IF NOT EXISTS timestamp_text_idx ON text_messages (timestamp);
-        CREATE INDEX IF NOT EXISTS timestamp_blob_idx ON blob_messages (timestamp);
-        CREATE INDEX IF NOT EXISTS     topic_text_idx ON text_messages (topic);
-        CREATE INDEX IF NOT EXISTS     topic_blob_idx ON blob_messages (topic);
+        CREATE INDEX IF NOT EXISTS timestamp_idx ON messages (timestamp);
+        CREATE INDEX IF NOT EXISTS topic_idx     ON messages (topic);
+        CREATE INDEX IF NOT EXISTS uuid_idx      ON messages (uuid);
         COMMIT;
         
         """
         self.cur.execute(sql)
 
     def insert(self, payload, metadata, storeinfo):
-        "instert one record into the DB"
-        sql = "SELECT nextval('global_uid')"
-        pass
-        self.cur.execute(sql,[])
-        bigint = self.cur.fetchone()[0]
+        "insert one record into the DB"
 
-        blob = True
-        try :
-            utf8_payload = payload.decode('UTF-8')
-        except UnicodeDecodeError:
-            blob = True
-        else :
-            if utf8_payload.isprintable() : blob = False
-            
-        if blob:
-            #Payload assessed as a blob.
-            self.insert_blob(bigint, payload, metadata)
-        else:
-            #Payload assessed as a text string of some kind
-            self.insert_text(bigint, utf8_payload, metadata)
-
-        self.n_insert += 1
-
-    def insert_text(self, bigint, payload, metadata):
-        "insert text falsues into TEXT table using global sequence number"
         sql = f"""
-        INSERT INTO text_messages 
-          (uid, topic, timestamp, payload)
-          VALUES (%s, %s, %s, %s) ;
+        INSERT INTO messages 
+          (topic, timestamp, uuid, size, key)
+          VALUES (%s, %s, %s, %s, %s) ;
         COMMIT ; """
-        self.cur.execute(sql, [bigint, metadata.topic, metadata.timestamp, str(payload)])
-
-    def insert_blob(self, bigint, payload, metadata):
-        "insert blob into blob table, using global sequence number"  
-        sql = f"""
-        INSERT INTO blob_messages 
-          (uid, topic, timestamp, payload)
-          VALUES (%s, %s, %s, %s) ;
-        COMMIT ; """
-        self.cur.execute(sql, [bigint, metadata.topic, metadata.timestamp, payload])
-
-
+        pdb.set_trace
+        self.cur.execute(sql, [metadata.topic, metadata.timestamp, metadata.uuid, storeinfo.size, storeinfo.key])
+        self.n_inserted +=1
+        self.log()
+        
     def launch_query(self):
         "lauch a query tool for AWS databases"
         print (f"use password: {self.password}")
