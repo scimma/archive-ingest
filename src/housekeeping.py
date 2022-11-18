@@ -372,7 +372,7 @@ class SourceFactory:
 
     def __init__(self, args):
         toml_data = toml.load(args.toml_file)
-        config    = toml_data.get(args.source_stanza, None)
+        config    = toml_data.get(args.hop_stanza, None)
         
         #instantiate, then return source object of correct type.
         if config["type"] == "mock" : self.source =  Mock_source(args, config) ; return
@@ -461,7 +461,7 @@ class Mock_source:
 class Hop_source:
     def __init__(self, args, config):
         toml_data    =   toml.load(args.toml_file)
-        config       =   toml_data[args.source_stanza]
+        config       =   toml_data[args.hop_stanza]
         self.admin_topics =   config["admin_topics"]
         self.username =  config["username"]
         self.groupname = config["groupname"]
@@ -565,9 +565,9 @@ if __name__ == "__main__":
     #run -- perform housekeeping with  
     parser = subparsers.add_parser('run', help= "house keep w/(defaults) all mocks")
     parser.set_defaults(func=housekeep)
-    parser.add_argument("-d", "--database_stanza", help = "database-config-stanza", default="mock-db")
-    parser.add_argument("-s", "--source_stanza", help = "source config  stanza", default="mock-source")
-    parser.add_argument("-x","--store_stanza", help = "storage config stanza", default="mock-store")
+    parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="mock-db")
+    parser.add_argument("-X", "--hop_stanza", help = "hopskotch config  stanza", default="mock-hop")
+    parser.add_argument("-S","--store_stanza", help = "storage config stanza", default="mock-store")
     #list -- list stanzas 
     parser = subparsers.add_parser('list', help="list stanzas")
     parser.set_defaults(func=list)
