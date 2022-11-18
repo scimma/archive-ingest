@@ -29,6 +29,7 @@ import pdb
 import time
 import random
 import datetime
+import uuid
 
 from hop.io import Stream, StartPosition, list_topics
 
@@ -52,7 +53,78 @@ def make_logging(args):
     logging.info(f"Basic logging is configured at {level}")
 
 ##################################
-# recorders e.g "databases"
+# stores
+##################################
+
+class StoreFactory:
+    """
+    Factory class to create Mock, or S3 stores 
+    """
+    def __init__ (self, args):
+        toml_data = toml.load(args.toml_file)
+        stanza = args.store_stanza
+        logging.info(f"using dabase stanza {stanza}")
+        config    = toml_data.get(stanza, None)
+        if not config:
+            logging.fatal("could not find {stanza} in {args.toml_file}")
+
+        #instantiate, then return db object of correct type.
+        if config["type"] == "mock"   : self.store  =  Mock_Store(args, config) ; return 
+        #if config["type"] == "S3"     : self.store  =  S3_Store  (args, config) ; return 
+        logging.fatal(f"stere {type} not supported")
+        exit (1)
+        
+    def get_db(self):
+        return self.store
+
+class StoreInfo:
+    "a namespace for storage data"
+    pass
+
+class Base_store:
+
+    def connect(self):
+        pass
+
+    def log(self, path, size):
+        if self.n_stored < 5 :
+            logging.info(f"stored {sixe} bytes to {path}")
+        elif self.n_stores % self.self.log_every == 0:
+            logging.info(f"stored {sixe} bytes to {path}")
+
+    def path(self, metadata):
+        topic = metadata.topic
+        t = time.gmtime(metadata.timestamp/1000)
+        key = f"{topic}/{t.tm_year}/{t.tm_mon}/{t.tm_mday}/{t.tm_hour}/{uuid.uuid4().urn}"
+               
+
+class Mock_store(Base_store):
+    """
+    a mock store that does nothing -- support debug and devel.
+    """
+    
+    def __init__(self, args, config):
+        self.bucket = "scimma-housekeeping"
+        self.n_stored = 0
+        self.log_every = 1
+        logging.info(f"Mock store configured")
+
+
+    def store(self, payload, metadata):
+        "mock operation of storing in s3"    
+        self.n_insert += 1
+        path = self.path(metadata)
+        storeinfo = Storeinfo()
+        storeinfo.size = len(payload) + 100
+        storeinfo.path = path
+        storeinfo.bucket = self.bucket
+        self.log(path, size)
+        return storeinfo
+
+        
+
+##################################
+# "databases"
 ##################################
 
     
@@ -106,7 +178,7 @@ class S3_db(Base_db):
 
     def insert(self, payload, metadata):
         """place data, metadata as an object in S3"""
-        import uuid
+        
         bucket = self.bucket
         topic = metadata.topic
         t = time.gmtime(metadata.timestamp)
@@ -359,7 +431,8 @@ class Mock_source:
                 metadata = MockMetadata()
                 anumber  = random.randrange(0,20)
                 metadata.topic     = "mockgroup{anumber}.mocktopic"
-                metadata.timestamp = random.randrange(early_time,late_time)        
+                metadata.timestamp = random.randrange(early_time,late_time)*1000
+                metdata.uuid = uuid.uuid4().urn
                 payload = message
                 total_b += len(payload)
                 yield (payload, metadata)
@@ -434,6 +507,7 @@ class Hop_source:
             #message = result[0].serialize().__repr__()
             message = result[1]._raw.value()      #fixme
             metadata =  result[1]
+            metadata.uuid = uuid.uuid4().urn  #replace w/logic that sets this if absent
             self.n_recieved  += 1
             self.refresh_url()
             #logging.info(f"topic, msg size, meta size: {metadata.topic} {len(message)}")
