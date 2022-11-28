@@ -30,7 +30,7 @@ import time
 import random
 import datetime
 import uuid
-#import bson
+import bson
 
 from hop.io import Stream, StartPosition, list_topics
 
@@ -106,7 +106,7 @@ class Base_store:
         'compute the "path" to the object' 
         topic = metadata["topic"]
         t = time.gmtime(metadata["timestamp"]/1000)
-        key = f"{topic}/{t.tm_year}/{t.tm_mon}/{t.tm_mday}/{t.tm_hour}/{uuid.uuid4().urn}"
+        key = f"{topic}/{t.tm_year}/{t.tm_mon}/{t.tm_mday}/{t.tm_hour}/{uuid.uuid4().urn}.bson"
         return key
 
     def get_storeinfo(self, key, size):
@@ -115,7 +115,12 @@ class Base_store:
         storeinfo.key = key
         storeinfo.bucket = self.bucket
         return storeinfo
-        
+
+    def get_as_bson(self, payload, metadata):
+        "return a blob of bson"
+        ret = bson.dumps({"message" : payload, "metadata" : metadata})
+        return ret
+    
 class S3_store(Base_store):
     "send things to s3, not a dbms"
     def __init__(self, args, config):
@@ -131,7 +136,9 @@ class S3_store(Base_store):
         
         bucket = self.bucket
         key = self.get_key(metadata)
-        self.client.put_object(Body=payload, Bucket=bucket, Key=key)        
+        b = self.get_as_bson(payload, metadata)
+        size = len(b)
+        self.client.put_object(Body=b, Bucket=bucket, Key=key)        
         self.n_stored += 1
         storeinfo = self.get_storeinfo(key, len(payload))
         self.log(storeinfo)
@@ -154,7 +161,8 @@ class Mock_store(Base_store):
         "mock operation of storing in s3"    
         self.n_stored += 1
         key = self.get_key(metadata)
-        size = len(payload) + 132
+        b = self.get_as_bson(payload, metadata)
+        size = len(b)
         storeinfo = self.get_storeinfo(key, size)
         self.log(storeinfo)
         return storeinfo
@@ -345,9 +353,6 @@ class AWS_db(Base_db):
 #   Sources 
 ##################################
 
-class MockMetadata:
-    pass
-    
 class SourceFactory:
     """
     Factory class to create Mock, or HOP data sources. 
@@ -508,7 +513,7 @@ class Hop_source:
 
             #message = result[0].serialize().__repr__()
             #result1[ is is a "frozen", immutabls class, so copy out...
-            message = result[1]._raw.value()      #fixme
+            message = result[1]._raw.value() 
             if result[1].headers is None :
                 headers = []
             else:
