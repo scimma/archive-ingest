@@ -419,7 +419,6 @@ class Mock_source:
             total_b = 0
             t0 = time.time()
             for i in range(n_iter):
-                metadata = MockMetadata()
                 anumber  = random.randrange(0,20)
                 topic     = f"mockgroup{anumber}.mocktopic"
                 timestamp = random.randrange(early_time,late_time)*1000
@@ -451,7 +450,7 @@ class Hop_source:
     def __init__(self, args, config):
         toml_data    =   toml.load(args.toml_file)
         config       =   toml_data[args.hop_stanza]
-        self.admin_topics =   config["admin_topics"]
+        self.vetoed_topics =   config["vetoed_topics"]
         self.username =  config["username"]
         self.groupname = config["groupname"]
         self.until_eos = config["until_eos"]
@@ -477,9 +476,9 @@ class Hop_source:
         
         # Concatinate the avilable topics with the broker address
         # omit "adminstrative topics
-        topics = ','.join([t for t in topic_dict.keys() if t not in self.admin_topics])
+        topics = ','.join([t for t in topic_dict.keys() if t not in self.vetoed_topics])
         self.url = (f"{self.base_url}{topics}")
-        logging.info(f"Hop Url (re)configured: {self.url} excluding {self.admin_topics}")
+        logging.info(f"Hop Url (re)configured: {self.url} excluding {self.vetoed_topics}")
     
   
     def connect(self):
