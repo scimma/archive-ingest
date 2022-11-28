@@ -30,6 +30,7 @@ import time
 import random
 import datetime
 import uuid
+#import bson
 
 from hop.io import Stream, StartPosition, list_topics
 
@@ -103,8 +104,8 @@ class Base_store:
 
     def get_key(self, metadata):
         'compute the "path" to the object' 
-        topic = metadata.topic
-        t = time.gmtime(metadata.timestamp/1000)
+        topic = metadata["topic"]
+        t = time.gmtime(metadata["timestamp"]/1000)
         key = f"{topic}/{t.tm_year}/{t.tm_mon}/{t.tm_mday}/{t.tm_hour}/{uuid.uuid4().urn}"
         return key
 
@@ -123,7 +124,6 @@ class S3_store(Base_store):
         
     def connect(self):
         "obtain an S3 Client"
-        pdb.set_trace()
         self.client = boto3.client('s3')
 
     def store(self, payload, metadata):
@@ -322,8 +322,11 @@ class AWS_db(Base_db):
           (topic, timestamp, uuid, size, key)
           VALUES (%s, %s, %s, %s, %s) ;
         COMMIT ; """
-        pdb.set_trace
-        self.cur.execute(sql, [metadata.topic, metadata.timestamp, metadata.uuid, storeinfo.size, storeinfo.key])
+        self.cur.execute(sql, [metadata["topic"],
+                               metadata["timestamp"],
+                               metadata["uuid"],
+                               storeinfo.size,
+                               storeinfo.key])
         self.n_inserted +=1
         self.log()
         
@@ -418,9 +421,17 @@ class Mock_source:
             for i in range(n_iter):
                 metadata = MockMetadata()
                 anumber  = random.randrange(0,20)
-                metadata.topic     = f"mockgroup{anumber}.mocktopic"
-                metadata.timestamp = random.randrange(early_time,late_time)*1000
-                metadata.uuid = uuid.uuid4().urn
+                topic     = f"mockgroup{anumber}.mocktopic"
+                timestamp = random.randrange(early_time,late_time)*1000
+                #roughed in -- not sure of wehat we will see.
+
+                #copy out the metadata of interest to what we save
+                headers = [{"uuid":uuid.uuid4().urn}]   
+                metadata = {"timestamp" : result[1].timestamp,
+                        "headers" : headers,
+                        "topic" : result[1].topic
+                        }
+
                 payload = message
                 total_b += len(payload)
                 yield (payload, metadata)
@@ -493,9 +504,21 @@ class Hop_source:
             # have to serializes -- going with  hack below for now.
 
             #message = result[0].serialize().__repr__()
+            #result1[ is is a "frozen", immutabls class, so copy out...
             message = result[1]._raw.value()      #fixme
-            metadata =  result[1]
-            metadata.uuid = uuid.uuid4().urn  #replace w/logic that sets this if absent
+            if result[1].headers is None :
+                headers = []
+            else:
+                headers = [h for h in result[1].headers]
+            #correct this code when we see the implemenatipn of headers
+            #
+            headers.append({"uuid": uuid.uuid4().urn})
+
+            #copy out the metadata of interest to what we save
+            metadata = {"timestamp" : result[1].timestamp,
+                        "headers" : headers,
+                        "topic" : result[1].topic
+                        }
             self.n_recieved  += 1
             self.refresh_url()
             #logging.info(f"topic, msg size, meta size: {metadata.topic} {len(message)}")
@@ -506,6 +529,7 @@ def housekeep(args):
     Acquire data from the specified source and log to specified DB
     """
     make_logging(args)
+    logging.info(args)
     db     = DbFactory(args).get_db()
     source = SourceFactory(args).get_source()
     store =  StoreFactory(args).get_store()
@@ -545,8 +569,8 @@ if __name__ == "__main__":
     parser = subparsers.add_parser('run', help= "house keep w/(defaults) all mocks")
     parser.set_defaults(func=housekeep)
     parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="mock-db")
-    parser.add_argument("-X", "--hop_stanza", help = "hopskotch config  stanza", default="mock-hop")
-    parser.add_argument("-S","--store_stanza", help = "storage config stanza", default="mock-store")
+    parser.add_argument("-H", "--hop_stanza", help = "hopskotch config  stanza", default="mock-hop")
+    parser.add_argument("-S", "--store_stanza", help = "storage config stanza", default="mock-store")
     #list -- list stanzas 
     parser = subparsers.add_parser('list', help="list stanzas")
     parser.set_defaults(func=list)
