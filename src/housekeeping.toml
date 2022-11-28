@@ -18,6 +18,9 @@ type = "mock"
 
 [aws-dev-db]
 type = "aws"
+aws_db_name = "housekeeping-test-postgres"
+aws_db_secret_name = "housekeeping-db-password"
+aws_region_name  = "us-west-2"
 
 ###########
 # storage 
@@ -39,11 +42,11 @@ type = "mock"
 
 
 [hop-prod]
-type = "hop"
-#username = "parvizim-3f2c2ae7"
-username = "petravic-2bc6a244"
-hostname = "kafka.scimma.org"
-groupname = "hopstream"
-port = 9092
-until_eos = false 
-admin_topics = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
+type       = "hop"
+#username  = "parvizim-3f2c2ae7"
+username   = "petravic-2bc6a244"
+hostname   = "kafka.scimma.org"
+groupname  = "hopstream"
+port       = 9092
+until_eos  = false 
+vetoed_topics = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]

@@ -237,17 +237,15 @@ class AWS_db(Base_db):
     """
     def __init__(self, args, config):
         # get these from the configuration file
-        self.aws_db_name        = "housekeeping-test-postgres" 
-        self.aws_db_secret_name = "housekeeping-db-password"
-        self.aws_region_name    = "us-west-2"
-        self.secret_name        = "housekeeping-db-password"
-        self.region_name        = "us-west-2"
+        self.aws_db_name        = config["aws_db_name"] 
+        self.aws_db_secret_name = config["aws_db_secret_name"]
+        self.aws_region_name    = config["aws_region_name"]
         super().__init__(args, config)
         
         # go off and get the real connections  information from AWS
         self.set_password_info()
         self.set_connect_info()
-        logging.info(f"aws db name, secret, region: {self.aws_db_name}, {self.aws_db_secret_name}, {self.region_name } ")
+        logging.info(f"aws db name, secret, region: {self.aws_db_name}, {self.aws_db_secret_name}, {self.aws_region_name } ")
         logging.info(f"aws database, user, port, address: {self.DBName}, {self.MasterUserName}, {self.Port} ,{self.Address}")
         
     def set_password_info(self):
@@ -258,7 +256,7 @@ class AWS_db(Base_db):
         session = boto3.session.Session()
         client = session.client(
             service_name='secretsmanager',
-            region_name=self.region_name
+            region_name=self.aws_region_name
         )
         get_secret_value_response = client.get_secret_value(
             SecretId=self.aws_db_secret_name
@@ -322,14 +320,19 @@ class AWS_db(Base_db):
           (topic, timestamp, uuid, size, key)
           VALUES (%s, %s, %s, %s, %s) ;
         COMMIT ; """
+        uuid = self.get_uuid_from_header(metadata["headers"])
         self.cur.execute(sql, [metadata["topic"],
                                metadata["timestamp"],
-                               metadata["uuid"],
+                               uuid,
                                storeinfo.size,
                                storeinfo.key])
         self.n_inserted +=1
         self.log()
         
+    def get_uuid_from_header(self, header):
+        for h in header:
+            if h["key"] == "uuid" : return h["body"]
+            
     def launch_query(self):
         "lauch a query tool for AWS databases"
         print (f"use password: {self.password}")
@@ -425,7 +428,8 @@ class Mock_source:
                 #roughed in -- not sure of wehat we will see.
 
                 #copy out the metadata of interest to what we save
-                headers = [{"uuid":uuid.uuid4().urn}]   
+                headers = [{"key":"uuid", "body":uuid.uuid4().urn}]
+
                 metadata = {"timestamp" : result[1].timestamp,
                         "headers" : headers,
                         "topic" : result[1].topic
@@ -511,7 +515,7 @@ class Hop_source:
                 headers = [h for h in result[1].headers]
             #correct this code when we see the implemenatipn of headers
             #
-            headers.append({"uuid": uuid.uuid4().urn})
+            headers.append({"key":"uuid", "body":uuid.uuid4().urn})
 
             #copy out the metadata of interest to what we save
             metadata = {"timestamp" : result[1].timestamp,
