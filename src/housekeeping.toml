@@ -28,6 +28,7 @@ aws_region_name  = "us-west-2"
 
 [S3-dev]
 type = "S3"
+bucket =  "scimma-housekeeping"
 
 [mock-store]
 type = "mock"

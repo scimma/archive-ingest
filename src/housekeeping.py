@@ -119,7 +119,7 @@ class Base_store:
 class S3_store(Base_store):
     "send things to s3, not a dbms"
     def __init__(self, args, config):
-        self.bucket = "scimma-housekeeping"
+        self.bucket = config["bucket"]
         super().__init__(args, config)
         
     def connect(self):
