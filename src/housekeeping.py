@@ -454,8 +454,6 @@ class Mock_source(Base_source):
                 anumber  = random.randrange(0,20)
                 topic     = f"mockgroup{anumber}.mocktopic"
                 timestamp = random.randrange(early_time,late_time)*1000
-                #roughed in -- not sure of wehat we will see.
-
                 headers = self.add_missing_headers([])
                 metadata = {"timestamp" : result[1].timestamp,
                         "headers" : headers,
@@ -522,9 +520,11 @@ class Hop_source(Base_source):
         stream = Stream(auth=True, start_at=start_at, until_eos=self.until_eos)
         
         # Return the connection to the client as :class:"hop.io.Consumer" instance
-        # :meth:"random" included for pre-Aplha development only
-        # Remove :meth:"random" for implemented versions
-        group_id = f"{self.username}-{self.groupname}{random.randint(0,10000)}" 
+        # THe commented uot group ID (below)) migh tbe useful in some development
+        # environments it allows for re-consumption of all the existing events in all
+        # the topics. 
+        #group_id = f"{self.username}-{self.groupname}{random.randint(0,10000)}" 
+        group_id = f"{self.username}-{self.groupname}" 
         self.client = stream.open(url=self.url, group_id=group_id)
 
     def is_active(self):
@@ -534,12 +534,9 @@ class Hop_source(Base_source):
         for result in self.client.read(metadata=True, autocommit=False):
             # What happens on error? GEt nothing back? None?
             # -- seems to stall in self.client.read
-            # Cannot log an  python object -- message, metatdata are obncet
-            # have to serializes -- going with  hack below for now.
-
-            #message = result[0].serialize().__repr__()
-            #result1[ is is a "frozen", immutabls class, so copy out...
-            message = result[1]._raw.value() 
+            # -- lack a full udnerstanding fo thsi case. 
+ 
+            message = result[0].serialize()
             if result[1].headers is None :
                 headers = []
             else:
