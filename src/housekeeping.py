@@ -105,10 +105,16 @@ class Base_store:
     def get_key(self, metadata):
         'compute the "path" to the object' 
         topic = metadata["topic"]
+        uuid = self.get_uuid(metadata)
         t = time.gmtime(metadata["timestamp"]/1000)
-        key = f"{topic}/{t.tm_year}/{t.tm_mon}/{t.tm_mday}/{t.tm_hour}/{uuid.uuid4().urn}.bson"
+        key = f"{topic}/{t.tm_year}/{t.tm_mon}/{t.tm_mday}/{t.tm_hour}/{uuid}.bson"
         return key
 
+    def get_uuid(self, metadata):
+        for label, value in metadata["headers"]:
+            if label is "_id" : return value
+        raise Exception ("Missing UUID header in headers")
+    
     def get_storeinfo(self, key, size):
         storeinfo = Store_info()
         storeinfo.size = size
@@ -218,11 +224,16 @@ class Base_db:
     
     def log(self):
         "log db informmation, but not too often"
-        msg1 = f"insterted  {self.n_inserted} objects."
+        msg1 = f"inserted  {self.n_inserted} objects."
         if self.n_inserted < 5 :
             logging.info(msg1)
         elif self.n_inserted % self.log_every == 0:
             logging.info(msg1)
+                         
+    def get_uuid(self, metadata):
+        for label, value in metadata["headers"]:
+            if label is "_id" : return value
+        raise Exception ("Missing UUID header in headers")
 
     
         
@@ -328,7 +339,8 @@ class AWS_db(Base_db):
           (topic, timestamp, uuid, size, key)
           VALUES (%s, %s, %s, %s, %s) ;
         COMMIT ; """
-        uuid = self.get_uuid_from_header(metadata["headers"])
+
+        uuid = self.get_uuid( metadata)
         self.cur.execute(sql, [metadata["topic"],
                                metadata["timestamp"],
                                uuid,
@@ -336,11 +348,7 @@ class AWS_db(Base_db):
                                storeinfo.key])
         self.n_inserted +=1
         self.log()
-        
-    def get_uuid_from_header(self, header):
-        for h in header:
-            if h["key"] == "uuid" : return h["body"]
-            
+
     def launch_query(self):
         "lauch a query tool for AWS databases"
         print (f"use password: {self.password}")
@@ -372,9 +380,24 @@ class SourceFactory:
     def get_source(self):
         "return the srouce sppecified in the toml file"
         return self.source
+
+class Base_source:
+
+    def __init__(self, args, config):
+        pass
     
 
-class Mock_source:
+    def add_missing_headers(self, headers):
+        "add the _id header (uuid) if its not present"
+        if not headers :
+            headers = [("_id", uuid.uuid4().bytes)]
+        else:
+            labels, values = zip(headers)
+            if "_id" not in labels:
+                headers.append(("_id", uuid.uuid4().bytes))
+        return headers
+    
+class Mock_source(Base_source):
     """
     a mock source  that will support capacity testing.
     """
@@ -399,6 +422,7 @@ class Mock_source:
         self.n_events  = 200
         self.total_message_bytes = 0
         self.t0 =  time.time()
+        super().__init__(args, config)
         
     def connect(self):
         pass
@@ -432,9 +456,7 @@ class Mock_source:
                 timestamp = random.randrange(early_time,late_time)*1000
                 #roughed in -- not sure of wehat we will see.
 
-                #copy out the metadata of interest to what we save
-                headers = [{"key":"uuid", "body":uuid.uuid4().urn}]
-
+                headers = self.add_missing_headers([])
                 metadata = {"timestamp" : result[1].timestamp,
                         "headers" : headers,
                         "topic" : result[1].topic
@@ -455,8 +477,9 @@ class Mock_source:
         self.n_sent += 1
         
 
-class Hop_source:
+class Hop_source(Base_source):
     def __init__(self, args, config):
+        self.args    = args
         toml_data    =   toml.load(args.toml_file)
         config       =   toml_data[args.hop_stanza]
         self.vetoed_topics =   config["vetoed_topics"]
@@ -473,19 +496,22 @@ class Hop_source:
         self.refresh_url_every =  1000  # make this a config
         self.n_recieved = 0
         self.refresh_url()          #set ural with topics.
+        super().__init__(args, config)
         
     def refresh_url(self):
-        "initalize/refresh the list of public topics to record PRN"
-
+        "initalize/refresh the list of topics to record PRN"
         #return if not not needed.
         if self.n_recieved  % self.refresh_url_every != 0: return
-            
-        # Read the available topics from the given broker
-        topic_dict = list_topics(url=self.base_url)
+        if self.args.topic:
+            #this implementation suposrt test and debug.
+            topics = args.topic
+        else: 
+            # Read the available topics from the given broker
+            topic_dict = list_topics(url=self.base_url)
         
-        # Concatinate the avilable topics with the broker address
-        # omit "adminstrative topics
-        topics = ','.join([t for t in topic_dict.keys() if t not in self.vetoed_topics])
+            # Concatinate the avilable topics with the broker address
+            # omitvetoed  topics
+            topics = ','.join([t for t in topic_dict.keys() if t not in self.vetoed_topics])
         self.url = (f"{self.base_url}{topics}")
         logging.info(f"Hop Url (re)configured: {self.url} excluding {self.vetoed_topics}")
     
@@ -520,7 +546,7 @@ class Hop_source:
                 headers = [h for h in result[1].headers]
             #correct this code when we see the implemenatipn of headers
             #
-            headers.append({"key":"uuid", "body":uuid.uuid4().urn})
+            headers = self.add_missing_headers([])
 
             #copy out the metadata of interest to what we save
             metadata = {"timestamp" : result[1].timestamp,
@@ -532,12 +558,24 @@ class Hop_source:
             #logging.info(f"topic, msg size, meta size: {metadata.topic} {len(message)}")
             yield (message, metadata)
 
+    def publish(self, topic):
+        """publish a few messages as a test fixture
+
+           this is (obvously) underdeveloped
+        """
+        import subprocess
+        for n in range(2):
+            json = '{{"message" : "This is Blob %s"}}'.format(n)
+            cmd = f"echo '{json}' | hop publish -f BLOB -t {self.base_url}{topic}"
+            cmd = f"hop publish -f JSON -t {self.base_url}{topic} dog.json"
+            logging.info(f"{cmd}")
+            subprocess.run(cmd, shell=True)
+        pass
+    
 def housekeep(args):
     """
     Acquire data from the specified source and log to specified DB
     """
-    make_logging(args)
-    logging.info(args)
     db     = DbFactory(args).get_db()
     source = SourceFactory(args).get_source()
     store =  StoreFactory(args).get_store()
@@ -554,6 +592,10 @@ def housekeep(args):
 def query(args):
     "get connect info and launch a query engine"
     DbFactory(args).get_db().launch_query()
+
+def publish(args):
+    "publish some test data to a topic"
+    SourceFactory(args).get_source().publish(args.topic)
 
 def list(args):
     "list the stanzas so I dont have to grep toml files"
@@ -579,17 +621,26 @@ if __name__ == "__main__":
     parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="mock-db")
     parser.add_argument("-H", "--hop_stanza", help = "hopskotch config  stanza", default="mock-hop")
     parser.add_argument("-S", "--store_stanza", help = "storage config stanza", default="mock-store")
+    parser.add_argument("-t", "--topic", help = "consume only this topic for consumption", default=None)
+
     #list -- list stanzas 
     parser = subparsers.add_parser('list', help="list stanzas")
     parser.set_defaults(func=list)
 
     #query --- launch a query tool against AWS 
-    parser = subparsers.add_parser('query', help="Launch a query tool against AWS databases")
+    parser = subparsers.add_parser('query', help="Launch a query shell against AWS databases")
     parser.set_defaults(func=query)
-    parser.add_argument("-q", "--database_stanza", help = "database-config-stanza", default="aws-dev-db")
+    parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="aws-dev-db")
 
-
+    #publish -- publish some test data
+    parser = subparsers.add_parser('publish', help="publish some test data")
+    parser.set_defaults(func=publish)
+    parser.add_argument("-t", "--topic", help = "consume only this topic for consumption", default=None)
+    parser.add_argument("-H", "--hop_stanza", help = "hopskotch config  stanza", default="mock-hop")
+    
     args = main_parser.parse_args()
+    make_logging(args)
+    logging.info(args)
     
     if not args.func:  # there are no subfunctions
         main_parser.print_help()
