@@ -2,15 +2,9 @@
 filename = "output/hopstream.log" 
 level = "INFO"
 
-[SQlite]
-type = "SQlite"
-file = "hopstream.db"
-rdms = "sqlite"
-dbapi = "pysqlite"
-echo = true
-pool_pre_ping = true
-future = false 
-log-inserts-every = 1
+###########
+# database
+###########
 
 [mock-db]
 type = "mock"
@@ -19,7 +13,7 @@ type = "mock"
 [aws-dev-db]
 type = "aws"
 aws_db_name = "housekeeping-test-postgres"
-aws_db_secret_name = "housekeeping-test-db-password"
+aws_db_secret_name = "housekeeping-db-password"
 aws_region_name  = "us-west-2"
 
 ###########
@@ -28,12 +22,11 @@ aws_region_name  = "us-west-2"
 
 [S3-dev]
 type = "S3"
-bucket =  "scimma-housekeeping-test"
+bucket =  "scimma-test-housekeeping"
 
 [mock-store]
 type = "mock"
-bucket =  "mock bucket"
-
+bucket =  "mock-bucket"
 
 ###########
 # hop
@@ -43,17 +36,20 @@ bucket =  "mock bucket"
 type = "mock"
 
 [hop-dev]
-type       = "hop"
-hostname   = "dev.hop.scimma.org"
-port       = 9092
+type                = "hop"
+hostname            = "dev.hop.scimma.org"
+port                = 9092
+hop-aws-secret-name =  "housekeeping-test-hop-scram-cred"
 vetoed_topics = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
 
 [hop-prod]
 type       = "hop"
 #username  = "parvizim-3f2c2ae7"
-username   = "petravic-2bc6a244"
+#username   = "petravic-2bc6a244"
 hostname   = "kafka.scimma.org"
 groupname  = "hopstream"
+aws-secret-name   =  "housekeeping-test-hop-prod-credentials"
+aws-secret-region =  "us-west-2"
 port       = 9092
 until_eos  = false 
 vetoed_topics = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]

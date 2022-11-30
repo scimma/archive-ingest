@@ -31,6 +31,7 @@ import random
 import datetime
 import uuid
 import bson
+import json
 
 from hop.io import Stream, StartPosition, list_topics
 
@@ -150,8 +151,6 @@ class S3_store(Base_store):
         self.log(storeinfo)
         return storeinfo
 
-
-               
 class Mock_store(Base_store):
     """
     a mock store that does nothing -- support debug and devel.
@@ -481,13 +480,16 @@ class Hop_source(Base_source):
         self.args    = args
         toml_data    =   toml.load(args.toml_file)
         config       =   toml_data[args.hop_stanza]
-        self.vetoed_topics =   config["vetoed_topics"]
-        self.username =  config["username"]
-        self.groupname = config["groupname"]
-        self.until_eos = config["until_eos"]
+        self.vetoed_topics = config["vetoed_topics"]
+        #self.username      = config["username"]
+        self.groupname     = config["groupname"]
+        self.until_eos     = config["until_eos"]
+        self.secret_name   = config["aws-secret-name"]
+        self.region_name   = config["aws-secret-region"]
+        self.authorize()
         self.base_url = (
                 f"kafka://"   \
-                f"{config['username']}@" \
+                f"{self.username}@" \
                 f"{config['hostname']}:" \
                 f"{config['port']}/"
             )
@@ -518,7 +520,7 @@ class Hop_source(Base_source):
     def connect(self):
         # Instance :class:"hop.io.Stream" with auth configured via 'auth=True'
         start_at = StartPosition.EARLIEST
-        stream = Stream(auth=True, start_at=start_at, until_eos=self.until_eos)
+        stream = Stream(auth=self.auth, start_at=start_at, until_eos=self.until_eos)
         
         # Return the connection to the client as :class:"hop.io.Consumer" instance
         # THe commented uot group ID (below)) migh tbe useful in some development
@@ -528,6 +530,21 @@ class Hop_source(Base_source):
         group_id = f"{self.username}-{self.groupname}" 
         self.client = stream.open(url=self.url, group_id=group_id)
 
+    def authorize(self):
+        "authorize using AWS secrets"
+        from hop.auth import Auth
+        session = boto3.session.Session()
+        client = session.client(
+            service_name='secretsmanager',
+            region_name=self.region_name
+        )
+        resp = client.get_secret_value(
+            SecretId=self.secret_name
+        )['SecretString']
+        resp = json.loads(resp)
+        self.username = resp["username"]
+        self.auth = Auth(resp["username"], resp["password"])
+        
     def is_active(self):
         return True
 
