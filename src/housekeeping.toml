@@ -13,7 +13,7 @@ type = "mock"
 [aws-dev-db]
 type = "aws"
 aws_db_name = "housekeeping-test-postgres"
-aws_db_secret_name = "housekeeping-db-password"
+aws_db_secret_name = "housekeeping-test-db-password"
 aws_region_name  = "us-west-2"
 
 ###########

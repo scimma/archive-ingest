@@ -107,9 +107,9 @@ class Base_store:
     def get_key(self, metadata):
         'compute the "path" to the object' 
         topic = metadata["topic"]
-        uuid = self.get_uuid(metadata)
+        uuid_ = self.get_uuid(metadata)
         t = time.gmtime(metadata["timestamp"]/1000)
-        key = f"{topic}/{t.tm_year}/{t.tm_mon}/{t.tm_mday}/{t.tm_hour}/{uuid}.bson"
+        key = f"{topic}/{t.tm_year}/{t.tm_mon}/{t.tm_mday}/{t.tm_hour}/{uuid.UUID(bytes=uuid_)}.bson"
         return key
 
     def get_uuid(self, metadata):
@@ -317,14 +317,13 @@ class AWS_db(Base_db):
           id  BIGSERIAL PRIMARY KEY,                                  
           topic     TEXT,
           timestamp BIGINT,
-          uuid      TEXT,
+          uuid      BYTEA,
           size      INTEGER,
           key       TEXT
         );
         
         CREATE INDEX IF NOT EXISTS timestamp_idx ON messages (timestamp);
         CREATE INDEX IF NOT EXISTS topic_idx     ON messages (topic);
-        CREATE INDEX IF NOT EXISTS uuid_idx      ON messages (uuid);
         COMMIT;
         
         """
@@ -339,10 +338,10 @@ class AWS_db(Base_db):
           VALUES (%s, %s, %s, %s, %s) ;
         COMMIT ; """
 
-        uuid = self.get_uuid( metadata)
+        uuid_ = self.get_uuid( metadata)
         self.cur.execute(sql, [metadata["topic"],
                                metadata["timestamp"],
-                               uuid,
+                               uuid_,
                                storeinfo.size,
                                storeinfo.key])
         self.n_inserted +=1
