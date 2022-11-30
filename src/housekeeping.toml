@@ -19,7 +19,7 @@ type = "mock"
 [aws-dev-db]
 type = "aws"
 aws_db_name = "housekeeping-test-postgres"
-aws_db_secret_name = "housekeeping-db-password"
+aws_db_secret_name = "housekeeping-test-db-password"
 aws_region_name  = "us-west-2"
 
 ###########
@@ -28,10 +28,11 @@ aws_region_name  = "us-west-2"
 
 [S3-dev]
 type = "S3"
-bucket =  "scimma-housekeeping"
+bucket =  "scimma-housekeeping-test"
 
 [mock-store]
 type = "mock"
+bucket =  "mock bucket"
 
 
 ###########
@@ -41,6 +42,11 @@ type = "mock"
 [mock-hop]
 type = "mock"
 
+[hop-dev]
+type       = "hop"
+hostname   = "dev.hop.scimma.org"
+port       = 9092
+vetoed_topics = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
 
 [hop-prod]
 type       = "hop"

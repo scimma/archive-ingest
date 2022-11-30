@@ -17,8 +17,9 @@ all: container
 print-%  : ; @echo $* = $($*)
 
 container: Dockerfile
-	@if [ ! -z "$$(git status --porcelain)" ]; then echo "Directory is not clean. Commit your changes."; exit 1; fi
-	docker build -f $< -t $(CNT_IMG) .
+#	#@if [ ! -z "$$(git status --porcelain)" ]; then echo "Directory is not clean. Commit your changes."; exit 1; fi
+	docker build --platform linux/amd64 -f $< -t $(CNT_IMG) .  
+#	docker build                        -f $< -t $(CNT_IMG) .  
 	docker tag $(CNT_IMG) $(CNT_LTST)
 
 set-release-tags:

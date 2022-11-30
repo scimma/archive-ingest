@@ -1,22 +1,19 @@
-FROM ubuntu:20.04
-
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-  python3-pip         \
-  python-is-python3   \
-  && rm -rf /var/lib/apt/lists/*
-
-ARG UID=${UID}
-
-RUN useradd --create-home --shell /bin/bash worker --uid ${UID}
-RUN chown worker:worker /tmp
-USER worker
-WORKDIR /home/worker
-ENV PATH="/home/worker/.local/bin:${PATH}"
-
-COPY --chown=worker:worker requirements.txt requirements.txt
-RUN pip install --user --no-cache-dir -r requirements.txt
-
-COPY --chown=worker:worker src/ src/
-WORKDIR /home/worker/src
-# USER root
-# RUN echo test | nc -w 10 kafka.scimma.org 9092; echo $?
+#FROM ubuntu:20.04
+FROM scimma/client:0.7.1
+RUN  mkdir -p /usr/local/src
+RUN yum -y install git unzip python3-pytz python38-pytz postgresql-devel
+RUN cd /usr/local/src && \
+    curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+    unzip awscliv2.zip && \
+    ./aws/install && \
+    rm -rf aws
+    
+ADD src/housekeeping.py    /root/housekeeping.py
+ADD src/housekeeping.toml  /root/housekeeping.toml
+ADD requirements.txt       /root/requirements.txt
+# RUN chmod ugo+rx           /root/housekeeping.py
+# RUN chmod ugo+rwx          /root/housekeeping.toml
+RUN pip3 install -r       /root/requirements.txt
+WORKDIR /tmp 
+#ENTRYPOINT ["/bin/bash"]
+CMD [ "/bin/bash" ]

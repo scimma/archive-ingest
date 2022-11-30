@@ -85,6 +85,7 @@ class Store_info:
 
 class Base_store:
     def __init__(self, args, config):
+        self.bucket = config["bucket"]
         self.n_stored = 0
         self.log_every = 100   #move to config file.
     
@@ -112,7 +113,7 @@ class Base_store:
 
     def get_uuid(self, metadata):
         for label, value in metadata["headers"]:
-            if label is "_id" : return value
+            if label ==  "_id" : return value
         raise Exception ("Missing UUID header in headers")
     
     def get_storeinfo(self, key, size):
@@ -130,7 +131,6 @@ class Base_store:
 class S3_store(Base_store):
     "send things to s3, not a dbms"
     def __init__(self, args, config):
-        self.bucket = config["bucket"]
         super().__init__(args, config)
         
     def connect(self):
@@ -455,9 +455,10 @@ class Mock_source(Base_source):
                 topic     = f"mockgroup{anumber}.mocktopic"
                 timestamp = random.randrange(early_time,late_time)*1000
                 headers = self.add_missing_headers([])
-                metadata = {"timestamp" : result[1].timestamp,
+
+                metadata = {"timestamp" :timestamp,
                         "headers" : headers,
-                        "topic" : result[1].topic
+                        "topic" : topic
                         }
 
                 payload = message
