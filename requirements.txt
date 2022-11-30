@@ -1,6 +1,9 @@
-# psycopg2-binary
+psycopg2
+psycopg2.extensions
+boto3
+toml
+bson
+boto3
 tzdata
 hop-client >= 0.7.0
-pyyaml
-pyjson
-mysql-connector-python-rf == 2.2.2
+
