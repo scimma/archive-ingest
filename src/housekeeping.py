@@ -231,7 +231,7 @@ class Base_db:
                          
     def get_uuid(self, metadata):
         for label, value in metadata["headers"]:
-            if label is "_id" : return value
+            if label ==  "_id" : return value
         raise Exception ("Missing UUID header in headers")
 
     
