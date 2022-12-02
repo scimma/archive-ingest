@@ -2,7 +2,7 @@
 ## The "push" target assumes that AWS credentials 
 ## have been configured.
 ##
-CNT_NAME := scimma/hopbeat
+CNT_NAME := scimma/housekeeping
 REGION   := us-west-2
 AWSREG   := 585193511743.dkr.ecr.us-west-2.amazonaws.com
 
@@ -18,7 +18,8 @@ print-%  : ; @echo $* = $($*)
 
 container: Dockerfile
 #	#@if [ ! -z "$$(git status --porcelain)" ]; then echo "Directory is not clean. Commit your changes."; exit 1; fi
-	docker build --platform linux/amd64 -f $< -t $(CNT_IMG) .  
+#	DOCKER_BUILDKIT=1 docker build --platform linux/amd64 --secret id=aws,src=/Users/donaldp/.aws/credentials -f $< -t $(CNT_IMG) .
+	DOCKER_BUILDKIT=1 docker build --platform linux/amd64  -f $< -t $(CNT_IMG) .  
 #	docker build                        -f $< -t $(CNT_IMG) .  
 	docker tag $(CNT_IMG) $(CNT_LTST)
 
