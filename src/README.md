@@ -1,43 +1,92 @@
-Housekeeping
 
-Goal: Provide an accurate, binary-level archive that introduces no
-addiional constraints on message or header to constraints of HopSkootch.
+```
+usage: housekeeping.py [-h] [-t TOML_FILE] [-l LOG_STANZA] {run,list,query,publish} ...
 
-The archive supports use cases such as  1)restore a karfka stream,
-2) Provide the basis for follow  on value-added services, best served
-by an archive rather than a  stream.
+Log messages and metadata to a database.
 
-Implementation overview.
+In production, run is uses to log events from selected Hopscotch
+public topics into the AWS-resident production housekeeping database.
 
-Messages are acquired by the housekeeping app. The app listens to
-public topics, subject to a veto-list.  The veto list is meant to
-exclude utilites related to the operation of Hopskotch, for example
-the heartbeat.
+Events may be also logged to the AWS-resident development
+database,  or a "mock" database that ust discards them.
 
-What is stored from these public messages?  1) Kafka messages 2)
-select Kafaka metdata: topic, millisecond integer timestamp, and
-headers are stored.
+Events can be sourced from hopskotch, or from a "mock" source.  The
+development direction for the mock source is to allow for stressing
+the database engines and database provisioning to ensure they form a
+robust store that is critical to SCiMMA operations, and to provide
+a varaitey of messasges, to test that housekeeping is agnostic to
+the format of messages, and header content.
 
-Stored headers always include an _id header.  If an _id is absent,
-then housekeeping supplies a an _id header continging a UUID. If an
-_id header is supplied it is assumed to be a uuid supplied by
-HopSkotch software.
+@author: Mahmoud Parvizi (parvizim@msu.edu)
+@author: Don Petravick (petravick@illinois.edu)
 
-How is the data stored?  All of the above are packed into a BSON
-formatted object (https://bsonspec.org).  Unlike JSON, BSON allows for
-the storage of binary blobs.  The packaging is such that a single BSON
-object byte-stream represents a kafka message and its select
-metadata. Housekeeping stores the BSON object in AWS S3. AWS
-buckets in production are backed up.
+positional arguments:
+  {run,list,query,publish}
+    run                 house keep w/(defaults) all mocks
+    list                list stanzas
+    query               Launch a query shell against AWS databases
+    publish             publish some test data
 
-Additionally, select data are stored in an AWS postgres database.
-Database information includes the UUID, millisecond timestamp, topic,
-internally generated serial number, bucket and key to the BSON object
-used in S3. The production postgres database is backed up.
+optional arguments:
+  -h, --help            show this help message and exit
+  -t TOML_FILE, --toml_file TOML_FILE
+                        toml configuration file
+  -l LOG_STANZA, --log_stanza LOG_STANZA
+                        log config stanza
+```
 
-Headers and message payloads are stored only in the BSON object.
-Consequently, queries based on message or header contents
-are for follow on projects, not this archive implementation.
+## run
+```
+usage: housekeeping.py run [-h] [-D DATABASE_STANZA] [-H HOP_STANZA]
+                           [-S STORE_STANZA] [-t TOPIC]
 
+optional arguments:
+  -h, --help            show this help message and exit
+  -D DATABASE_STANZA, --database_stanza DATABASE_STANZA
+                        database-config-stanza
+  -H HOP_STANZA, --hop_stanza HOP_STANZA
+                        hopskotch config stanza
+  -S STORE_STANZA, --store_stanza STORE_STANZA
+                        storage config stanza
+  -t TOPIC, --topic TOPIC
+                        consume only this topic for consumption
+```
 
+## list
+The list command simply prints the .toml file out as
+a convenient memeory aid when specifying -D -H  ro -S switches
+
+```
+usage: housekeeping.py list [-h]
+
+optional arguments:
+  -h, --help  show this help message and exit
+```
+## query
+The query subcommand conencts to the postgres database specified by
+the -D option and starts and interactive  psql shell.
+```
+usage: housekeeping.py query [-h] [-D DATABASE_STANZA]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -D DATABASE_STANZA, --database_stanza DATABASE_STANZA
+                        database-config-stanza
+
+```
+
+## publish
+The publish command publishes a canned set of messages
+to the specied topic to the HOP instacens  instance
+specifed by -H. It is meant for debugging use cases.
+```
+usage: housekeeping.py publish [-h] [-t TOPIC] [-H HOP_STANZA]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -t TOPIC, --topic TOPIC
+                        consume only this topic for consumption
+  -H HOP_STANZA, --hop_stanza HOP_STANZA
+                        hopskotch config stanza
+```
 
