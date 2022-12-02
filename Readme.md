@@ -58,5 +58,22 @@ Housekeeping.py also contains utilites to monitoring/ adminstering the
 application. (See the readme in the src diretory for further
 informaation).
 
+## (interim) Container deployment example
 
+The goal of this git repository is to make and push containers containing
+the housekeeping application into into both the SCiMMA
+AWS ecs repository and to push containers into the
+docker.io/scimma/housekeeping repository.
+
+Ultimatelu This is done in the context of a set of github actions.
+These actions are not yet implemented.  Right now,
+the Makefile can only push containers to aws, using the
+following commands.
+
+Makefile actions to push containers to gitub.io/scimma are commented out.
+
+```
+make container
+make  push  GITHUB_REF=housekeeping-0.0.0
+``
 
