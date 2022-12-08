@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 '''Log messages and metadata to a database.
 
@@ -353,6 +353,7 @@ class AWS_db(Base_db):
         import subprocess 
         cmd = f"psql --dbname {self.DBName} --host={self.Address} --username={self.MasterUserName} --password"
         subprocess.run(cmd, shell=True)
+
         
 
 ##################################
@@ -542,6 +543,7 @@ class Hop_source(Base_source):
         )['SecretString']
         resp = json.loads(resp)
         self.username = resp["username"]
+        logging.info (f"hopskotch username is: {self.username}")
         self.auth = Auth(resp["username"], resp["password"])
         
     def is_active(self):
@@ -586,6 +588,8 @@ class Hop_source(Base_source):
             subprocess.run(cmd, shell=True)
         pass
     
+    pass
+
 def housekeep(args):
     """
     Acquire data from the specified source and log to specified DB
