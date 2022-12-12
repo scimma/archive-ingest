@@ -32,8 +32,11 @@ import datetime
 import uuid
 import bson
 import json
+import os
+import certifi
 
 from hop.io import Stream, StartPosition, list_topics
+import hop
 
 ##################################
 #   environment
@@ -508,7 +511,7 @@ class Hop_source(Base_source):
             topics = args.topic
         else: 
             # Read the available topics from the given broker
-            topic_dict = list_topics(url=self.base_url)
+            topic_dict = list_topics(url=self.base_url, auth=self.auth)
         
             # Concatinate the avilable topics with the broker address
             # omitvetoed  topics
@@ -544,7 +547,26 @@ class Hop_source(Base_source):
         resp = json.loads(resp)
         self.username = resp["username"]
         logging.info (f"hopskotch username is: {self.username}")
-        self.auth = Auth(resp["username"], resp["password"])
+        path = self.make_hop_auth_file(resp["username"], resp["password"])
+        import pdb; pdb.set_trace()
+        #self.auth = hop.auth.load_auth(path)
+        self.auth  = hop.auth.Auth(resp["username"], resp["password"])
+    def make_hop_auth_file(self, username, password):
+        "make /tmp/auth.toml if it does not exist"
+        auth_path = '/tmp/auth.toml'
+        logging.info(f"making hop auth file {auth_path}")
+        # must be in a container -- go make a file.
+        with open(auth_path, "w") as out:
+            out.write ( '[[auth]]\n')
+            out.write (f'username = "{username}"\n')
+            out.write (f'password = "{password}"\n')
+            out.write ( 'protocol = "SASL_SSL"\n')
+            out.write ( 'mechanism = "SCRAM-SHA-512"\n')
+            pem_file =  os.path.join(os.path.dirname(certifi.__file__),"cacert.pem")
+            out.write (f'ssl_ca_location = "{pem_file}"\n')
+        os.chmod(auth_path, 0o600)
+        return auth_path
+    
         
     def is_active(self):
         return True

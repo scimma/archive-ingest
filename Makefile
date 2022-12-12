@@ -30,14 +30,11 @@ set-release-tags:
 	@echo MAJOR_TAG = $(MAJOR_TAG)
 	@$(eval MINOR_TAG   := $(shell echo $(RELEASE_TAG) | awk -F. '{print $$2}'))
 	@echo MINOR_TAG = $(MINOR_TAG)
-
-push: set-release-tags
 #       tags of the form "number.number.number"
 	@(echo $(RELEASE_TAG) | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$$' > /dev/null ) || (echo Bad release tag: $(RELEASE_TAG) && exit 1)
+
+push-aws: set-release-tags push-local
 	/usr/local/bin/aws ecr get-login-password | docker login --username AWS --password-stdin $(AWSREG)
-	docker tag $(CNT_IMG) $(AWSREG)/$(CNT_NAME):$(RELEASE_TAG)
-	docker tag $(CNT_IMG) $(AWSREG)/$(CNT_NAME):$(MAJOR_TAG)
-	docker tag $(CNT_IMG) $(AWSREG)/$(CNT_NAME):$(MAJOR_TAG).$(MINOR_TAG)
 	docker push $(AWSREG)/$(CNT_NAME):$(RELEASE_TAG)
 	docker push $(AWSREG)/$(CNT_NAME):$(MAJOR_TAG)
 	docker push $(AWSREG)/$(CNT_NAME):$(MAJOR_TAG).$(MINOR_TAG)
@@ -50,3 +47,9 @@ push: set-release-tags
 #	docker push $(CNT_NAME):$(MAJOR_TAG).$(MINOR_TAG)
 #	rm -f $(HOME)/.docker/config.json
 test:
+
+push-local: set-release-tags
+
+	docker tag $(CNT_IMG) $(AWSREG)/$(CNT_NAME):$(RELEASE_TAG)
+	docker tag $(CNT_IMG) $(AWSREG)/$(CNT_NAME):$(MAJOR_TAG)
+	docker tag $(CNT_IMG) $(AWSREG)/$(CNT_NAME):$(MAJOR_TAG).$(MINOR_TAG)
