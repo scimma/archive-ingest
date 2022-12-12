@@ -1,6 +1,7 @@
 #FROM ubuntu:20.04
-FROM scimma/client:0.7.1
-
+#FROM scimma/client:0.7.1
+FROM scimma/client:latest
+RUN pip3 install --upgrade pip 
 RUN  mkdir -p /usr/local/src
 RUN yum -y install git unzip python3-pytz python38-pytz postgresql-devel 
 RUN cd /usr/local/src && curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"

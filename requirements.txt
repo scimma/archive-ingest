@@ -2,6 +2,6 @@ psycopg2-binary
 boto3
 toml
 bson
-hop-client
+hop-client == 0.7.0
 boto3
 

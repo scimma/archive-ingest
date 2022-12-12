@@ -548,9 +548,9 @@ class Hop_source(Base_source):
         self.username = resp["username"]
         logging.info (f"hopskotch username is: {self.username}")
         path = self.make_hop_auth_file(resp["username"], resp["password"])
-        import pdb; pdb.set_trace()
-        #self.auth = hop.auth.load_auth(path)
         self.auth  = hop.auth.Auth(resp["username"], resp["password"])
+        return
+    
     def make_hop_auth_file(self, username, password):
         "make /tmp/auth.toml if it does not exist"
         auth_path = '/tmp/auth.toml'
@@ -578,6 +578,7 @@ class Hop_source(Base_source):
             # -- lack a full udnerstanding fo thsi case. 
  
             message = result[0].serialize()
+            #message = result[0]
             if result[1].headers is None :
                 headers = []
             else:
