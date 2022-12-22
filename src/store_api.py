@@ -1,5 +1,5 @@
 """
-Provide classes and API to sources of housekeeping data.
+Provide classes and API to stores  of housekeeping objects.
 
 There are two types homeomorphic classes
 
