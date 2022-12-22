@@ -16,6 +16,6 @@ ADD requirements.txt       /root/requirements.txt
 # RUN chmod ugo+rx           /root/housekeeping.py
 # RUN chmod ugo+rwx          /root/housekeeping.toml
 RUN pip3 install -r        /root/requirements.txt
-WORKDIR /tmp 
+WORKDIR /root
 #ENTRYPOINT ["/bin/bash"]
-#CMD ["sleep", "3" ]
+CMD ["./housekeeping.py", "run", "-H",  "hop-prod"]
