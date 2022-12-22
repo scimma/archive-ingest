@@ -77,18 +77,13 @@ class Base_store:
             logging.info(msg1)
             logging.info(msg2)
 
-    def get_key(self, metadata):
+    def get_key(self, metadata, text_uuid):
         'compute the "path" to the object' 
         topic = metadata["topic"]
-        uuid_ = self.get_uuid(metadata)
         t = time.gmtime(metadata["timestamp"]/1000)
-        key = f"{topic}/{t.tm_year}/{t.tm_mon}/{t.tm_mday}/{t.tm_hour}/{uuid.UUID(bytes=uuid_)}.bson"
+        key = f"{topic}/{t.tm_year}/{t.tm_mon}/{t.tm_mday}/{t.tm_hour}/{text_uuid}.bson"
         return key
 
-    def get_uuid(self, metadata):
-        for label, value in metadata["headers"]:
-            if label ==  "_id" : return value
-        raise Exception ("Missing UUID header in headers")
     
     def get_storeinfo(self, key, size):
         storeinfo = Store_info()
@@ -111,11 +106,11 @@ class S3_store(Base_store):
         "obtain an S3 Client"
         self.client = boto3.client('s3')
 
-    def store(self, payload, metadata):
+    def store(self, payload, metadata, text_uuid):
         """place data, metadata as an object in S3"""
         
         bucket = self.bucket
-        key = self.get_key(metadata)
+        key = self.get_key(metadata, text_uuid)
         b = self.get_as_bson(payload, metadata)
         size = len(b)
         self.client.put_object(Body=b, Bucket=bucket, Key=key)        
@@ -135,10 +130,10 @@ class Mock_store(Base_store):
         logging.info(f"Mock store configured")
 
 
-    def store(self, payload, metadata):
+    def store(self, payload, metadata, text_uuid):
         "mock operation of storing in s3"    
         self.n_stored += 1
-        key = self.get_key(metadata)
+        key = self.get_key(metadata, text_uuid)
         b = self.get_as_bson(payload, metadata)
         size = len(b)
         storeinfo = self.get_storeinfo(key, size)

@@ -62,8 +62,9 @@ def housekeep(args):
     for x in source.get_next():
         payload = x[0]
         metadata = x[1]
-        storeinfo = store.store(payload, metadata)
-        db.insert(payload, metadata, storeinfo)
+        text_uuid = x[2]
+        storeinfo = store.store(payload, metadata, text_uuid)
+        db.insert(payload, metadata, text_uuid, storeinfo)
 
 
 def list(args):

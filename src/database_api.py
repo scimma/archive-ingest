@@ -84,12 +84,6 @@ class Base_db:
         elif self.n_inserted % self.log_every == 0:
             logging.info(msg1)
                          
-    def get_uuid(self, metadata):
-        "get uuid from metadata payload"
-        for label, value in metadata["headers"]:
-            if label ==  "_id" : return value
-        raise Exception ("Missing UUID header in headers")
-
     
         
 class Mock_db(Base_db):
@@ -101,7 +95,7 @@ class Mock_db(Base_db):
         super().__init__(args, config)
        
 
-    def insert(self, payload, message, storeinfo):
+    def insert(self, payload, message, text_uuid, storeinfo):
         "accepot and discard data"
         self.n_inserted += 1
         self.log()
@@ -175,7 +169,7 @@ class AWS_db(Base_db):
           id  BIGSERIAL PRIMARY KEY,                                  
           topic     TEXT,
           timestamp BIGINT,
-          uuid      BYTEA,
+          uuid      TEXT,
           size      INTEGER,
           key       TEXT
         );
@@ -187,7 +181,7 @@ class AWS_db(Base_db):
         """
         self.cur.execute(sql)
 
-    def insert(self, payload, metadata, storeinfo):
+    def insert(self, payload, metadata, text_uuid, storeinfo):
         "insert one record into the DB"
 
         sql = f"""
@@ -196,10 +190,9 @@ class AWS_db(Base_db):
           VALUES (%s, %s, %s, %s, %s) ;
         COMMIT ; """
 
-        uuid_ = self.get_uuid( metadata)
         self.cur.execute(sql, [metadata["topic"],
                                metadata["timestamp"],
-                               uuid_,
+                               text_uuid,
                                storeinfo.size,
                                storeinfo.key])
         self.n_inserted +=1

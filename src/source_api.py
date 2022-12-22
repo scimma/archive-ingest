@@ -62,15 +62,43 @@ class Base_source:
         pass
     
 
-    def add_missing_headers(self, headers):
-        "add the _id header (uuid) if its not present"
-        if not headers :
-            headers = [("_id", uuid.uuid4().bytes)]
-        else:
-            labels, values = zip(headers)
-            if "_id" not in labels:
-                headers.append(("_id", uuid.uuid4().bytes))
-        return headers
+    def get_text_uuid(self, headers):
+        """
+        provide text uuid from header else make one
+
+        hop_Lient procies a uuid made by
+        uuid.uuid4().bytes in the _id header elements.
+
+        Conceptually _id can be replocates by a user, corrupted
+        by a user, or omitted if an earlier verion of hop
+        client is used.
+
+        omit `urn:uuid:` in the retured text.
+        Ih those cases supply one to ensure we have a 
+        uniform down stream data model.
+        
+        """
+        
+        def urn_to_uuid(urn):
+            "Trim urn:uuid:"
+            return urn.split(':')[2]
+
+        text_uuid = ""
+        _ids = [item for item in headers if item[0] == "_id"]
+        #return the first valid uuid.
+        for _id in _ids:
+            try:
+                binary_uuid = _id[1]
+                urn  = uuid.UUID(bytes=binary_uuid)
+                return urn_to_uuid(urn)
+            except (ValueError, IndexError) :
+                continue
+        
+        #nothing there; so make one up.
+        urn  = uuid.uuid4().urn
+        text_uuid = urn_to_uuid(urn)	
+        logging.debug(f"I made a UUID up: {text_uuid}")
+        return text_uuid 
     
 class Mock_source(Base_source):
     """
@@ -125,20 +153,22 @@ class Mock_source(Base_source):
             n_iter = int(2000/math.log(message_size,1.8))
             total_b = 0
             t0 = time.time()
+            headers = [("mock1", "this is mock one header"), ("mock2",b"sdf\007df")]
+
             for i in range(n_iter):
                 anumber  = random.randrange(0,20)
                 topic     = f"mockgroup{anumber}.mocktopic"
                 timestamp = random.randrange(early_time,late_time)*1000
-                headers = self.add_missing_headers([])
 
                 metadata = {"timestamp" :timestamp,
                         "headers" : headers,
                         "topic" : topic
                         }
-
                 payload = message
                 total_b += len(payload)
-                yield (payload, metadata)
+                text_uuid = self.get_text_uuid(headers)
+
+                yield (payload, metadata, text_uuid)
             duration = int(time.time() - t0) 
             logging.info(f"msize, niter duration, totalb :{message_size}, {n_iter}, {duration}, {total_b}" )
 
@@ -240,9 +270,6 @@ class Hop_source(Base_source):
                 headers = []
             else:
                 headers = [h for h in result[1].headers]
-            #correct this code when we see the implemenatipn of headers
-            #
-            headers = self.add_missing_headers([])
 
             #copy out the metadata of interest to what we save
             metadata = {"timestamp" : result[1].timestamp,
@@ -252,7 +279,8 @@ class Hop_source(Base_source):
             self.n_recieved  += 1
             self.refresh_url()
             #logging.info(f"topic, msg size, meta size: {metadata.topic} {len(message)}")
-            yield (message, metadata)
+            text_uuid = self.get_text_uuid(headers)
+            yield (message, metadata, text_uuid)
 
     def publish(self, topic):
         """publish a few messages as a test fixture
