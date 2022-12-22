@@ -1,4 +1,23 @@
+"""
+Provide classes and API to sources of housekeeping data.
 
+There are two types homeomorphic classes
+
+One class accesses hopskotch. This class can be configured
+via housekeeping.toml. It can access the production or
+development versions of hop via different configurations. Hop
+credentials  are stored in AWS secrets.
+
+The other class  is "mock" source useful for
+development and test.
+
+The SourceFactory class supports choosing which class is
+used at run-time.
+
+All classes use a namespace object (args), such
+as provided by argparse, as part of their interface.
+
+"""
 ##################################
 #   Sources 
 ##################################
@@ -37,7 +56,8 @@ class SourceFactory:
         return self.source
 
 class Base_source:
-
+    "base class for common methods"
+    
     def __init__(self, args, config):
         pass
     
@@ -132,6 +152,7 @@ class Mock_source(Base_source):
         
 
 class Hop_source(Base_source):
+    " A class to source data from Hop"
     def __init__(self, args, config):
         self.args    = args
         toml_data    =   toml.load(args.toml_file)
