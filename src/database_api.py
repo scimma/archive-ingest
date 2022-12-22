@@ -1,3 +1,24 @@
+"""
+Provide classes and API to housekeepnig relational databse 
+
+There are two types homeomorphic classes
+
+One class accesses postgres in AWS. This class can be configured
+via housekeeping.toml. It can access the production or
+development versions of psotgres via different configurations. DB
+credentials  are stored in AWS secrets.
+
+The other class  is "mock" databse useful for
+development and test. It discards data.
+
+The DbFactory class supports choosing which class is
+used at run-time.
+
+All classes use a namespace object (args), such
+as provided by argparse, as part of their interface.
+
+"""
+
 import psycopg2
 import psycopg2.extensions
 import boto3
@@ -32,16 +53,18 @@ class DbFactory:
         exit (1)
         
     def get_db(self):
+        "return the selected database "
         return self.db
     
 
 class Base_db:
-
+    "Base class holding common methods"
     def __init__(self, args, config):
         self.n_inserted = 0
         self.log_every  = 100 # get from config file 
          
     def launch_db_session(self):
+        "lauch a sheel level query session given credentials"
         logging.fatal(f"Query_Session tool not supported for this database")
         exit(1)
 
@@ -62,6 +85,7 @@ class Base_db:
             logging.info(msg1)
                          
     def get_uuid(self, metadata):
+        "get uuid from metadata payload"
         for label, value in metadata["headers"]:
             if label ==  "_id" : return value
         raise Exception ("Missing UUID header in headers")
@@ -78,7 +102,9 @@ class Mock_db(Base_db):
        
 
     def insert(self, payload, message, storeinfo):
+        "accepot and discard data"
         self.n_inserted += 1
+        self.log()
 
 
 class AWS_db(Base_db):
@@ -132,7 +158,7 @@ class AWS_db(Base_db):
         self.Port           = result['Endpoint']['Port']
 
     def connect(self):
-        "make a seesion to postgres"
+        "create  a session to postgres"
         self.conn = psycopg2.connect(
             dbname  = self.DBName,
             user    = self.MasterUserName,
