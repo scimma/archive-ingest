@@ -1,14 +1,26 @@
-<class 'str'>
-[//]: # (Comment)
-[//]: # (Comment)# use houseutils to process this template into README.
-[//]: #
+<!-- a comment -->
+<!-- use generateREADME.py to process this into README.md -->
 
-# Housekeeping.py
+# Housekeeping Software
+
+Housekeeping uses three system elements.
+
+- Sources which  hopskotch or mocks
+- Databases which are either AWS rds Postgres of mocks
+- Stores which can be AWS S3 store or mocks
+
+Realized (i.e non-mock) elements can be either from the SCiMMA
+development or producion instances as appropriate.  The softare
+is such that there is a configuraton to source  production hopskotch
+while developing. 
+
+
+## Housekeeping.py
 
 Housekeeping.py is the program that loads the housekeeping archive.
-housekeepling.py can be run in development against eiths mock
-elements.  live elements in the SCIMMA development instanitions, and
-use the production HOP as a data source.
+Housekeepling.py can be run during development against the live ements
+in the deevepoment instance or mock elements. It's pososbel to use the
+the production HOP as a data source in development.
 
 ```
 usage: housekeeping.py [-h] [-t TOML_FILE] [-l LOG_STANZA] {run,list} ...
@@ -44,13 +56,13 @@ optional arguments:
 
 ```
 
-# Housekeepeing.toml
+## Housekeepeing.toml
 
 Housekeeping.toml holds configuration data for the producion and
 development instnances of housekeeping.py, and for houseutils.py
 
 
-# Houseutils.py
+##  Houseutils.py
 
 Houseutils.py contains a number of sub funcitons used to test
 and access the running system.
@@ -79,4 +91,8 @@ optional arguments:
 
 ``
 
-This document was generated on 2022-12-22T14:59:39.933825
+## generate_README.py
+
+Generate_README.py makes this  README by processing README.template.
+
+This document was generated on 2022-12-22T15:19:45.673953 by ./generate_README.py
