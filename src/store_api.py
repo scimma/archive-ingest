@@ -1,3 +1,22 @@
+"""
+Provide classes and API to sources of housekeeping data.
+
+There are two types homeomorphic classes
+
+One class accesses AWS S3. This class can be configured
+via housekeeping.toml. It can access the production or
+development S3 buckets via different configurations. 
+
+The other class  is "mock" store useful for
+development and test. Thsi sote discards the data.
+
+The StoreFactory class supports choosing which class is
+used at run-time.
+
+All classes use a namespace object (args), such
+as provided by argparse, as part of their interface.
+"""
+
 
 import boto3
 import bson
@@ -38,6 +57,7 @@ class Store_info:
     pass
 
 class Base_store:
+    " base class for common methods"
     def __init__(self, args, config):
         self.bucket = config["bucket"]
         self.n_stored = 0
@@ -83,7 +103,7 @@ class Base_store:
         return ret
     
 class S3_store(Base_store):
-    "send things to s3, not a dbms"
+    "send things to s3"
     def __init__(self, args, config):
         super().__init__(args, config)
         
