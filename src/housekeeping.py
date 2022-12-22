@@ -1,18 +1,13 @@
 #!/usr/bin/env python3
 
-'''Log messages and metadata to a database.
+'''Log messages and metadata to S3. provide metadate to a databse.
 
 In production, log events from selected Hopscotch public
-topics into the AWS-resident production housekeeping database.
+topics into S3 and log into a housekeeping postgres database.
 
-Events may be also logged to the AWS-resident development
-database, to a local sqilite database, or a "mock" database
-that just discards them.
-
-Events can be sourced from hopskotch, or from a "mock" source.  The
-development direction for the mock source is to allow for stressing
-the database engines and database provisioning to ensure they form a
-robust store that is critical to SCiMMA operations.
+to suport devleopment, Houskeeping.py  supports realized or mock
+hopskotch, database and store elements.  These are defined in
+toml files. Housekeeping.toml defines a variety of these sources. 
 
 @author: Mahmoud Parvizi (parvizim@msu.edu)
 @author: Don Petravick (petravick@illinois.edu)
