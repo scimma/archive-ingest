@@ -99,7 +99,13 @@ class Base_source:
         text_uuid = urn_to_uuid(urn)	
         logging.debug(f"I made a UUID up: {text_uuid}")
         return text_uuid 
-    
+
+    def connect(self):
+        pass
+
+    def connect_write(self):
+        pass
+
 class Mock_source(Base_source):
     """
     a mock source  that will support capacity testing.
@@ -127,9 +133,7 @@ class Mock_source(Base_source):
         self.t0 =  time.time()
         super().__init__(args, config)
         
-    def connect(self):
-        pass
-    
+
     def is_active(self):
         if self.n_events > 0 :
             self.n_events = self.n_events-1
@@ -237,6 +241,15 @@ class Hop_source(Base_source):
         group_id = f"{self.username}-{self.groupname}" 
         self.client = stream.open(url=self.url, group_id=group_id)
 
+
+    def connect_write(self, topic):
+        "connect to write test messages to topic"
+        stream = Stream(auth=self.auth)
+        url = self.base_url + topic
+        group_id = f"{self.username}W-{self.groupname}w"
+        logging.info (f"opengin for write {url} group: {group_id}")
+        self.write_client = stream.open(url=url, group_id=group_id)
+
     def authorize(self):
         "authorize using AWS secrets"
         from hop.auth import Auth
@@ -257,7 +270,14 @@ class Hop_source(Base_source):
         
     def is_active(self):
         return True
+    
+    def publish(self, message, header=[]):
+        """
+        publish a message to support testnig 
+        """
+        self.write_client.write(message, headers)
 
+            
     def get_next(self):
         for result in self.client.read(metadata=True, autocommit=False):
             # What happens on error? GEt nothing back? None?
@@ -282,19 +302,6 @@ class Hop_source(Base_source):
             text_uuid = self.get_text_uuid(headers)
             yield (message, metadata, text_uuid)
 
-    def publish(self, topic):
-        """publish a few messages as a test fixture
 
-           this is (obvously) underdeveloped
-        """
-        import subprocess
-        for n in range(2):
-            json = '{{"message" : "This is Blob %s"}}'.format(n)
-            cmd = f"echo '{json}' | hop publish -f BLOB -t {self.base_url}{topic}"
-            cmd = f"hop publish -f JSON -t {self.base_url}{topic} dog.json"
-            logging.info(f"{cmd}")
-            subprocess.run(cmd, shell=True)
-        pass
-    
-    pass
+        
 

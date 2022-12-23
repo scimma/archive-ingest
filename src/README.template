@@ -15,6 +15,15 @@ is such that there is a configuraton to source  production hopskotch
 while developing. 
 
 
+## CRedentails
+
+Credentials for HOP, and the database are kept in AWS.
+
+For the development instacne HOP credntials whold be read/write,
+to allow for injection of test data.   FOr production, credntials
+for hop shodl be read only.
+
+
 ## Housekeeping.py
 
 Housekeeping.py is the program that loads the housekeeping archive.
@@ -32,7 +41,7 @@ the production HOP as a data source in development.
 ```
 
 
-## Housekeepeing.toml
+## Housekeeping.toml
 
 Housekeeping.toml holds configuration data for the producion and
 development instnances of housekeeping.py, and for houseutils.py
