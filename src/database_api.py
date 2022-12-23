@@ -205,7 +205,6 @@ class AWS_db(Base_db):
 
     def query(self, sql):
         "return results of query"
-        import pdb; pdb.set_trace()
         self.cur.execute(sql)
         results = self.cur.fetchall()
         return results

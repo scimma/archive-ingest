@@ -83,7 +83,6 @@ class Base_store:
         t = time.gmtime(metadata["timestamp"]/1000)
         key = f"{topic}/{t.tm_year}/{t.tm_mon}/{t.tm_mday}/{t.tm_hour}/{text_uuid}.bson"
         return key
-
     
     def get_storeinfo(self, key, size):
         storeinfo = Store_info()
@@ -96,6 +95,12 @@ class Base_store:
         "return a blob of bson"
         ret = bson.dumps({"message" : payload, "metadata" : metadata})
         return ret
+
+    def get_object(self, key):
+        "if not overriden, print error and die"
+        logging.fatal("This source does not implement get_object")
+        exit(1)
+    
     
 class S3_store(Base_store):
     "send things to s3"
@@ -115,9 +120,16 @@ class S3_store(Base_store):
         size = len(b)
         self.client.put_object(Body=b, Bucket=bucket, Key=key)        
         self.n_stored += 1
-        storeinfo = self.get_storeinfo(key, len(payload))
+        storeinfo = self.get_storeinfo(key, size)
         self.log(storeinfo)
         return storeinfo
+
+    def get_object(self, key):
+        "return oject from S3"
+        response = self.client.get_object(Bucket=self.bucket,
+                                Key=key)
+        data = response['Body'].read()
+        return data
 
 class Mock_store(Base_store):
     """
