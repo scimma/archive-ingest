@@ -51,6 +51,30 @@ optional arguments:
 
 ```
 
+### housekeeping.py run
+```
+usage: houseutils.py [-h] [-t TOML_FILE] [-l LOG_STANZA]
+                     {list,query_session,publish} ...
+
+Utilities for housekeeping applications.
+
+@author: Mahmoud Parvizi (parvizim@msu.edu)
+@author: Don Petravick (petravick@illinois.edu)
+
+positional arguments:
+  {list,query_session,publish}
+    list                list stanzas
+    query_session       Launch a query session shell against AWS databases
+    publish             publish some test data
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -t TOML_FILE, --toml_file TOML_FILE
+                        toml configuration file
+  -l LOG_STANZA, --log_stanza LOG_STANZA
+                        log config stanza
+
+```
 ## Housekeepeing.toml
 
 Housekeeping.toml holds configuration data for the producion and
@@ -66,7 +90,7 @@ and access the running system.
 usage: houseutils.py [-h] [-t TOML_FILE] [-l LOG_STANZA]
                      {list,query_session,publish} ...
 
-Utiliteis for housekeepign applications.
+Utilities for housekeeping applications.
 
 @author: Mahmoud Parvizi (parvizim@msu.edu)
 @author: Don Petravick (petravick@illinois.edu)
@@ -90,4 +114,4 @@ optional arguments:
 
 Generate_README.py makes this  README by processing README.template.
 
-This document was generated on 2022-12-22T15:27:51.991068 by ./generate_README.py
+This document was generated on 2022-12-22T20:43:59.095144 by ./generate_README.py

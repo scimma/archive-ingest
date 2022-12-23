@@ -26,6 +26,12 @@ the production HOP as a data source in development.
 {housekeeping_help}
 ```
 
+### housekeeping.py run
+```
+{housekeeping_run}
+```
+
+
 ## Housekeepeing.toml
 
 Housekeeping.toml holds configuration data for the producion and

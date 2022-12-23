@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 '''
-Utiliteis for housekeepign applications.
+Utilities for housekeeping applications.
 
 @author: Mahmoud Parvizi (parvizim@msu.edu)
 @author: Don Petravick (petravick@illinois.edu)
