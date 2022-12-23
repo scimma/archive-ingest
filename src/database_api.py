@@ -64,7 +64,7 @@ class Base_db:
         self.log_every  = 100 # get from config file 
          
     def launch_db_session(self):
-        "lauch a sheel level query session given credentials"
+        "lauch a shell level query session given credentials"
         logging.fatal(f"Query_Session tool not supported for this database")
         exit(1)
 
@@ -83,6 +83,10 @@ class Base_db:
             logging.info(msg1)
         elif self.n_inserted % self.log_every == 0:
             logging.info(msg1)
+
+    def query(self, q):
+        logging.fatal("query not supported for this Db")
+        exit(1)
                          
     
         
@@ -159,6 +163,7 @@ class AWS_db(Base_db):
             password = self.password,
             host     = self.Address
         )
+        self.conn.autocommit = True
         self.cur = self.conn.cursor()
 
     def make_schema(self):
@@ -197,6 +202,13 @@ class AWS_db(Base_db):
                                storeinfo.key])
         self.n_inserted +=1
         self.log()
+
+    def query(self, sql):
+        "return results of query"
+        import pdb; pdb.set_trace()
+        self.cur.execute(sql)
+        results = self.cur.fetchall()
+        return results
 
     def launch_db_session(self):
         "lauch a query_session tool for AWS databases"

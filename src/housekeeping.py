@@ -19,6 +19,7 @@ import argparse
 import source_api
 import store_api
 import database_api
+import verify_api
 
 from hop.io import Stream, StartPosition, list_topics
 import hop
@@ -65,7 +66,7 @@ def housekeep(args):
         text_uuid = x[2]
         storeinfo = store.store(payload, metadata, text_uuid)
         db.insert(payload, metadata, text_uuid, storeinfo)
-
+        verify_api.assert_ok(args, payload, metadata, text_uuid, storeinfo, db, store)
 
 def list(args):
     "list the stanzas so I dont have to grep toml files"
@@ -92,6 +93,7 @@ if __name__ == "__main__":
     parser.add_argument("-H", "--hop_stanza", help = "hopskotch config  stanza", default="mock-hop")
     parser.add_argument("-S", "--store_stanza", help = "storage config stanza", default="mock-store")
     parser.add_argument("-t", "--topic", help = "consume only this topic for consumption", default=None)
+    parser.add_argument("-v", "--verify", help = "check after ingest", action='store_true' ,default=False)
 
     #list -- list stanzas 
     parser = subparsers.add_parser('list', help="list stanzas")
