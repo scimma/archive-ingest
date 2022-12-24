@@ -254,7 +254,8 @@ class Hop_source(Base_source):
         url = self.base_url + self.test_topic
         group_id = f"{self.username}W-{self.groupname}w"
         logging.info (f"opening for write {url} group: {group_id}")
-        self.write_client = stream.open(url=url, group_id=group_id)
+        #self.write_client = stream.open(url=url, group_id=group_id)
+        self.write_client = stream.open(url, "w")
 
     def authorize(self):
         "authorize using AWS secrets"
@@ -276,7 +277,7 @@ class Hop_source(Base_source):
     def is_active(self):
         return True
     
-    def publish(self, message, header=[]):
+    def publish(self, message, headers=[]):
         """
         publish a message to support testnig 
         """
