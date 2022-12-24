@@ -52,3 +52,4 @@ aws-secret-region =  "us-west-2"
 port       = 9092
 until_eos  = false 
 vetoed_topics = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
+test-topic = "cmb-s4-fabric-tests.housekeeping-test"   

@@ -92,7 +92,7 @@ if __name__ == "__main__":
     parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="mock-db")
     parser.add_argument("-H", "--hop_stanza", help = "hopskotch config  stanza", default="mock-hop")
     parser.add_argument("-S", "--store_stanza", help = "storage config stanza", default="mock-store")
-    parser.add_argument("-t", "--topic", help = "consume only this topic for consumption", default=None)
+    parser.add_argument("-t", "--test_topic", help = "consume only from test_topic", default=False, action="store_true")
     parser.add_argument("-v", "--verify", help = "check after ingest", action='store_true' ,default=False)
 
     #list -- list stanzas 

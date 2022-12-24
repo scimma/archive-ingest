@@ -106,6 +106,10 @@ class Base_source:
     def connect_write(self):
         pass
 
+    def publish(messages, header=()):
+        logging.info(f"dropping message on the floor")
+        pass
+
 class Mock_source(Base_source):
     """
     a mock source  that will support capacity testing.
@@ -197,6 +201,8 @@ class Hop_source(Base_source):
         self.until_eos     = config["until_eos"]
         self.secret_name   = config["aws-secret-name"]
         self.region_name   = config["aws-secret-region"]
+        self.test_topic    = config["test-topic"]
+        
         self.authorize()
         self.base_url = (
                 f"kafka://"   \
@@ -207,16 +213,15 @@ class Hop_source(Base_source):
 
         self.refresh_url_every =  1000  # make this a config
         self.n_recieved = 0
-        self.refresh_url()          #set ural with topics.
         super().__init__(args, config)
         
     def refresh_url(self):
         "initalize/refresh the list of topics to record PRN"
         #return if not not needed.
         if self.n_recieved  % self.refresh_url_every != 0: return
-        if self.args.topic:
+        if self.args.test_topic:
             #this implementation suposrt test and debug.
-            topics = args.topic
+            topics = self.test_topic
         else: 
             # Read the available topics from the given broker
             topic_dict = list_topics(url=self.base_url, auth=self.auth)
@@ -229,7 +234,7 @@ class Hop_source(Base_source):
     
   
     def connect(self):
-        # Instance :class:"hop.io.Stream" with auth configured via 'auth=True'
+        "connect to HOP a a reader (archiver)"
         start_at = StartPosition.EARLIEST
         stream = Stream(auth=self.auth, start_at=start_at, until_eos=self.until_eos)
         
@@ -237,17 +242,18 @@ class Hop_source(Base_source):
         # THe commented uot group ID (below)) migh tbe useful in some development
         # environments it allows for re-consumption of all the existing events in all
         # the topics. 
-        #group_id = f"{self.username}-{self.groupname}{random.randint(0,10000)}" 
+        #group_id = f"{self.username}-{self.groupname}{random.randint(0,10000)}"
+        self.refresh_url()
         group_id = f"{self.username}-{self.groupname}" 
         self.client = stream.open(url=self.url, group_id=group_id)
 
 
-    def connect_write(self, topic):
-        "connect to write test messages to topic"
+    def connect_write(self):
+        "connect to write test messages to teat_topic"
         stream = Stream(auth=self.auth)
-        url = self.base_url + topic
+        url = self.base_url + self.test_topic
         group_id = f"{self.username}W-{self.groupname}w"
-        logging.info (f"opengin for write {url} group: {group_id}")
+        logging.info (f"opening for write {url} group: {group_id}")
         self.write_client = stream.open(url=url, group_id=group_id)
 
     def authorize(self):
@@ -266,7 +272,6 @@ class Hop_source(Base_source):
         logging.info (f"hopskotch username is: {self.username}")
         self.auth  = hop.auth.Auth(resp["username"], resp["password"])
         return
-    
         
     def is_active(self):
         return True
@@ -279,11 +284,11 @@ class Hop_source(Base_source):
 
             
     def get_next(self):
+        self.refresh_url() 
         for result in self.client.read(metadata=True, autocommit=False):
             # What happens on error? GEt nothing back? None?
             # -- seems to stall in self.client.read
             # -- lack a full udnerstanding fo thsi case. 
- 
             message = result[0].serialize()
             #message = result[0]
             if result[1].headers is None :
@@ -297,7 +302,6 @@ class Hop_source(Base_source):
                         "topic" : result[1].topic
                         }
             self.n_recieved  += 1
-            self.refresh_url()
             #logging.info(f"topic, msg size, meta size: {metadata.topic} {len(message)}")
             text_uuid = self.get_text_uuid(headers)
             yield (message, metadata, text_uuid)

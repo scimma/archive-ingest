@@ -50,8 +50,11 @@ def query_session(args):
 
 def publish(args):
     "publish some test data to a topic"
-    source_api.SourceFactory(args).get_source().publish(args.topic)
+    source = source_api.SourceFactory(args).get_source()
+    source.connect_write()
+    source.publish ("test")
 
+    
 def list(args):
     "list the stanzas so I dont have to grep toml files"
     import pprint
@@ -83,7 +86,6 @@ if __name__ == "__main__":
     #publish -- publish some test data
     parser = subparsers.add_parser('publish', help="publish some test data")
     parser.set_defaults(func=publish)
-    parser.add_argument("-t", "--topic", help = "topic to produce on  for consumption", default=None)
     parser.add_argument("-H", "--hop_stanza", help = "hopskotch config  stanza", default="mock-hop")
     
     args = main_parser.parse_args()
