@@ -67,8 +67,8 @@ def publish(args):
     for message, header in verify_api.get_corner_cases():
         logging.info(f"{terse(message)}, {terse(header)}")
         source.publish (message, header)
-
-    
+        if message.content == "end" : break
+     
 def list(args):
     "list the stanzas so I dont have to grep toml files"
     import pprint
