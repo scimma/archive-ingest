@@ -13,9 +13,21 @@ import argparse
 import source_api
 import store_api
 import database_api
+import verify_api
 
 from hop.io import Stream, StartPosition, list_topics
 import hop
+
+##################################
+#   utilities
+##################################
+
+def terse(object):
+    text = object.__repr__()
+    max_length = 30
+    if len(text) > max_length:
+        return text[:max_length-3] + '...'
+    return text
 
 ##################################
 #   environment
@@ -52,7 +64,9 @@ def publish(args):
     "publish some test data to a topic"
     source = source_api.SourceFactory(args).get_source()
     source.connect_write()
-    source.publish ("test")
+    for message, header in verify_api.get_corner_cases():
+        logging.info(f"{terse(message)}, {terse(header)}")
+        source.publish (message, header)
 
     
 def list(args):

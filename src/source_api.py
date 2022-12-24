@@ -89,9 +89,9 @@ class Base_source:
         for _id in _ids:
             try:
                 binary_uuid = _id[1]
-                urn  = uuid.UUID(bytes=binary_uuid)
+                urn  = uuid.UUID(bytes=binary_uuid).urn
                 return urn_to_uuid(urn)
-            except (ValueError, IndexError) :
+            except (ValueError, IndexError, TypeError) :
                 continue
         
         #nothing there; so make one up.
@@ -106,7 +106,7 @@ class Base_source:
     def connect_write(self):
         pass
 
-    def publish(messages, header=()):
+    def publish(self, messages, header=()):
         logging.info(f"dropping message on the floor")
         pass
 
@@ -277,11 +277,12 @@ class Hop_source(Base_source):
     def is_active(self):
         return True
     
-    def publish(self, message, headers=[]):
+    def publish(self, message, headers):
         """
         publish a message to support testnig 
         """
         self.write_client.write(message, headers)
+        self.write_client.flush()
 
             
     def get_next(self):
