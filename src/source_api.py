@@ -290,7 +290,8 @@ class Hop_source(Base_source):
         for result in self.client.read(metadata=True, autocommit=False):
             # What happens on error? GEt nothing back? None?
             # -- seems to stall in self.client.read
-            # -- lack a full udnerstanding fo thsi case. 
+            # -- lack a full udnerstanding fo thsi case.
+
             message = result[0].serialize()
             #message = result[0]
             if result[1].headers is None :

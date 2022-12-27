@@ -67,7 +67,12 @@ def housekeep(args):
         storeinfo = store.store(payload, metadata, text_uuid)
         db.insert(payload, metadata, text_uuid, storeinfo)
         verify_api.assert_ok(args, payload, metadata, text_uuid, storeinfo, db, store)
+        if args.test_topic:
+            print (payload)
+            print (metadata)
+            if payload["content"] == b"end": exit(0)
 
+        
 def list(args):
     "list the stanzas so I dont have to grep toml files"
     import pprint
