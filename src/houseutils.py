@@ -80,14 +80,24 @@ def list(args):
     pprint.pprint(dict)
 
 
-def get(args):
+def verify(args):
    db     = database_api.DbFactory(args).get_db()
    store  = store_api.StoreFactory(args).get_store()
    db.connect()
    store.connect()
-   sql = f"select key from messages  {args.where}"
+   if args.all:
+       limit_clause = ""
+   else:
+       limit_clause = "ORDER BY random() LIMIT 100"
+   sql = f"select key, size from messages {limit_clause};"
+   logging.info (sql)
    results = db.query(sql)
-   pprint.pprint(results)
+   for key, size  in results:
+       summary = store.get_object_summary(key)
+       if not summary["exists"] :
+           print (f"** object does not exist ***, {key}")
+       elif size != summary["size"]:
+            print (f"** object does not exist ***, {key}")
     
 if __name__ == "__main__":
 
@@ -115,12 +125,12 @@ if __name__ == "__main__":
     parser.set_defaults(func=publish)
     parser.add_argument("-H", "--hop_stanza", help = "hopskotch config  stanza", default="mock-hop")
 
-    #get -- 
-    parser = subparsers.add_parser('get', help="get TBD")
-    parser.set_defaults(func=get)
+    #verify -- 
+    parser = subparsers.add_parser('verify', help="check objects recored in DB exist")
+    parser.set_defaults(func=verify)
     parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="mock-db")
     parser.add_argument("-S", "--store_stanza", help = "storage config stanza", default="mock-store")
-    parser.add_argument("where", help = "where clause")
+    parser.add_argument("-a", "--all", help = "do the whole archive (gulp)", default = False, action = "store_true" )
 
     args = main_parser.parse_args()
     make_logging(args)

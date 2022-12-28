@@ -19,6 +19,7 @@ as provided by argparse, as part of their interface.
 
 
 import boto3
+import botocore
 import bson
 import uuid
 import logging
@@ -100,7 +101,12 @@ class Base_store:
         "if not overriden, print error and die"
         logging.fatal("This source does not implement get_object")
         exit(1)
-    
+
+    def get_object_summary(self, key):
+        "if not overriden, print error and die"
+        logging.fatal("This source does not implement get_object")
+        exit(1)
+        
     
 class S3_store(Base_store):
     "send things to s3"
@@ -126,10 +132,28 @@ class S3_store(Base_store):
 
     def get_object(self, key):
         "return oject from S3"
-        response = self.client.get_object(Bucket=self.bucket,
-                                Key=key)
+        response = self.client.get_object(
+            Bucket=self.bucket,
+            Key=key)
         data = response['Body'].read()
         return data
+
+    def get_object_summary(self, key):
+        "if not overriden, print error and die"
+        summary = {"exists" : False}
+        try: 
+            response = self.client.get_object(
+                Bucket=self.bucket,
+                Key=key)
+        except:
+            logging.info(f'No object found {key}')
+            return summary
+
+        summary = {"exists" : True}
+        size  = response["ContentLength"]
+        summary["size"] = size 
+        return summary
+
 
 class Mock_store(Base_store):
     """
