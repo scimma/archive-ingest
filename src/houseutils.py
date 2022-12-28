@@ -14,6 +14,7 @@ import source_api
 import store_api
 import database_api
 import verify_api
+import pprint
 
 from hop.io import Stream, StartPosition, list_topics
 import hop
@@ -77,6 +78,16 @@ def list(args):
     dict = toml.load(args.toml_file)
     print (args.toml_file)
     pprint.pprint(dict)
+
+
+def get(args):
+   db     = database_api.DbFactory(args).get_db()
+   store  = store_api.StoreFactory(args).get_store()
+   db.connect()
+   store.connect()
+   sql = f"select key from messages  {args.where}"
+   results = db.query(sql)
+   pprint.pprint(results)
     
 if __name__ == "__main__":
 
@@ -103,7 +114,14 @@ if __name__ == "__main__":
     parser = subparsers.add_parser('publish', help="publish some test data")
     parser.set_defaults(func=publish)
     parser.add_argument("-H", "--hop_stanza", help = "hopskotch config  stanza", default="mock-hop")
-    
+
+    #get -- 
+    parser = subparsers.add_parser('get', help="get TBD")
+    parser.set_defaults(func=get)
+    parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="mock-db")
+    parser.add_argument("-S", "--store_stanza", help = "storage config stanza", default="mock-store")
+    parser.add_argument("where", help = "where clause")
+
     args = main_parser.parse_args()
     make_logging(args)
     logging.info(args)
