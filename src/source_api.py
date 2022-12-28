@@ -110,6 +110,9 @@ class Base_source:
         logging.info(f"dropping message on the floor")
         pass
 
+    def mark_done(self):
+        pass
+
 class Mock_source(Base_source):
     """
     a mock source  that will support capacity testing.
@@ -310,6 +313,7 @@ class Hop_source(Base_source):
             text_uuid = self.get_text_uuid(headers)
             yield (message, metadata, text_uuid)
 
-
+            def mark_done(self):
+                self.client.mark_done({})
         
 

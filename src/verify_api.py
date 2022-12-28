@@ -1,12 +1,26 @@
+"""
+support for verifying the Correctness of archiving.
+
+1) Generate a known data stream to publish on HOP
+2) Code to ocheck that the hop recieve code cin housekepeing
+   correctly presnts the known data stream to the database and
+   store components within house keeping.
+3) Code to readback the datbae and archive state after
+   the stae os written and verify all data items
+   are stored accurately.
+     
+
+
+"""
 import bson
 import logging
 
-def get_corner_cases():
+def get_known_data():
 
     """
     The archive needs to be robust against a level of problems
-    in message headers or payloads. This routine supplies corner
-    case message headers and payloads for testing the archive.
+    in message headers or payloads. This routine supplies known
+    message headers and payloads for testing the archive.
      
     Normal Cases are decribed in  Hopskotch documentation as:
     
@@ -21,7 +35,7 @@ def get_corner_cases():
 
     The  archives should be robust in  face of all kinds of use that
     violates  our specification.
-    Corner cases in violation of our specifcation, but should not
+    Corner cases in violation of our specification, but should not
     crash the logger, and be handled in some defined way.
     
     """
@@ -175,19 +189,19 @@ def assert_ok(args, recieved_payload, recieved_metadata, text_uuid, storeinfo, d
 
 
 COMPARE_DICT = {}
-def compare_corner_cases(as_recieved_payload, as_recieved_metadata):
+def compare_known_data(as_recieved_payload, as_recieved_metadata):
     """
     Compare what housekeeping presents as recieved to original data
     sent.
 
     The supported sender is a special publish from houseutils,
-    which sends data returned by get_corner_case(), defined abouve.
+    which sends data returned by get_known_data(), defined abouve.
     """
     
-    #first call -- get info on  the corner cases test that would have been sent.
+    #first call -- get info on  the known test data that would have been sent.
     global COMPARE_DICT
     if not COMPARE_DICT: 
-        COMPARE_DICT, end = get_corner_cases()
+        COMPARE_DICT, end = get_known_data()
 
     as_recieved_header = as_recieved_metadata["headers"]
     # extract use case from the "test" header.

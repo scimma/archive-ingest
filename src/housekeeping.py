@@ -69,7 +69,7 @@ def housekeep(args):
         verify_api.assert_ok(args, payload, metadata, text_uuid, storeinfo, db, store)
         if args.test_topic: 
             if payload["content"] == b"end": exit(0)
-            verify_api.compare_corner_cases(payload, metadata)
+            verify_api.compare_known_data(payload, metadata)
 
         
 def list(args):

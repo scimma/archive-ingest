@@ -64,7 +64,7 @@ def publish(args):
     "publish some test data to a topic"
     source = source_api.SourceFactory(args).get_source()
     source.connect_write()
-    message_dict, end_message  = verify_api.get_corner_cases()
+    message_dict, end_message  = verify_api.get_known_data()
     for key  in  message_dict.keys():
         message, header = message_dict[key]
         logging.info(f"{terse(message)}, {terse(header)}")
