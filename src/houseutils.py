@@ -97,7 +97,9 @@ def verify(args):
        if not summary["exists"] :
            print (f"** object does not exist ***, {key}")
        elif size != summary["size"]:
-            print (f"** object does not exist ***, {key}")
+            print (f"** size mismatch, {key}")
+       else:
+           print (f"** key is ok, {key}")
     
 if __name__ == "__main__":
 

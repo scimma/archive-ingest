@@ -26,7 +26,7 @@ import logging
 import toml
 import time
 import datetime
-
+import sys
 ##################################
 # stores
 ##################################
@@ -145,10 +145,21 @@ class S3_store(Base_store):
             response = self.client.get_object(
                 Bucket=self.bucket,
                 Key=key)
-        except:
-            logging.info(f'No object found {key}')
-            return summary
 
+        except  botocore.errorfactory.ClientError as err:
+            # Its important to differentiate between this
+            # error and any other BOTO error.
+            #
+            # oh my! if the key does not exists,
+            # boto throws a dymanically made class
+            # botocore.errorfactory.NoSuchKey. Because the
+            # class is dynamically made, it can't be
+            # used in the except statement, above. so I've
+            # provided this hokey test against __repr__
+            # to indicate the key does not  exist.
+        
+            if "NoSuchKey" in err.__repr__() : return summary
+            raise
         summary = {"exists" : True}
         size  = response["ContentLength"]
         summary["size"] = size 
