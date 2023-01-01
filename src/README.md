@@ -115,3 +115,16 @@ optional arguments:
 Generate_README.py makes this  README by processing README.template.
 
 This document was generated on 2022-12-22T20:43:59.095144 by ./generate_README.py
+
+
+## toubleshooting
+
+If the reconfiguration of AWS secrets happens, then you need to re-make credentials.
+thie erros indicates new credentials are needed:
+
+```
+botocore.errorfactory.ResourceNotFoundException:
+An error occurred (ResourceNotFoundException) when calling the GetSecretValue operation:
+Secrets Manager can't find the specified secret value for staging label: AWSCURRENT
+
+```

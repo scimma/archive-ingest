@@ -10,6 +10,11 @@ RUN cd /usr/local/src && ./aws/install
 RUN cd /usr/local/src && rm -rf aws
 #    
 ADD src/housekeeping.py    /root/housekeeping.py
+ADD src/database_api.py    /root/database_api.py
+ADD src/housekeeping.py    /root/housekeeping.py
+ADD src/source_api.py     /root/source_api.py
+ADD src/store_api.py       /root/store_api.py
+ADD src/verify_api.py      /root/verify_api.py 
 ADD src/housekeeping.toml  /root/housekeeping.toml
 RUN mkdir -p               /root/.config/hop 
 ADD requirements.txt       /root/requirements.txt

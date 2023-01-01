@@ -12,8 +12,8 @@ type = "mock"
 
 [aws-dev-db]
 type = "aws"
-aws_db_name = "housedevel-housekeeping-db"
-aws_db_secret_name = "housedevel-housekeeping-db-password"
+aws_db_name = "hopdevel-housekeeping-db"
+aws_db_secret_name = "hopdevel-housekeeping-db-password"
 aws_region_name  = "us-west-2"
 
 ###########
@@ -22,7 +22,7 @@ aws_region_name  = "us-west-2"
 
 [S3-dev]
 type = "S3"
-bucket =  "housedevel-scimma-housekeeping"
+bucket =  "hopdevel-scimma-housekeeping"
 
 [mock-store]
 type = "mock"
@@ -47,7 +47,7 @@ type       = "hop"
 #username   = "petravic-2bc6a244"
 hostname   = "kafka.scimma.org"
 groupname  = "hopstream"
-aws-secret-name   =  "housedevel-housekeeping-hop-prod-credentials"
+aws-secret-name   =  "hopdevel-housekeeping-hop-prod-credentials"
 aws-secret-region =  "us-west-2"
 port       = 9092
 until_eos  = false 
