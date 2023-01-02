@@ -100,6 +100,51 @@ def verify(args):
             print (f"** size mismatch, {key}")
        else:
            print (f"** key is ok, {key}")
+
+def show(args):
+    """
+     First cut at a status
+
+     - What topics have been colllected
+     ? what's "recent"
+     ? what topics are being archived?
+     ? is the service up?
+    """
+    import tabulate 
+    db     = database_api.DbFactory(args).get_db()
+    db.connect()
+    import time
+    hour_msec = 60*60*1000
+    day_msec  = 24 * hour_msec
+    now_timestamp = int(time.time()*1000)
+    last_day_timestamp  = now_timestamp - day_msec
+    last_hour_timestamp = now_timestamp - hour_msec
+    def summarize(since_msec, label):
+        headers = ["Topic", "n messages", "bytes stored", "earliest (UTC)", "latest(UTC)"]
+        sql = f"""
+        SELECT
+          topic, count(topic),sum(size),
+             to_timestamp(min(timestamp/1000)),
+             to_timestamp(max(timestamp/1000))
+        FROM
+          messages
+        WHERE
+          timestamp > {since_msec}
+        GROUP by topic order by topic
+        """
+        results = db.query(sql)
+        table = tabulate.tabulate(
+            results,
+            headers=headers,
+            tablefmt="github")
+        print(label)
+        print(table)
+        print()
+    summarize(0, "since start of archiving")
+    summarize(last_day_timestamp,  "last 24 hours")
+    summarize(last_hour_timestamp, "last hour")
+   
+   
     
 if __name__ == "__main__":
 
@@ -120,6 +165,11 @@ if __name__ == "__main__":
     #query_session --- launch a query_session tool against AWS 
     parser = subparsers.add_parser('query_session', help="Launch a query session shell against AWS databases")
     parser.set_defaults(func=query_session)
+    parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="aws-dev-db")
+
+    # show  see what's happening  
+    parser = subparsers.add_parser('show', help="get a sense of what's happpening")
+    parser.set_defaults(func=show)
     parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="aws-dev-db")
 
     #publish -- publish some test data
