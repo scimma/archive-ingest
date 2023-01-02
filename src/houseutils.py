@@ -57,7 +57,7 @@ def make_logging(args):
 ###############
 
 
-def query_session(args):
+def connect(args):
     "get connect info and launch a query_session engine"
     database_api.DbFactory(args).get_db().launch_db_session()
 
@@ -144,8 +144,7 @@ def show(args):
     summarize(last_day_timestamp,  "last 24 hours")
     summarize(last_hour_timestamp, "last hour")
    
-   
-    
+
 if __name__ == "__main__":
 
     #main_parser = argparse.ArgumentParser(add_help=False)
@@ -162,9 +161,9 @@ if __name__ == "__main__":
     parser = subparsers.add_parser('list', help="list stanzas")
     parser.set_defaults(func=list)
 
-    #query_session --- launch a query_session tool against AWS 
-    parser = subparsers.add_parser('query_session', help="Launch a query session shell against AWS databases")
-    parser.set_defaults(func=query_session)
+    #connect --- launch a query_session tool against AWS 
+    parser = subparsers.add_parser('connect', help="Launch a query session shell against AWS databases")
+    parser.set_defaults(func=connect)
     parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="aws-dev-db")
 
     # show  see what's happening  

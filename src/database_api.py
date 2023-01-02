@@ -212,8 +212,9 @@ class AWS_db(Base_db):
     def launch_db_session(self):
         "lauch a query_session tool for AWS databases"
         print (f"use password: {self.password}")
-        import subprocess 
+        import subprocess
         cmd = f"psql --dbname {self.DBName} --host={self.Address} --username={self.MasterUserName} --password"
+        print (cmd)
         subprocess.run(cmd, shell=True)
 
         
