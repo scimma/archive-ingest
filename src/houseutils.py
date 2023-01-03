@@ -11,6 +11,7 @@ import toml
 import logging
 import argparse
 import kafka_reader_api
+import kafka_writer_api
 import store_api
 import database_api
 import verify_api
@@ -63,14 +64,14 @@ def connect(args):
 
 def publish(args):
     "publish some test data to a topic"
-    reader = kafka_reader_api.ReaderFactory(args).get_reader()
-    reader.connect_write()
+    writer = kafka_writer_api.WriterFactory(args).get_writer()
+    writer.connect()
     message_dict, end_message  = verify_api.get_known_data()
     for key  in  message_dict.keys():
         message, header = message_dict[key]
         logging.info(f"{terse(message)}, {terse(header)}")
-        reader.publish (message, header)
-    reader.publish (end_message[0], end_message[1])
+        writer.publish (message, header)
+    writer.publish (end_message[0], end_message[1])
     
 def list(args):
     "list the stanzas so I dont have to grep toml files"
