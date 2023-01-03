@@ -103,13 +103,6 @@ class Base_reader:
     def connect(self):
         pass
 
-    def connect_write(self):
-        pass
-
-    def publish(self, messages, header=()):
-        logging.info(f"dropping message on the floor")
-        pass
-
     def mark_done(self):
         pass
 
@@ -252,15 +245,6 @@ class Hop_reader(Base_reader):
         self.client = stream.open(url=self.url, group_id=group_id)
 
 
-    def connect_write(self):
-        "connect to write test messages to teat_topic"
-        stream = Stream(auth=self.auth)
-        url = self.base_url + self.test_topic
-        group_id = f"{self.username}W-{self.groupname}w"
-        logging.info (f"opening for write {url} group: {group_id}")
-        #self.write_client = stream.open(url=url, group_id=group_id)
-        self.write_client = stream.open(url, "w")
-
     def authorize(self):
         "authorize using AWS secrets"
         from hop.auth import Auth
@@ -281,14 +265,6 @@ class Hop_reader(Base_reader):
     def is_active(self):
         return True
     
-    def publish(self, message, headers):
-        """
-        publish a message to support testnig 
-        """
-        self.write_client.write(message, headers)
-        self.write_client.flush()
-
-            
     def get_next(self):
         self.refresh_url() 
         for result in self.client.read(metadata=True, autocommit=False):
