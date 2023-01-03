@@ -217,4 +217,15 @@ class AWS_db(Base_db):
         print (cmd)
         subprocess.run(cmd, shell=True)
 
-        
+    def make_readonly_user(self):
+        """
+        tested model SQL -- not importemented, though
+        CREATE USER test_ro_user WITH PASSWORD ‘skjfdkjfd’;
+        GRANT CONNECT ON DATABASE housekeeping TO test_ro_user ;
+        GRANT USAGE ON SCHEMA public TO test_ro_user;
+        GRANT SELECT ON ALL TABLES IN SCHEMA public TO test_ro_user;
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO test_ro_user;
+        REVOKE CREATE ON SCHEMA public FROM test_ro_user;
+        """
+        pass
+

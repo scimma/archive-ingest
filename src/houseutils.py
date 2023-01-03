@@ -101,7 +101,7 @@ def verify(args):
        else:
            print (f"** key is ok, {key}")
 
-def show(args):
+def status(args):
     """
      First cut at a status
 
@@ -143,8 +143,15 @@ def show(args):
     summarize(0, "since start of archiving")
     summarize(last_day_timestamp,  "last 24 hours")
     summarize(last_hour_timestamp, "last hour")
-   
 
+    latest =  db.query("SELECT  MAX(timestamp) FROM messages")[0][0]
+    import datetime
+    lastest_as_string = datetime.datetime.fromtimestamp(latest/1000.).isoformat()
+    print (f"latest(utc:  {lastest_as_string}) ingested::")
+    sql = f"select * from messages where timestamp = {latest}"
+    result = db.query(sql)
+    print (result)
+    
 if __name__ == "__main__":
 
     #main_parser = argparse.ArgumentParser(add_help=False)
@@ -167,8 +174,8 @@ if __name__ == "__main__":
     parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="aws-dev-db")
 
     # show  see what's happening  
-    parser = subparsers.add_parser('show', help="get a sense of what's happpening")
-    parser.set_defaults(func=show)
+    parser = subparsers.add_parser('status', help="get a sense of what's happpening")
+    parser.set_defaults(func=status)
     parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="aws-dev-db")
 
     #publish -- publish some test data
