@@ -8,10 +8,10 @@ via housekeeping.toml. It can access the production or
 development versions of hop via different configurations. Hop
 credentials  are stored in AWS secrets.
 
-The other class  is "mock" source useful for
+The other class  is "mock" reader useful for
 development and test.
 
-The SourceFactory class supports choosing which class is
+The ReaderFactory class supports choosing which class is
 used at run-time.
 
 All classes use a namespace object (args), such
@@ -19,7 +19,7 @@ as provided by argparse, as part of their interface.
 
 """
 ##################################
-#   Sources 
+#   Readers 
 ##################################
 
 import boto3
@@ -35,9 +35,9 @@ import certifi
 import hop
 from hop.io import Stream, StartPosition, list_topics
 
-class SourceFactory:
+class ReaderFactory:
     """
-    Factory class to create Mock, or HOP data sources. 
+    Factory class to create Mock, or HOP data readers. 
     """
 
     def __init__(self, args):
@@ -45,17 +45,17 @@ class SourceFactory:
         config    = toml_data.get(args.hop_stanza, None)
 
         type = config["type"]
-        #instantiate, then return source object of correct type.
-        if type == "mock" : self.source =  Mock_source(args, config) ; return
-        if type == "hop"  : self.source =  Hop_source(args, config)  ; return
-        logging.fatal(f"source {type} not supported")
+        #instantiate, then return reader object of correct type.
+        if type == "mock" : self.reader =  Mock_reader(args, config) ; return
+        if type == "hop"  : self.reader =  Hop_reader(args, config)  ; return
+        logging.fatal(f"reader {type} not supported")
         exit (1)
         
-    def get_source(self):
+    def get_reader(self):
         "return the srouce sppecified in the toml file"
-        return self.source
+        return self.reader
 
-class Base_source:
+class Base_reader:
     "base class for common methods"
     
     def __init__(self, args, config):
@@ -113,13 +113,13 @@ class Base_source:
     def mark_done(self):
         pass
 
-class Mock_source(Base_source):
+class Mock_reader(Base_reader):
     """
-    a mock source  that will support capacity testing.
+    a mock reader  that will support capacity testing.
     """
 
     def __init__(self, args, config):
-        logging.info(f"Mock Source configured")
+        logging.info(f"Mock Reader configured")
         import os
         #Move these to config file once we are happy
         small_text     =  b"500 Text " * 50      #500 bytes
@@ -192,8 +192,8 @@ class Mock_source(Base_source):
         self.n_sent += 1
         
 
-class Hop_source(Base_source):
-    " A class to source data from Hop"
+class Hop_reader(Base_reader):
+    " A class to reader data from Hop"
     def __init__(self, args, config):
         self.args    = args
         toml_data    =   toml.load(args.toml_file)

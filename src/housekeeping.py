@@ -7,7 +7,7 @@ topics into S3 and log into a housekeeping postgres database.
 
 to suport devleopment, Houskeeping.py  supports realized or mock
 hopskotch, database and store elements.  These are defined in
-toml files. Housekeeping.toml defines a variety of these sources. 
+toml files. Housekeeping.toml defines a variety of these readers. 
 
 @author: Mahmoud Parvizi (parvizim@msu.edu)
 @author: Don Petravick (petravick@illinois.edu)
@@ -16,7 +16,7 @@ toml files. Housekeeping.toml defines a variety of these sources.
 import toml
 import logging
 import argparse
-import source_api
+import kafka_reader_api
 import store_api
 import database_api
 import verify_api
@@ -51,16 +51,16 @@ def make_logging(args):
 ###############
 def housekeep(args):
     """
-    Acquire data from the specified source and log to specified DB
+    Acquire data from the specified reader and log to specified DB
     """
     db     = database_api.DbFactory(args).get_db()
-    source = source_api.SourceFactory(args).get_source()
+    reader = kafka_reader_api.ReaderFactory(args).get_reader()
     store  = store_api.StoreFactory(args).get_store()
     db.connect()
     db.make_schema()
-    source.connect()
+    reader.connect()
     store.connect()
-    for x in source.get_next():
+    for x in reader.get_next():
         payload = x[0]
         metadata = x[1]
         text_uuid = x[2]

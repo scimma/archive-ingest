@@ -10,7 +10,7 @@ Utilities for housekeeping applications.
 import toml
 import logging
 import argparse
-import source_api
+import kafka_reader_api
 import store_api
 import database_api
 import verify_api
@@ -63,14 +63,14 @@ def connect(args):
 
 def publish(args):
     "publish some test data to a topic"
-    source = source_api.SourceFactory(args).get_source()
-    source.connect_write()
+    reader = kafka_reader_api.ReaderFactory(args).get_reader()
+    reader.connect_write()
     message_dict, end_message  = verify_api.get_known_data()
     for key  in  message_dict.keys():
         message, header = message_dict[key]
         logging.info(f"{terse(message)}, {terse(header)}")
-        source.publish (message, header)
-    source.publish (end_message[0], end_message[1])
+        reader.publish (message, header)
+    reader.publish (end_message[0], end_message[1])
     
 def list(args):
     "list the stanzas so I dont have to grep toml files"
