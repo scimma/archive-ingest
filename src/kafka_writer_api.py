@@ -47,7 +47,7 @@ class WriterFactory:
 
         type = config["type"]
         #instantiate, then return writer object of correct type.
-        #if type == "kafka" : self.writer =  Kafka_writer(args, config) ; return
+        if type == "kcat" : self.writer =  Kcat_writer(args, config) ; return
         if type == "hop"  : self.writer =  Hop_writer(args, config)  ; return
         logging.fatal(f"writer {type} not supported")
         exit (1)
@@ -65,6 +65,25 @@ class Base_writer:
     def connect(self):
         pass
 
+    def authorize(self):
+        pass
+
+    def get_auth_info(self):
+        "obtain AWS secrets"
+        from hop.auth import Auth
+        session = boto3.session.Session()
+        client = session.client(
+            service_name='secretsmanager',
+            region_name=self.region_name
+        )
+        resp = client.get_secret_value(
+            SecretId=self.secret_name
+        )['SecretString']
+        resp = json.loads(resp)
+        self.username = resp["username"]
+        logging.info (f"hopskotch username is: {self.username}")
+        self.password = resp["password"]
+
     def publish(self, messages, header=()):
         logging.info(f"dropping message on the floor")
         pass
@@ -74,7 +93,7 @@ class Base_writer:
 
 
 class Hop_writer(Base_writer):
-    " A class to writer data from Hop"
+    " A class to write data from Hop"
     def __init__(self, args, config):
         self.args    = args
         toml_data    =   toml.load(args.toml_file)
@@ -91,26 +110,9 @@ class Hop_writer(Base_writer):
                 f"{config['hostname']}:" \
                 f"{config['port']}/"
             )
-
         super().__init__(args, config)
+
         
-    def refresh_url(self):
-        "initalize/refresh the list of topics to record PRN"
-        #return if not not needed.
-        if self.n_recieved  % self.refresh_url_every != 0: return
-        if self.args.test_topic:
-            #this implementation suposrt test and debug.
-            topics = self.test_topic
-        else: 
-            # Read the available topics from the given broker
-            topic_dict = list_topics(url=self.base_url, auth=self.auth)
-        
-            # Concatinate the avilable topics with the broker address
-            # omitvetoed  topics
-            topics = ','.join([t for t in topic_dict.keys() if t not in self.vetoed_topics])
-        self.url = (f"{self.base_url}{topics}")
-        logging.info(f"Hop Url (re)configured: {self.url} excluding {self.vetoed_topics}")
-    
 
     def connect(self):
         "connect to write test messages to teat_topic"
@@ -146,5 +148,33 @@ class Hop_writer(Base_writer):
         self.write_client.write(message, headers)
         self.write_client.flush()
 
-            
+        
+class Kcat_writer(Base_writer):
+    "a class to publish data to hop"
+    def __init__(self, args, config):
+        self.args    = args
+        toml_data    =   toml.load(args.toml_file)
+        config       =   toml_data[args.hop_stanza]
+        self.groupname     = config["groupname"]
+        self.secret_name   = config["aws-secret-name"]
+        self.region_name   = config["aws-secret-region"]
+        self.test_topic    = config["test-topic"]
+        
+        self.get_auth_info()
+        self.base_url = (
+                f"kafka://"   \
+                #f"{self.username}@" \
+                f"{config['hostname']}:" \
+                f"{config['port']}/"
+            )
+        super().__init__(args, config)
+    
 
+    def publish(self, messages, header=()):
+        auth_template = f""" kcat -b {self.base_url} \
+        -X security.protocol=sasl_ssl -X sasl.mechanisms=PLAIN \
+        -X sasl.username={self.username}  \
+        -X sasl.password={self.password}  \
+        -L
+        """ 
+        print(auth_template)
