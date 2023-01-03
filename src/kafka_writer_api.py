@@ -162,17 +162,17 @@ class Kcat_writer(Base_writer):
         
         self.get_auth_info()
         self.base_url = (
-                f"kafka://"   \
+                #f"kafka://"   \
                 #f"{self.username}@" \
                 f"{config['hostname']}:" \
-                f"{config['port']}/"
+                f"{config['port']}"
             )
         super().__init__(args, config)
     
 
     def publish(self, messages, header=()):
         auth_template = f""" kcat -b {self.base_url} \
-        -X security.protocol=sasl_ssl -X sasl.mechanisms=PLAIN \
+        -X security.protocol=sasl_ssl -X sasl.mechanisms=SCRAM-SHA-512 \
         -X sasl.username={self.username}  \
         -X sasl.password={self.password}  \
         -L
