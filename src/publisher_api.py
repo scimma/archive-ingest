@@ -36,9 +36,9 @@ import certifi
 import hop
 from hop.io import Stream, StartPosition, list_topics
 
-class WriterFactory:
+class PublisherFactory:
     """
-    Factory class to create Mock, or HOP data writers. 
+    Factory class to create Mock, or HOP data publishers. 
     """
 
     def __init__(self, args):
@@ -46,17 +46,17 @@ class WriterFactory:
         config    = toml_data.get(args.hop_stanza, None)
 
         type = config["type"]
-        #instantiate, then return writer object of correct type.
-        if type == "kcat" : self.writer =  Kcat_writer(args, config) ; return
-        if type == "hop"  : self.writer =  Hop_writer(args, config)  ; return
-        logging.fatal(f"writer {type} not supported")
+        #instantiate, then return publisher object of correct type.
+        if type == "kcat" : self.publisher =  Kcat_publisher(args, config) ; return
+        if type == "hop"  : self.publisher =  Hop_publisher(args, config)  ; return
+        logging.fatal(f"publisher {type} not supported")
         exit (1)
         
-    def get_writer(self):
+    def get_publisher(self):
         "return the srouce sppecified in the toml file"
-        return self.writer
+        return self.publisher
 
-class Base_writer:
+class Base_publisher:
     "base class for common methods"
     
     def __init__(self, args, config):
@@ -92,7 +92,7 @@ class Base_writer:
         pass
 
 
-class Hop_writer(Base_writer):
+class Hop_publisher(Base_publisher):
     " A class to write data from Hop"
     def __init__(self, args, config):
         self.args    = args
@@ -149,7 +149,7 @@ class Hop_writer(Base_writer):
         self.write_client.flush()
 
         
-class Kcat_writer(Base_writer):
+class Kcat_publisher(Base_publisher):
     "a class to publish data to hop"
     def __init__(self, args, config):
         self.args    = args
@@ -175,6 +175,6 @@ class Kcat_writer(Base_writer):
         -X security.protocol=sasl_ssl -X sasl.mechanisms=SCRAM-SHA-512 \
         -X sasl.username={self.username}  \
         -X sasl.password={self.password}  \
-        -L
+        -t {self.test_topic} -P
         """ 
         print(auth_template)

@@ -8,10 +8,10 @@ via housekeeping.toml. It can access the production or
 development versions of hop via different configurations. Hop
 credentials  are stored in AWS secrets.
 
-The other class  is "mock" reader useful for
+The other class  is "mock" consumer useful for
 development and test.
 
-The ReaderFactory class supports choosing which class is
+The ConsumerFactory class supports choosing which class is
 used at run-time.
 
 All classes use a namespace object (args), such
@@ -19,7 +19,7 @@ as provided by argparse, as part of their interface.
 
 """
 ##################################
-#   Readers 
+#   Consumers 
 ##################################
 
 import boto3
@@ -35,9 +35,9 @@ import certifi
 import hop
 from hop.io import Stream, StartPosition, list_topics
 
-class ReaderFactory:
+class ConsumerFactory:
     """
-    Factory class to create Mock, or HOP data readers. 
+    Factory class to create Mock, or HOP data consumers. 
     """
 
     def __init__(self, args):
@@ -45,17 +45,17 @@ class ReaderFactory:
         config    = toml_data.get(args.hop_stanza, None)
 
         type = config["type"]
-        #instantiate, then return reader object of correct type.
-        if type == "mock" : self.reader =  Mock_reader(args, config) ; return
-        if type == "hop"  : self.reader =  Hop_reader(args, config)  ; return
-        logging.fatal(f"reader {type} not supported")
+        #instantiate, then return consumer object of correct type.
+        if type == "mock" : self.consumer =  Mock_consumer(args, config) ; return
+        if type == "hop"  : self.consumer =  Hop_consumer(args, config)  ; return
+        logging.fatal(f"consumer {type} not supported")
         exit (1)
         
-    def get_reader(self):
+    def get_consumer(self):
         "return the srouce sppecified in the toml file"
-        return self.reader
+        return self.consumer
 
-class Base_reader:
+class Base_consumer:
     "base class for common methods"
     
     def __init__(self, args, config):
@@ -106,13 +106,13 @@ class Base_reader:
     def mark_done(self):
         pass
 
-class Mock_reader(Base_reader):
+class Mock_consumer(Base_consumer):
     """
-    a mock reader  that will support capacity testing.
+    a mock consumer  that will support capacity testing.
     """
 
     def __init__(self, args, config):
-        logging.info(f"Mock Reader configured")
+        logging.info(f"Mock Consumer configured")
         import os
         #Move these to config file once we are happy
         small_text     =  b"500 Text " * 50      #500 bytes
@@ -185,8 +185,8 @@ class Mock_reader(Base_reader):
         self.n_sent += 1
         
 
-class Hop_reader(Base_reader):
-    " A class to reader data from Hop"
+class Hop_consumer(Base_consumer):
+    " A class to consumer data from Hop"
     def __init__(self, args, config):
         self.args    = args
         toml_data    =   toml.load(args.toml_file)
@@ -230,7 +230,7 @@ class Hop_reader(Base_reader):
     
   
     def connect(self):
-        "connect to HOP a a reader (archiver)"
+        "connect to HOP a a consumer (archiver)"
         start_at = StartPosition.EARLIEST
         start_at = StartPosition.LATEST
         stream = Stream(auth=self.auth, start_at=start_at, until_eos=self.until_eos)

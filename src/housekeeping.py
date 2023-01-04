@@ -16,7 +16,7 @@ toml files. Housekeeping.toml defines a variety of these readers.
 import toml
 import logging
 import argparse
-import kafka_reader_api
+import consumer_api
 import store_api
 import database_api
 import verify_api
@@ -51,16 +51,16 @@ def make_logging(args):
 ###############
 def housekeep(args):
     """
-    Acquire data from the specified reader and log to specified DB
+    Acquire data from the specified consumer and log to specified DB
     """
     db     = database_api.DbFactory(args).get_db()
-    reader = kafka_reader_api.ReaderFactory(args).get_reader()
+    consumer = consumer_api.ConsumerFactory(args).get_consumer()
     store  = store_api.StoreFactory(args).get_store()
     db.connect()
     db.make_schema()
-    reader.connect()
+    consumer.connect()
     store.connect()
-    for x in reader.get_next():
+    for x in consumer.get_next():
         payload = x[0]
         metadata = x[1]
         text_uuid = x[2]
