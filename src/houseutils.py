@@ -6,6 +6,7 @@ Utilities for housekeeping applications.
 @author: Mahmoud Parvizi (parvizim@msu.edu)
 @author: Don Petravick (petravick@illinois.edu)
 
+'''
 
 import toml
 import logging
@@ -151,6 +152,22 @@ def status(args):
     sql = f"select * from messages where timestamp = {latest}"
     result = db.query(sql)
     print (result)
+
+
+def get(args):
+    """display an object given a uuid"""
+    db     = database_api.DbFactory(args).get_db()
+    store  = store_api.StoreFactory(args).get_store()
+    db.connect()
+    store.connect()
+    uuid = args.uuid
+    sql = f"select key from messages where uuid = '{uuid}'"
+    key = db.query(sql)[0][0]
+    bundle  = store.get_object(key)
+    import bson
+    bundle  = bson.loads(bundle)
+    import pprint 
+    pprint.pprint(bundle)
     
 if __name__ == "__main__":
 
@@ -190,6 +207,13 @@ if __name__ == "__main__":
     parser.add_argument("-S", "--store_stanza", help = "storage config stanza", default="mock-store")
     parser.add_argument("-a", "--all", help = "do the whole archive (gulp)", default = False, action = "store_true" )
 
+    #get
+    parser = subparsers.add_parser('get', help=get.__doc__)
+    parser.set_defaults(func=get)
+    parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="mock-db")
+    parser.add_argument("-S", "--store_stanza", help = "storage config stanza", default="mock-store")
+    parser.add_argument("uuid",  help = "uuid of object")
+    
     args = main_parser.parse_args()
     make_logging(args)
     logging.info(args)
