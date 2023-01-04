@@ -154,8 +154,8 @@ def status(args):
     print (result)
 
 
-def get(args):
-    """display an object given a uuid"""
+def inspect(args):
+    """inspect an object given a uuid"""
     db     = database_api.DbFactory(args).get_db()
     store  = store_api.StoreFactory(args).get_store()
     db.connect()
@@ -164,6 +164,9 @@ def get(args):
     sql = f"select key from messages where uuid = '{uuid}'"
     key = db.query(sql)[0][0]
     bundle  = store.get_object(key)
+    if args.write :
+        with open(f"{uuid}.bson","wb") as f:
+            f.write(bundle)
     import bson
     bundle  = bson.loads(bundle)
     import pprint 
@@ -208,10 +211,11 @@ if __name__ == "__main__":
     parser.add_argument("-a", "--all", help = "do the whole archive (gulp)", default = False, action = "store_true" )
 
     #get
-    parser = subparsers.add_parser('get', help=get.__doc__)
-    parser.set_defaults(func=get)
+    parser = subparsers.add_parser('inspect', help=inspect.__doc__)
+    parser.set_defaults(func=inspect)
     parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="mock-db")
     parser.add_argument("-S", "--store_stanza", help = "storage config stanza", default="mock-store")
+    parser.add_argument("-w", "--write", help = "write object to <uuid>.bson ", default=False, action="store_true")
     parser.add_argument("uuid",  help = "uuid of object")
     
     args = main_parser.parse_args()
