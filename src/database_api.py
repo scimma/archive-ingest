@@ -100,7 +100,7 @@ class Mock_db(Base_db):
        
 
     def insert(self, payload, message, text_uuid, storeinfo):
-        "accepot and discard data"
+        "accept and discard data"
         self.n_inserted += 1
         self.log()
 
@@ -192,15 +192,16 @@ class AWS_db(Base_db):
 
         sql = f"""
         INSERT INTO messages 
-          (topic, timestamp, uuid, size, key)
-          VALUES (%s, %s, %s, %s, %s) ;
+          (topic, timestamp, uuid, size, key, bucket)
+          VALUES (%s, %s, %s, %s, %s, %s) ;
         COMMIT ; """
 
         self.cur.execute(sql, [metadata["topic"],
                                metadata["timestamp"],
                                text_uuid,
                                storeinfo.size,
-                               storeinfo.key])
+                               storeinfo.key,
+                               storeinfo.bucket])
         self.n_inserted +=1
         self.log()
 
