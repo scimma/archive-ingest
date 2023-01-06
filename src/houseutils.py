@@ -53,7 +53,7 @@ def make_logging(args):
 
 ##############
 #
-#  argparse functions 
+#  argparse implementation functions 
 #  
 ###############
 
@@ -121,12 +121,12 @@ def status(args):
     last_day_timestamp  = now_timestamp - day_msec
     last_hour_timestamp = now_timestamp - hour_msec
     def summarize(since_msec, label):
-        headers = ["Topic", "n messages", "bytes stored", "earliest (UTC)", "latest(UTC)"]
+        headers = ["Topic", "n messages", "bytes stored", "sample uuid", "earliest (UTC)", "latest(UTC)"]
         sql = f"""
         SELECT
-          topic, count(topic),sum(size),
-             to_timestamp(min(timestamp/1000)),
-             to_timestamp(max(timestamp/1000))
+          topic, count(topic),sum(size), max(uuid),
+             date_trunc('seconds', to_timestamp(min(timestamp/1000))),
+             date_trunc('seconds', to_timestamp(max(timestamp/1000)))
         FROM
           messages
         WHERE
@@ -156,6 +156,7 @@ def status(args):
 
 def inspect(args):
     """inspect an object given a uuid"""
+    import bson
     db     = database_api.DbFactory(args).get_db()
     store  = store_api.StoreFactory(args).get_store()
     db.connect()
@@ -167,11 +168,23 @@ def inspect(args):
     if args.write :
         with open(f"{uuid}.bson","wb") as f:
             f.write(bundle)
-    import bson
     bundle  = bson.loads(bundle)
-    import pprint 
-    pprint.pprint(bundle)
+    if not args.quiet:
+        import pprint 
+        pprint.pprint(bundle)
+
+def uuids(args):
+    "print a list of uuids consistent w user supplied where clause"
+    db     = database_api.DbFactory(args).get_db()
+    db.connect()
+    sql = f"select uuid from messages {args.where}"
+    logging.info(sql)
     
+    uuids = db.query(sql)
+    for uuid  in uuids:
+        print (uuid[0])
+
+        
 if __name__ == "__main__":
 
     #main_parser = argparse.ArgumentParser(add_help=False)
@@ -210,13 +223,20 @@ if __name__ == "__main__":
     parser.add_argument("-S", "--store_stanza", help = "storage config stanza", default="mock-store")
     parser.add_argument("-a", "--all", help = "do the whole archive (gulp)", default = False, action = "store_true" )
 
-    #get
+    #inspect display an object and or write it out.
     parser = subparsers.add_parser('inspect', help=inspect.__doc__)
     parser.set_defaults(func=inspect)
     parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="mock-db")
     parser.add_argument("-S", "--store_stanza", help = "storage config stanza", default="mock-store")
     parser.add_argument("-w", "--write", help = "write object to <uuid>.bson ", default=False, action="store_true")
+    parser.add_argument("-q", "--quiet", help = "dont print object to stdout ", default=False, action="store_true")
     parser.add_argument("uuid",  help = "uuid of object")
+
+    #uuids get uuids consistent with a where clause.
+    parser = subparsers.add_parser('uuids', help=uuids.__doc__)
+    parser.set_defaults(func=uuids)
+    parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="mock-db")
+    parser.add_argument("where",  help = "where clause")
     
     args = main_parser.parse_args()
     make_logging(args)

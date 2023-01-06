@@ -170,11 +170,15 @@ class Kcat_publisher(Base_publisher):
         super().__init__(args, config)
     
 
-    def publish(self, messages, header=()):
+    def publish(self, message, header=()):
+        import tempfile 
         auth_template = f""" kcat -b {self.base_url} \
         -X security.protocol=sasl_ssl -X sasl.mechanisms=SCRAM-SHA-512 \
         -X sasl.username={self.username}  \
         -X sasl.password={self.password}  \
         -t {self.test_topic} -P
-        """ 
+        """
+        tmp = tempfile.NamedTemporaryFile()
+        tmp.write(message)
+        msessage_file_name =  tmp.name
         print(auth_template)

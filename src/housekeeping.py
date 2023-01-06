@@ -105,6 +105,7 @@ if __name__ == "__main__":
 
     
     args = main_parser.parse_args()
+
     make_logging(args)
     logging.info(args)
     

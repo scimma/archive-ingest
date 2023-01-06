@@ -45,6 +45,16 @@ def get_known_data():
     import uuid
     import random
 
+
+    class Test_vector():
+        def __init__(self, message, header):
+            self.message = message
+            self.header  = header
+            if type (message) == type(Object):
+                self.self_method == "HOP"
+            else:
+                self.send_method == "KCAT"
+
     random.seed(0)
     def repeatable_binary_bytes(n):
         ans = bytes(random.getrandbits(8) for _ in range(n))

@@ -176,7 +176,8 @@ class AWS_db(Base_db):
           timestamp BIGINT,
           uuid      TEXT,
           size      INTEGER,
-          key       TEXT
+          key       TEXT,
+          bucket    TEXT
         );
         
         CREATE INDEX IF NOT EXISTS timestamp_idx ON messages (timestamp);
