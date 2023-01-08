@@ -232,7 +232,7 @@ class Hop_consumer(Base_consumer):
     def connect(self):
         "connect to HOP a a consumer (archiver)"
         start_at = StartPosition.EARLIEST
-        start_at = StartPosition.LATEST
+        #start_at = StartPosition.LATEST
         stream = Stream(auth=self.auth, start_at=start_at, until_eos=self.until_eos)
         
         # Return the connection to the client as :class:"hop.io.Consumer" instance

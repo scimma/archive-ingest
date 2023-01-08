@@ -64,12 +64,27 @@ def connect(args):
 
 def publish(args):
     "publish some test data to a topic"
+    import sys
     publisher = publisher_api.PublisherFactory(args).get_publisher()
     publisher.connect()
     message_dict, end_message  = verify_api.get_known_data()
-    for key  in  message_dict.keys():
+    for key in message_dict.keys():
         message, header = message_dict[key]
+        logging.info(f"about to publish {key}")
         logging.info(f"{terse(message)}, {terse(header)}")
+        if args.ask:
+            print (f"> p:pdb; q:quit_ask_mode; s:skip this messagee, anything_else: continue")
+            sys.stdout.write(">> ")
+            answer = sys.stdin.readline()
+            if answer[0].lower() == 's' :
+                continue
+            elif answer[0].lower() == 'n' :
+                self.ask = False
+            elif   answer[0].lower() == 'p':
+                import pdb ; pdb.set_trace()
+            else:
+                pass
+        
         publisher.publish (message, header)
     publisher.publish (end_message[0], end_message[1])
     
@@ -214,7 +229,8 @@ if __name__ == "__main__":
     #publish -- publish some test data
     parser = subparsers.add_parser('publish', help="publish some test data")
     parser.set_defaults(func=publish)
-    parser.add_argument("-H", "--hop_stanza", help = "hopskotch config  stanza", default="mock-hop")
+    parser.add_argument("-H", "--hop_stanza", help = "hopskotch config  stanza", default="hop-prod")
+    parser.add_argument("-a", "--ask", help = "interactive prompt before each publish", default=False, action="store_true")
 
     #verify -- 
     parser = subparsers.add_parser('verify', help="check objects recored in DB exist")

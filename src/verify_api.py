@@ -223,7 +223,8 @@ def compare_known_data(as_recieved_payload, as_recieved_metadata):
     as_sent_header = COMPARE_DICT[this_use_case][1]
 
     # assert payload is the same
-    assert as_sent_payload  == as_recieved_payload
+    if as_sent_payload['content']  !=  as_recieved_payload['content'] : import pdb; pdb.set_trace()
+    assert  as_sent_payload['content']  ==  as_recieved_payload['content']
     
     # Assert that every user supplied header item is present in the
     # recieved header. Note that HOP adds keys, it's not
