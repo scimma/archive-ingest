@@ -78,7 +78,7 @@ def publish(args):
             answer = sys.stdin.readline()
             if answer[0].lower() == 's' :
                 continue
-            elif answer[0].lower() == 'n' :
+            elif answer[0].lower() == 'q' :
                 self.ask = False
             elif   answer[0].lower() == 'p':
                 import pdb ; pdb.set_trace()
