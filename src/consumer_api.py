@@ -216,14 +216,14 @@ class Hop_consumer(Base_consumer):
         #return if not not needed.
         if self.n_recieved  % self.refresh_url_every != 0: return
         if self.args.test_topic:
-            #this implementation suposrt test and debug.
+            #this topic supports  test and debug.
             topics = self.test_topic
         else: 
             # Read the available topics from the given broker
             topic_dict = list_topics(url=self.base_url, auth=self.auth)
         
             # Concatinate the avilable topics with the broker address
-            # omitvetoed  topics
+            # omit vetoed  topics
             topics = ','.join([t for t in topic_dict.keys() if t not in self.vetoed_topics])
         self.url = (f"{self.base_url}{topics}")
         logging.info(f"Hop Url (re)configured: {self.url} excluding {self.vetoed_topics}")
@@ -243,7 +243,7 @@ class Hop_consumer(Base_consumer):
         self.refresh_url()
         group_id = f"{self.username}-{self.groupname}" 
         self.client = stream.open(url=self.url, group_id=group_id)
-
+        logging.info(f"opening stream at {self.url} group: {group_id} startpos {start_at}")
 
     def authorize(self):
         "authorize using AWS secrets"
@@ -273,7 +273,11 @@ class Hop_consumer(Base_consumer):
             # -- lack a full udnerstanding fo thsi case.
 
             message = result[0].serialize()
-            #message = result[0]
+            # metadata remarks
+            # save the original metadata for mark_done api.
+            # make a syntheite metadata reflecting what the ...
+            # user would  see, omitting kafak internals,
+            self.original_metadata = result[1] 
             if result[1].headers is None :
                 headers = []
             else:
@@ -289,7 +293,10 @@ class Hop_consumer(Base_consumer):
             text_uuid = self.get_text_uuid(headers)
             yield (message, metadata, text_uuid)
 
-            def mark_done(self):
-                self.client.mark_done({})
+    def mark_done(self):
+        """ mark that we are done processing, since autocommit=False
+        """
+        #import pdb; pdb.set_trace()
+        self.client.mark_done(self.original_metadata)
         
 

@@ -79,8 +79,11 @@ class Base_db:
     def log(self):
         "log db informmation, but not too often"
         msg1 = f"inserted  {self.n_inserted} objects."
-        if self.n_inserted < 5 :
+        if self.n_inserted < 10 :
             logging.info(msg1)
+        elif self.n_inserted == 10:
+            logging.info(msg1)
+            logging.info(f"reverting to logging every {self.log_every}")
         elif self.n_inserted % self.log_every == 0:
             logging.info(msg1)
 

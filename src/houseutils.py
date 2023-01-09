@@ -76,11 +76,11 @@ def publish(args):
             print (f"> p:pdb; q:quit_ask_mode; s:skip this messagee, anything_else: continue")
             sys.stdout.write(">> ")
             answer = sys.stdin.readline()
-            if answer[0].lower() == 's' :
+            if   answer[0].lower() == 's' :
                 continue
             elif answer[0].lower() == 'q' :
-                self.ask = False
-            elif   answer[0].lower() == 'p':
+                args.ask = False
+            elif  answer[0].lower() == 'p':
                 import pdb ; pdb.set_trace()
             else:
                 pass

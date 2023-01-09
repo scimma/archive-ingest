@@ -64,12 +64,14 @@ def housekeep(args):
         payload = x[0]
         metadata = x[1]
         text_uuid = x[2]
+        if args.test_topic:
+            if args.verify and verify_api.is_known_test_data(metadata):
+                if payload["content"] == b"end": exit(0)
+                verify_api.compare_known_data(payload, metadata)
         storeinfo = store.store(payload, metadata, text_uuid)
         db.insert(payload, metadata, text_uuid, storeinfo)
         verify_api.assert_ok(args, payload, metadata, text_uuid, storeinfo, db, store)
-        if args.test_topic: 
-            if payload["content"] == b"end": exit(0)
-            verify_api.compare_known_data(payload, metadata)
+        consumer.mark_done()
 
         
 def list(args):
