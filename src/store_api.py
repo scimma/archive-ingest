@@ -13,7 +13,7 @@ development and test. Thsi sote discards the data.
 The StoreFactory class supports choosing which class is
 used at run-time.
 
-All classes use a namespace object (args), such
+All classes use a namespace object (config), such
 as provided by argparse, as part of their interface.
 """
 
@@ -27,6 +27,8 @@ import toml
 import time
 import datetime
 import sys
+import utility_api
+
 ##################################
 # stores
 ##################################
@@ -35,18 +37,12 @@ class StoreFactory:
     """
     Factory class to create Mock, or S3 stores 
     """
-    def __init__ (self, args):
-        toml_data = toml.load(args["toml_file"])
-        stanza = args["store_stanza"]
-        logging.info(f"using dabase stanza {stanza}")
-        config    = toml_data.get(stanza, None)
-        if not config:
-            logging.fatal(f'could not find {stanza} in {args["toml_file"]}')
-
+    def __init__ (self, config):
+        config = utility_api.merge_config(config)
         type = config["type"]
         #instantiate, then return db object of correct type.
-        if type == "mock" : self.store  =  Mock_store(args, config) ; return 
-        if type == "S3"   : self.store  =  S3_store  (args, config) ; return 
+        if type == "mock" : self.store  =  Mock_store(config) ; return 
+        if type == "S3"   : self.store  =  S3_store  (config) ; return 
         logging.fatal(f"store {type} not supported")
         exit (1)
         
@@ -59,10 +55,10 @@ class Store_info:
 
 class Base_store:
     " base class for common methods"
-    def __init__(self, args, config):
+    def __init__(self, config):
         self.bucket = config["bucket"]
         self.n_stored = 0
-        self.log_every = 100   #move to config file.
+        self.log_every = 100   #move to configi file.
     
     def connect(self):
         pass
@@ -110,8 +106,8 @@ class Base_store:
     
 class S3_store(Base_store):
     "send things to s3"
-    def __init__(self, args, config):
-        super().__init__(args, config)
+    def __init__(self, config):
+        super().__init__(config)
         
     def connect(self):
         "obtain an S3 Client"
@@ -171,9 +167,9 @@ class Mock_store(Base_store):
     a mock store that does nothing -- support debug and devel.
     """
     
-    def __init__(self, args, config):
+    def __init__(self, config):
         self.bucket = "scimma-housekeeping"
-        super().__init__(args, config)
+        super().__init__(config)
         logging.info(f"Mock store configured")
 
 

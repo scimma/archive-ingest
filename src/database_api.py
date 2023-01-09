@@ -25,7 +25,7 @@ import boto3
 import toml
 import logging
 import uuid
-
+import utility_api
 
 
 ##################################
@@ -37,18 +37,13 @@ class DbFactory:
     """
     Factory class to create Mock, MySQL, or AWS postgres DB objects 
     """
-    def __init__ (self, args):
-        toml_data = toml.load(args["toml_file"])
-        stanza = args["database_stanza"]
-        logging.info(f"using dabase stanza {stanza}")
-        config    = toml_data.get(stanza, None)
-        if not config:
-            logging.fatal(f'could not find {stanza} in {args["toml_file"]}')
+    def __init__ (self, config):
 
+        config = utility_api.merge_config(config)
         type = config["type"]
         #instantiate, then return db object of correct type.
-        if type == "mock"   : self.db  =  Mock_db(args, config)  ; return 
-        if type == "aws"    : self.db  =  AWS_db(args, config) ; return 
+        if type == "mock"   : self.db  =  Mock_db(config)  ; return 
+        if type == "aws"    : self.db  =  AWS_db (config) ; return 
         logging.fatal(f"database {type} not supported")
         exit (1)
         
@@ -59,7 +54,7 @@ class DbFactory:
 
 class Base_db:
     "Base class holding common methods"
-    def __init__(self, args, config):
+    def __init__(self, config):
         self.n_inserted = 0
         self.log_every  = 100 # get from config file 
          
@@ -97,9 +92,9 @@ class Mock_db(Base_db):
     """
     a mock DB that does nothing -- support debug and devel.
     """
-    def __init__(self, args, config):
+    def __init__(self, config):
         logging.info(f"Mock Database configured")
-        super().__init__(args, config)
+        super().__init__(config)
        
 
     def insert(self, payload, message, text_uuid, storeinfo):
@@ -112,12 +107,12 @@ class AWS_db(Base_db):
     """
     Logging to AWS postgres DBs
     """
-    def __init__(self, args, config):
+    def __init__(self, config):
         # get these from the configuration file
         self.aws_db_name        = config["aws_db_name"] 
         self.aws_db_secret_name = config["aws_db_secret_name"]
         self.aws_region_name    = config["aws_region_name"]
-        super().__init__(args, config)
+        super().__init__(config)
         
         # go off and get the real connections  information from AWS
         self.set_password_info()
