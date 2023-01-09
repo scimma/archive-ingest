@@ -42,8 +42,9 @@ class PublisherFactory:
     """
 
     def __init__(self, args):
-        toml_data = toml.load(args.toml_file)
-        config    = toml_data.get(args.hop_stanza, None)
+        args = args.__dict__
+        toml_data = toml.load(args["toml_file"])
+        config    = toml_data.get(args["hop_stanza"], None)
 
         type = config["type"]
         #instantiate, then return publisher object of correct type.
@@ -96,8 +97,8 @@ class Hop_publisher(Base_publisher):
     " A class to write data from Hop"
     def __init__(self, args, config):
         self.args    = args
-        toml_data    =   toml.load(args.toml_file)
-        config       =   toml_data[args.hop_stanza]
+        toml_data    =   toml.load(args["toml_file"])
+        config       =   toml_data[args["hop_stanza"]]
         self.groupname     = config["groupname"]
         self.secret_name   = config["aws-secret-name"]
         self.region_name   = config["aws-secret-region"]
@@ -153,8 +154,8 @@ class Kcat_publisher(Base_publisher):
     "a class to publish data to hop"
     def __init__(self, args, config):
         self.args    = args
-        toml_data    =   toml.load(args.toml_file)
-        config       =   toml_data[args.hop_stanza]
+        toml_data    =   toml.load(args["toml_file"])
+        config       =   toml_data[args["hop_stanza"]]
         self.groupname     = config["groupname"]
         self.secret_name   = config["aws-secret-name"]
         self.region_name   = config["aws-secret-region"]

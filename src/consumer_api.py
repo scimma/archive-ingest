@@ -41,8 +41,9 @@ class ConsumerFactory:
     """
 
     def __init__(self, args):
-        toml_data = toml.load(args.toml_file)
-        config    = toml_data.get(args.hop_stanza, None)
+        args = args.__dict__
+        toml_data = toml.load(args["toml_file"])
+        config    = toml_data.get(args["hop_stanza"], None)
 
         type = config["type"]
         #instantiate, then return consumer object of correct type.
@@ -52,7 +53,7 @@ class ConsumerFactory:
         exit (1)
         
     def get_consumer(self):
-        "return the srouce sppecified in the toml file"
+        "return the source sppecified in the toml file"
         return self.consumer
 
 class Base_consumer:
@@ -189,8 +190,8 @@ class Hop_consumer(Base_consumer):
     " A class to consumer data from Hop"
     def __init__(self, args, config):
         self.args    = args
-        toml_data    =   toml.load(args.toml_file)
-        config       =   toml_data[args.hop_stanza]
+        toml_data    =   toml.load(args["toml_file"])
+        config       =   toml_data[args["hop_stanza"]]
         self.vetoed_topics = config["vetoed_topics"]
         #self.username      = config["username"]
         self.groupname     = config["groupname"]
@@ -215,7 +216,7 @@ class Hop_consumer(Base_consumer):
         "initalize/refresh the list of topics to record PRN"
         #return if not not needed.
         if self.n_recieved  % self.refresh_url_every != 0: return
-        if self.args.test_topic:
+        if self.args["test_topic"]:
             #this topic supports  test and debug.
             topics = self.test_topic
         else: 
