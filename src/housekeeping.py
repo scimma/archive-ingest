@@ -36,8 +36,8 @@ def make_logging(args):
     # supply defaults to assure than logging of some sort is setup no matter what.
     # Note that the production environment captures stdout/stderr into logs for us.
     default_format  = '%(asctime)s:%(filename)s:%(levelname)s:%(message)s'
-    toml_data = toml.load(args.toml_file)
-    config    =  toml_data[args.log_stanza]
+    toml_data = toml.load(args["toml_file"])
+    config    =  toml_data[args["log_stanza"]]
     level    = config.get("level", "DEBUG")
     format   = config.get("format", default_format)
     logging.basicConfig(level=level, format=format)
@@ -64,8 +64,8 @@ def housekeep(args):
         payload = x[0]
         metadata = x[1]
         text_uuid = x[2]
-        if args.test_topic:
-            if args.verify and verify_api.is_known_test_data(metadata):
+        if args["test_topic"]:
+            if args["verify"] and verify_api.is_known_test_data(metadata):
                 if payload["content"] == b"end": exit(0)
                 verify_api.compare_known_data(payload, metadata)
         storeinfo = store.store(payload, metadata, text_uuid)
@@ -77,8 +77,8 @@ def housekeep(args):
 def list(args):
     "list the stanzas so I dont have to grep toml files"
     import pprint
-    dict = toml.load(args.toml_file)
-    print (args.toml_file)
+    dict = toml.load(args["toml_file"])
+    print (args["toml_file"])
     pprint.pprint(dict)
     
 if __name__ == "__main__":
@@ -108,11 +108,12 @@ if __name__ == "__main__":
     
     args = main_parser.parse_args()
 
-    make_logging(args)
+    make_logging(args.__dict__)
     logging.info(args)
     
     if not args.func:  # there are no subfunctions
         main_parser.print_help()
         exit(1)
-    args.func(args)
+    args.func(args.__dict__)
+                                    
 

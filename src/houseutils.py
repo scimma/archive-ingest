@@ -43,8 +43,8 @@ def make_logging(args):
     # supply defaults to assure than logging of some sort is setup no matter what.
     # Note that the production environment captures stdout/stderr into logs for us.
     default_format  = '%(asctime)s:%(filename)s:%(levelname)s:%(message)s'
-    toml_data = toml.load(args.toml_file)
-    config    =  toml_data[args.log_stanza]
+    toml_data = toml.load(args["toml_file"])
+    config    =  toml_data[args["log_stanza"]]
     level    = config.get("level", "DEBUG")
     format   = config.get("format", default_format)
     logging.basicConfig(level=level, format=format)
@@ -72,14 +72,14 @@ def publish(args):
         message, header = message_dict[key]
         logging.info(f"about to publish {key}")
         logging.info(f"{terse(message)}, {terse(header)}")
-        if args.ask:
+        if args["ask"]:
             print (f"> p:pdb; q:quit_ask_mode; s:skip this messagee, anything_else: continue")
             sys.stdout.write(">> ")
             answer = sys.stdin.readline()
             if   answer[0].lower() == 's' :
                 continue
             elif answer[0].lower() == 'q' :
-                args.ask = False
+                args["ask"] = False
             elif  answer[0].lower() == 'p':
                 import pdb ; pdb.set_trace()
             else:
@@ -91,8 +91,8 @@ def publish(args):
 def list(args):
     "list the stanzas so I dont have to grep toml files"
     import pprint
-    dict = toml.load(args.toml_file)
-    print (args.toml_file)
+    dict = toml.load(args["toml_file"])
+    print (args["toml_file"])
     pprint.pprint(dict)
 
 
@@ -101,7 +101,7 @@ def verify(args):
    store  = store_api.StoreFactory(args).get_store()
    db.connect()
    store.connect()
-   if args.all:
+   if args["all"]:
        limit_clause = ""
    else:
        limit_clause = "ORDER BY random() LIMIT 100"
@@ -176,15 +176,15 @@ def inspect(args):
     store  = store_api.StoreFactory(args).get_store()
     db.connect()
     store.connect()
-    uuid = args.uuid
+    uuid = args["uuid"]
     sql = f"select key from messages where uuid = '{uuid}'"
     key = db.query(sql)[0][0]
     bundle  = store.get_object(key)
-    if args.write :
+    if args["write"] :
         with open(f"{uuid}.bson","wb") as f:
             f.write(bundle)
     bundle  = bson.loads(bundle)
-    if not args.quiet:
+    if not args["quiet"]:
         import pprint 
         pprint.pprint(bundle)
 
@@ -192,7 +192,7 @@ def uuids(args):
     "print a list of uuids consistent w user supplied where clause"
     db     = database_api.DbFactory(args).get_db()
     db.connect()
-    sql = f"select uuid from messages {args.where}"
+    sql = f'select uuid from messages {args["where"]}'
     logging.info(sql)
     
     uuids = db.query(sql)
@@ -255,11 +255,11 @@ if __name__ == "__main__":
     parser.add_argument("where",  help = "where clause")
     
     args = main_parser.parse_args()
-    make_logging(args)
+    make_logging(args.__dict__)
     logging.info(args)
     
     if not args.func:  # there are no subfunctions
         main_parser.print_help()
         exit(1)
-    args.func(args)
+    args.func(args.__dict__)
 

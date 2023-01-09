@@ -41,7 +41,6 @@ class ConsumerFactory:
     """
 
     def __init__(self, args):
-        args = args.__dict__
         toml_data = toml.load(args["toml_file"])
         config    = toml_data.get(args["hop_stanza"], None)
 

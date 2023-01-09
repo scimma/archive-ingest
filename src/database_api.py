@@ -38,7 +38,6 @@ class DbFactory:
     Factory class to create Mock, MySQL, or AWS postgres DB objects 
     """
     def __init__ (self, args):
-        args = args.__dict__
         toml_data = toml.load(args["toml_file"])
         stanza = args["database_stanza"]
         logging.info(f"using dabase stanza {stanza}")

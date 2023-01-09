@@ -159,7 +159,7 @@ def assert_ok(args, recieved_payload, recieved_metadata, text_uuid, storeinfo, d
     output-of-housekeeping-"source call"
     but is lightweight to run.
     """
-    if not args.verify : return
+    if not args["verify"] : return
 
     #check DB match
     q = f"""select

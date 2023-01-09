@@ -36,7 +36,6 @@ class StoreFactory:
     Factory class to create Mock, or S3 stores 
     """
     def __init__ (self, args):
-        args = args.__dict__
         toml_data = toml.load(args["toml_file"])
         stanza = args["store_stanza"]
         logging.info(f"using dabase stanza {stanza}")
