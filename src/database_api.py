@@ -230,3 +230,20 @@ class AWS_db(Base_db):
         """
         pass
 
+    def get_logs(self):
+        "print the latest postgres logs to stdout"
+        session = boto3.session.Session()
+        client = session.client(
+            service_name='rds',
+            region_name=self.aws_region_name
+        )
+        result = client.describe_db_log_files(DBInstanceIdentifier=self.aws_db_name)
+        all_logs = ""
+        for idx in [-2,-1]: 
+            logfile = result['DescribeDBLogFiles'][idx]['LogFileName']
+            log_text_result =  client.download_db_log_file_portion(
+            DBInstanceIdentifier=self.aws_db_name,
+            LogFileName = logfile
+            )
+            all_logs += log_text_result["LogFileData"]
+        return all_logs

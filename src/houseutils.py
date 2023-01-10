@@ -198,7 +198,12 @@ def uuids(args):
     for uuid  in uuids:
         print (uuid[0])
 
-        
+
+def db_logs(args):
+    db     = database_api.DbFactory(args).get_db()
+    logs = db.get_logs()
+    print (logs)
+    
 if __name__ == "__main__":
 
     #main_parser = argparse.ArgumentParser(add_help=False)
@@ -252,7 +257,12 @@ if __name__ == "__main__":
     parser.set_defaults(func=uuids)
     parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="mock-db")
     parser.add_argument("where",  help = "where clause")
-    
+
+    #db_logs get recent database logs.
+    parser = subparsers.add_parser('db_logs', help=db_logs.__doc__)
+    parser.set_defaults(func=db_logs)
+    parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="aws-dev-db")
+
     args = main_parser.parse_args()
     make_logging(args.__dict__)
     logging.info(args)
