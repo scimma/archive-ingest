@@ -39,7 +39,7 @@ class StoreFactory:
     """
     def __init__ (self, config):
         config = utility_api.merge_config(config)
-        type = config["type"]
+        type = config["store-type"]
         #instantiate, then return db object of correct type.
         if type == "mock" : self.store  =  Mock_store(config) ; return 
         if type == "S3"   : self.store  =  S3_store  (config) ; return 
@@ -56,9 +56,9 @@ class Store_info:
 class Base_store:
     " base class for common methods"
     def __init__(self, config):
-        self.bucket = config["bucket"]
+        self.bucket = config["store-bucket"]
         self.n_stored = 0
-        self.log_every = 100   #move to configi file.
+        self.log_every = config["store-log-every"]
     
     def connect(self):
         pass

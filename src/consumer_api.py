@@ -14,8 +14,6 @@ development and test.
 The ConsumerFactory class supports choosing which class is
 used at run-time.
 
-All classes use a namespace object (args), such
-as provided by argparse, as part of their interface.
 
 """
 ##################################
@@ -34,20 +32,19 @@ import os
 import certifi
 import hop
 from hop.io import Stream, StartPosition, list_topics
+import utility_api
 
 class ConsumerFactory:
     """
     Factory class to create Mock, or HOP data consumers. 
     """
 
-    def __init__(self, args):
-        toml_data = toml.load(args["toml_file"])
-        config    = toml_data.get(args["hop_stanza"], None)
-
-        type = config["type"]
+    def __init__(self, config):
+        config = utility_api.merge_config(config)
+        type = config["hop-type"]
         #instantiate, then return consumer object of correct type.
-        if type == "mock" : self.consumer =  Mock_consumer(args, config) ; return
-        if type == "hop"  : self.consumer =  Hop_consumer(args, config)  ; return
+        if type == "mock" : self.consumer =  Mock_consumer(config) ; return
+        if type == "hop"  : self.consumer =  Hop_consumer(config)  ; return
         logging.fatal(f"consumer {type} not supported")
         exit (1)
         
@@ -58,7 +55,7 @@ class ConsumerFactory:
 class Base_consumer:
     "base class for common methods"
     
-    def __init__(self, args, config):
+    def __init__(self, config):
         pass
     
 
@@ -66,7 +63,7 @@ class Base_consumer:
         """
         provide text uuid from header else make one
 
-        hop_Lient procies a uuid made by
+        hop_client provides a uuid made by
         uuid.uuid4().bytes in the _id header elements.
 
         Conceptually _id can be replocates by a user, corrupted
@@ -111,7 +108,7 @@ class Mock_consumer(Base_consumer):
     a mock consumer  that will support capacity testing.
     """
 
-    def __init__(self, args, config):
+    def __init__(self, config):
         logging.info(f"Mock Consumer configured")
         import os
         #Move these to config file once we are happy
@@ -131,7 +128,7 @@ class Mock_consumer(Base_consumer):
         self.n_events  = 200
         self.total_message_bytes = 0
         self.t0 =  time.time()
-        super().__init__(args, config)
+        super().__init__(config)
         
 
     def is_active(self):
@@ -187,35 +184,32 @@ class Mock_consumer(Base_consumer):
 
 class Hop_consumer(Base_consumer):
     " A class to consumer data from Hop"
-    def __init__(self, args, config):
-        self.args    = args
-        toml_data    =   toml.load(args["toml_file"])
-        config       =   toml_data[args["hop_stanza"]]
-        self.vetoed_topics = config["vetoed_topics"]
-        #self.username      = config["username"]
-        self.groupname     = config["groupname"]
-        self.until_eos     = config["until_eos"]
-        self.secret_name   = config["aws-secret-name"]
-        self.region_name   = config["aws-secret-region"]
-        self.test_topic    = config["test-topic"]
+    def __init__(self, config):
+        self.config    = config
+        self.vetoed_topics = config["hop-vetoed-topics"]
+        self.groupname     = config["hop-groupname"]
+        self.until_eos     = config["hop-until-eos"]
+        self.secret_name   = config["hop-aws-secret-name"]
+        self.region_name   = config["hop-aws-secret-region"]
+        self.test_topic    = config["hop-test-topic"]
         
         self.authorize()
         self.base_url = (
                 f"kafka://"   \
                 f"{self.username}@" \
-                f"{config['hostname']}:" \
-                f"{config['port']}/"
+                f"{config['hop-hostname']}:" \
+                f"{config['hop-port']}/"
             )
 
         self.refresh_url_every =  1000  # make this a config
         self.n_recieved = 0
-        super().__init__(args, config)
+        super().__init__(config)
         
     def refresh_url(self):
         "initalize/refresh the list of topics to record PRN"
         #return if not not needed.
         if self.n_recieved  % self.refresh_url_every != 0: return
-        if self.args["test_topic"]:
+        if self.config["test_topic"]:
             #this topic supports  test and debug.
             topics = self.test_topic
         else: 

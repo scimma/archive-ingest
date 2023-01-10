@@ -35,6 +35,7 @@ import os
 import certifi
 import hop
 from hop.io import Stream, StartPosition, list_topics
+import utility_api
 
 class PublisherFactory:
     """
@@ -42,13 +43,11 @@ class PublisherFactory:
     """
 
     def __init__(self, args):
-        toml_data = toml.load(args["toml_file"])
-        config    = toml_data.get(args["hop_stanza"], None)
-
-        type = config["type"]
+        config = utility_api.merge_config(args)
+        type = config["hop-type"]
         #instantiate, then return publisher object of correct type.
-        if type == "kcat" : self.publisher =  Kcat_publisher(args, config) ; return
-        if type == "hop"  : self.publisher =  Hop_publisher(args, config)  ; return
+        if type == "kcat" : self.publisher =  Kcat_publisher(config) ; return
+        if type == "hop"  : self.publisher =  Hop_publisher(config)  ; return
         logging.fatal(f"publisher {type} not supported")
         exit (1)
         
@@ -59,7 +58,7 @@ class PublisherFactory:
 class Base_publisher:
     "base class for common methods"
     
-    def __init__(self, args, config):
+    def __init__(self, config):
         pass
     
     def connect(self):
@@ -94,23 +93,20 @@ class Base_publisher:
 
 class Hop_publisher(Base_publisher):
     " A class to write data from Hop"
-    def __init__(self, args, config):
-        self.args    = args
-        toml_data    =   toml.load(args["toml_file"])
-        config       =   toml_data[args["hop_stanza"]]
-        self.groupname     = config["groupname"]
-        self.secret_name   = config["aws-secret-name"]
-        self.region_name   = config["aws-secret-region"]
-        self.test_topic    = config["test-topic"]
+    def __init__(self, config):
+        self.groupname     = config["hop-groupname"]
+        self.secret_name   = config["hop-aws-secret-name"]
+        self.region_name   = config["hop-aws-secret-region"]
+        self.test_topic    = config["hop-test-topic"]
         
         self.authorize()
         self.base_url = (
                 f"kafka://"   \
                 f"{self.username}@" \
-                f"{config['hostname']}:" \
-                f"{config['port']}/"
+                f"{config['hop-hostname']}:" \
+                f"{config['hop-port']}/"
             )
-        super().__init__(args, config)
+        super().__init__(config)
 
         
 
@@ -151,23 +147,20 @@ class Hop_publisher(Base_publisher):
         
 class Kcat_publisher(Base_publisher):
     "a class to publish data to hop"
-    def __init__(self, args, config):
-        self.args    = args
-        toml_data    =   toml.load(args["toml_file"])
-        config       =   toml_data[args["hop_stanza"]]
-        self.groupname     = config["groupname"]
-        self.secret_name   = config["aws-secret-name"]
-        self.region_name   = config["aws-secret-region"]
-        self.test_topic    = config["test-topic"]
+    def __init__(self, config):
+        self.groupname     = config["hop-groupname"]
+        self.secret_name   = config["hop-aws-secret-name"]
+        self.region_name   = config["hop-aws-secret-region"]
+        self.test_topic    = config["hop-test-topic"]
         
         self.get_auth_info()
         self.base_url = (
                 #f"kafka://"   \
                 #f"{self.username}@" \
-                f"{config['hostname']}:" \
-                f"{config['port']}"
+                f"{config['hop-hostname']}:" \
+                f"{config['hop-port']}"
             )
-        super().__init__(args, config)
+        super().__init__(config)
     
 
     def publish(self, message, header=()):

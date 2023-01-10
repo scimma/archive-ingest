@@ -40,7 +40,7 @@ class DbFactory:
     def __init__ (self, config):
 
         config = utility_api.merge_config(config)
-        type = config["type"]
+        type = config["db-type"]
         #instantiate, then return db object of correct type.
         if type == "mock"   : self.db  =  Mock_db(config)  ; return 
         if type == "aws"    : self.db  =  AWS_db (config) ; return 
@@ -109,9 +109,9 @@ class AWS_db(Base_db):
     """
     def __init__(self, config):
         # get these from the configuration file
-        self.aws_db_name        = config["aws_db_name"] 
-        self.aws_db_secret_name = config["aws_db_secret_name"]
-        self.aws_region_name    = config["aws_region_name"]
+        self.aws_db_name        = config["db-name"] 
+        self.aws_db_secret_name = config["db-secret-name"]
+        self.aws_region_name    = config["db-aws-region"]
         super().__init__(config)
         
         # go off and get the real connections  information from AWS
