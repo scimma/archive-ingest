@@ -139,9 +139,12 @@ def status(args):
         headers = ["Topic", "n messages", "bytes stored", "sample uuid", "earliest (UTC)", "latest(UTC)"]
         sql = f"""
         SELECT
-          topic, count(topic),sum(size), max(uuid),
-             date_trunc('seconds', to_timestamp(min(timestamp/1000))),
-             date_trunc('seconds', to_timestamp(max(timestamp/1000)))
+          topic,
+          TO_CHAR(count(topic), 'fm999G999G999G999G999'),
+          TO_CHAR(sum(size),    'fm999G999G999G999G999'),
+          max(uuid),
+          to_timestamp(min(timestamp/1000)),
+          to_timestamp(max(timestamp/1000))
         FROM
           messages
         WHERE
@@ -149,6 +152,10 @@ def status(args):
         GROUP by topic order by topic
         """
         results = db.query(sql)
+        # get totals
+        totals =  db.query(f"""SELECT count(distinct(topic)), count(*), TO_CHAR(sum(size), 'fm999G999G999G999'), 'total'  FROM messages WHERE timestamp > {since_msec}""")[0]
+        results.append(['_______','_______','_________','_________'])
+        results.append(totals)
         table = tabulate.tabulate(
             results,
             headers=headers,
@@ -203,7 +210,12 @@ def db_logs(args):
     db     = database_api.DbFactory(args).get_db()
     logs = db.get_logs()
     print (logs)
-    
+
+def kube_logs(args):
+    import os
+    cmd = "kubectl logs `kubectl get pods | grep housekeeping | grep %s | awk '{print $1}'`" % args["kind"]
+    os.system(cmd)
+
 if __name__ == "__main__":
 
     #main_parser = argparse.ArgumentParser(add_help=False)
@@ -263,6 +275,11 @@ if __name__ == "__main__":
     parser.set_defaults(func=db_logs)
     parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="aws-dev-db")
 
+    #kube_logs get recent kube logs and kube status
+    parser = subparsers.add_parser('kube_logs', help=kube_logs.__doc__)
+    parser.set_defaults(func=kube_logs)
+    parser.add_argument("kind", help = "filter for e.g 'prod' or 'devel'")
+                                                                                                    
     args = main_parser.parse_args()
     make_logging(args.__dict__)
     logging.info(args)
