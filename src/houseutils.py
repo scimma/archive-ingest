@@ -172,14 +172,12 @@ def status(args):
 def inspect(args):
     """inspect an object given a uuid"""
     import bson
-    db     = database_api.DbFactory(args).get_db()
-    store  = store_api.StoreFactory(args).get_store()
-    db.connect()
-    store.connect()
+    import access_api
+    accessor = access_api.Archive_access(args)
     uuid = args["uuid"]
     sql = f"select key from messages where uuid = '{uuid}'"
-    key = db.query(sql)[0][0]
-    bundle  = store.get_object(key)
+    key = accessor.query(sql)[0][0]
+    bundle  = accessor.get_raw_object(key)
     if args["write"] :
         with open(f"{uuid}.bson","wb") as f:
             f.write(bundle)
@@ -187,6 +185,7 @@ def inspect(args):
     if not args["quiet"]:
         import pprint 
         pprint.pprint(bundle)
+    #print(accessor.get_as_sent(key))
 
 def uuids(args):
     "print a list of uuids consistent w user supplied where clause"

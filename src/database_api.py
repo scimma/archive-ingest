@@ -203,11 +203,12 @@ class AWS_db(Base_db):
         self.n_inserted +=1
         self.log()
 
-    def query(self, sql):
+    def query(self, sql, expect_results=True):
         "return results of query"
         self.cur.execute(sql)
-        results = self.cur.fetchall()
-        return results
+        if expect_results:
+            results = self.cur.fetchall()
+            return results
 
     def launch_db_session(self):
         "lauch a query_session tool for AWS databases"
