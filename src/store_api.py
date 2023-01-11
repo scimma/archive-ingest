@@ -56,7 +56,8 @@ class Store_info:
 class Base_store:
     " base class for common methods"
     def __init__(self, config):
-        self.bucket = config["store-bucket"]
+        self.primary_bucket = config["store-primary-bucket"]
+        self.backup_bucket  = config["store-backup-bucket"]
         self.n_stored = 0
         self.log_every = config["store-log-every"]
     
@@ -85,7 +86,7 @@ class Base_store:
         storeinfo = Store_info()
         storeinfo.size = size
         storeinfo.key = key
-        storeinfo.bucket = self.bucket
+        storeinfo.bucket = self.primary_bucket
         return storeinfo
 
     def get_as_bson(self, payload, metadata):
@@ -102,6 +103,11 @@ class Base_store:
         "if not overriden, print error and die"
         logging.fatal("This source does not implement get_object")
         exit(1)
+
+    def deep_delete(self, bucket, key):
+        "if not overriden, print error and die"
+        logging.fatal("This source does not implement deep_delete")
+        exit(1)
         
     
 class S3_store(Base_store):
@@ -116,7 +122,7 @@ class S3_store(Base_store):
     def store(self, payload, metadata, text_uuid):
         """place data, metadata as an object in S3"""
         
-        bucket = self.bucket
+        bucket = self.primary_bucket
         key = self.get_key(metadata, text_uuid)
         b = self.get_as_bson(payload, metadata)
         size = len(b)
@@ -126,10 +132,32 @@ class S3_store(Base_store):
         self.log(storeinfo)
         return storeinfo
 
+    def deep_delete_from_archive(self, key):
+        """
+        delete all contents from S3 archive
+
+        right now assert that buckets contian
+        'devel' as part fo their name out of paranoia
+       """
+        self.deep_delete(self.primary_bucket, key)
+        self.deep_delete(self.backup_bucket, key)
+    
+    def deep_delete(self, bucket_name, key):
+        """
+        delete all contents from S3 archive
+
+        right now assert that bucket contain the string
+        'devel' as part of its name out of paranoia
+       """
+        assert 'devel' in bucket_name
+        s3  = boto3.resource('s3')
+        bucket = s3.Bucket(bucket_name)
+        bucket.object_versions.filter(Prefix=key).delete()
+    
     def get_object(self, key):
         "return oject from S3"
         response = self.client.get_object(
-            Bucket=self.bucket,
+            Bucket=self.primary_bucket,
             Key=key)
         data = response['Body'].read()
         return data
@@ -139,7 +167,7 @@ class S3_store(Base_store):
         summary = {"exists" : False}
         try: 
             response = self.client.get_object(
-                Bucket=self.bucket,
+                Bucket=self.primary_bucket,
                 Key=key)
 
         except  botocore.errorfactory.ClientError as err:
@@ -161,14 +189,14 @@ class S3_store(Base_store):
         summary["size"] = size 
         return summary
 
-
+    
 class Mock_store(Base_store):
     """
     a mock store that does nothing -- support debug and devel.
     """
     
     def __init__(self, config):
-        self.bucket = "scimma-housekeeping"
+        self.primary_bucket = "scimma-housekeeping"
         super().__init__(config)
         logging.info(f"Mock store configured")
 

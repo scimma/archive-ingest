@@ -15,6 +15,7 @@ import publisher_api
 import store_api
 import database_api
 import verify_api
+import utility_api
 import pprint
 
 from hop.io import Stream, StartPosition, list_topics
@@ -207,15 +208,37 @@ def uuids(args):
 
 
 def db_logs(args):
+    "print recent db logs"
     db     = database_api.DbFactory(args).get_db()
     logs = db.get_logs()
     print (logs)
 
 def kube_logs(args):
+    "print kube logs for devel or prod"
     import os
     cmd = "kubectl logs `kubectl get pods | grep housekeeping | grep %s | awk '{print $1}'`" % args["kind"]
     os.system(cmd)
 
+def clean_tests(args):
+    "clean test messages"
+    test_group = 'cmb-s4-fabric-tests.housekeeping-test'
+    db     = database_api.DbFactory(args).get_db()
+    db.connect()
+    store  = store_api.StoreFactory(args).get_store()
+    store.connect()
+    sql = f"SELECT  id, key FROM messages WHERE topic = '{test_group}' LIMIT 100"
+    logging.info(f"about to execute {sql}")
+    for id, key in db.query(sql):
+        logging.info (f"about to delete {key}")
+        utility_api.ask(args)
+        store.deep_delete_from_archive(key)
+        logging.info (f"delete finished {key}")
+        sql = f"DELETE FROM messages WHERE id = {id}"
+        db.query(sql,expect_results=False)
+        logging.info(f"about to execute {sql}")
+        logging.info(f"sql finished {sql}")
+    
+    
 if __name__ == "__main__":
 
     #main_parser = argparse.ArgumentParser(add_help=False)
@@ -280,6 +303,14 @@ if __name__ == "__main__":
     parser.set_defaults(func=kube_logs)
     parser.add_argument("kind", help = "filter for e.g 'prod' or 'devel'")
                                                                                                     
+    #clean test data
+    parser = subparsers.add_parser('clean_tests', help=clean_tests.__doc__)
+    parser.set_defaults(func=clean_tests)
+    parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="aws-dev-db")
+    parser.add_argument("-S", "--store_stanza", help = "storage config stanza", default="S3-dev")
+    parser.add_argument("-q", "--quiet", help = "don't ask before delete ", default=False, action="store_true")
+                 
+
     args = main_parser.parse_args()
     make_logging(args.__dict__)
     logging.info(args)
