@@ -21,13 +21,10 @@ as provided by argparse, as part of their interface.
 import boto3
 import botocore
 import bson
-import uuid
 import logging
-import toml
 import time
-import datetime
-import sys
 import utility_api
+import zlib
 
 ##################################
 # stores
@@ -51,7 +48,6 @@ class StoreFactory:
 
 class Store_info:
     "a namespace for storage data"
-    pass
 
 class Base_store:
     " base class for common methods"
@@ -82,11 +78,12 @@ class Base_store:
         key = f"{topic}/{t.tm_year}/{t.tm_mon}/{t.tm_mday}/{t.tm_hour}/{text_uuid}.bson"
         return key
     
-    def get_storeinfo(self, key, size):
+    def get_storeinfo(self, key, size, crc32):
         storeinfo = Store_info()
         storeinfo.size = size
         storeinfo.key = key
         storeinfo.bucket = self.primary_bucket
+        storeinfo.crc32 = crc32
         return storeinfo
 
     def get_as_bson(self, payload, metadata):
@@ -126,9 +123,10 @@ class S3_store(Base_store):
         key = self.get_key(metadata, text_uuid)
         b = self.get_as_bson(payload, metadata)
         size = len(b)
+        crc32 = zlib.crc32(b)
         self.client.put_object(Body=b, Bucket=bucket, Key=key)        
         self.n_stored += 1
-        storeinfo = self.get_storeinfo(key, size)
+        storeinfo = self.get_storeinfo(key, size, crc32)
         self.log(storeinfo)
         return storeinfo
 
@@ -207,6 +205,7 @@ class Mock_store(Base_store):
         key = self.get_key(metadata, text_uuid)
         b = self.get_as_bson(payload, metadata)
         size = len(b)
-        storeinfo = self.get_storeinfo(key, size)
+        crc32 = zlib.crc32(b)
+        storeinfo = self.get_storeinfo(key, size, crc32)
         self.log(storeinfo)
         return storeinfo

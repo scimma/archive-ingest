@@ -24,14 +24,9 @@ as provided by argparse, as part of their interface.
 ##################################
 
 import boto3
-from random import random
 import toml
 import logging
-import time
-import random
-import uuid
 import json
-import os
 import certifi
 import hop
 from hop.io import Stream, StartPosition, list_topics
@@ -85,7 +80,6 @@ class Base_publisher:
 
     def publish(self, messages, header=()):
         logging.info(f"dropping message on the floor")
-        pass
 
     def mark_done(self):
         pass

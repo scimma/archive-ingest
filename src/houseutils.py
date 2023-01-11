@@ -16,10 +16,6 @@ import store_api
 import database_api
 import verify_api
 import utility_api
-import pprint
-
-from hop.io import Stream, StartPosition, list_topics
-import hop
 
 ##################################
 #   utilities

@@ -24,7 +24,6 @@ import psycopg2.extensions
 import boto3
 import toml
 import logging
-import uuid
 import utility_api
 
 
@@ -65,11 +64,9 @@ class Base_db:
 
     def make_schema(self):
         "no schema to make"
-        pass 
     
     def connect(self):
         "nothing to connect to"
-        pass
     
     def log(self):
         "log db informmation, but not too often"
@@ -175,7 +172,8 @@ class AWS_db(Base_db):
           uuid      TEXT,
           size      INTEGER,
           key       TEXT,
-          bucket    TEXT
+          bucket    TEXT,
+          crc32     BIGINT   
         );
         
         CREATE INDEX IF NOT EXISTS timestamp_idx ON messages (timestamp);
@@ -190,16 +188,18 @@ class AWS_db(Base_db):
 
         sql = f"""
         INSERT INTO messages 
-          (topic, timestamp, uuid, size, key, bucket)
-          VALUES (%s, %s, %s, %s, %s, %s) ;
+          (topic, timestamp, uuid, size, key, bucket, crc32)
+          VALUES (%s, %s, %s, %s, %s, %s, %s) ;
         COMMIT ; """
-
-        self.cur.execute(sql, [metadata["topic"],
-                               metadata["timestamp"],
-                               text_uuid,
-                               storeinfo.size,
-                               storeinfo.key,
-                               storeinfo.bucket])
+        import pdb; pdb.set_trace()
+        values = [metadata["topic"],
+                  metadata["timestamp"],
+                  text_uuid,
+                  storeinfo.size,
+                  storeinfo.key,
+                  storeinfo.bucket,
+                  storeinfo.crc32]
+        self.cur.execute(sql,values)
         self.n_inserted +=1
         self.log()
 
@@ -228,7 +228,6 @@ class AWS_db(Base_db):
         ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO test_ro_user;
         REVOKE CREATE ON SCHEMA public FROM test_ro_user;
         """
-        pass
 
     def get_logs(self):
         "print the latest postgres logs to stdout"

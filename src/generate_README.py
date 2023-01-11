@@ -11,7 +11,6 @@ The populated template is printed on STDOUT.
 
 import subprocess
 import datetime
-import logging
 import sys
 
 # Collect data of interest

@@ -28,7 +28,6 @@ import time
 import random
 import uuid
 import json
-import os
 import certifi
 import hop
 from hop.io import Stream, StartPosition, list_topics

@@ -40,8 +40,6 @@ def get_known_data():
     
     """
     import hop
-    import pdb
-    import os
     import uuid
     import random
 
