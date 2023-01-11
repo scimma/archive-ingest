@@ -29,7 +29,8 @@ store-log-every = 20
 
 [mock-store]
 store-type = "mock"
-store-bucket =  "mock-bucket"
+store-primary-bucket =  "hopdevel-scimma-housekeeping"
+store-backup-bucket  =  "hopdevel-scimma-housekeeping-backup"
 store-log-every = 1
 
 ###########

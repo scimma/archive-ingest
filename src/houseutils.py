@@ -274,8 +274,8 @@ if __name__ == "__main__":
     #verify -- 
     parser = subparsers.add_parser('verify', help="check objects recored in DB exist")
     parser.set_defaults(func=verify)
-    parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="mock-db")
-    parser.add_argument("-S", "--store_stanza", help = "storage config stanza", default="mock-store")
+    parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="aws-dev-db")
+    parser.add_argument("-S", "--store_stanza", help = "storage config stanza", default="S3-dev")
     parser.add_argument("-a", "--all", help = "do the whole archive (gulp)", default = False, action = "store_true" )
 
     #inspect display an object and or write it out.
@@ -290,7 +290,7 @@ if __name__ == "__main__":
     #uuids get uuids consistent with a where clause.
     parser = subparsers.add_parser('uuids', help=uuids.__doc__)
     parser.set_defaults(func=uuids)
-    parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="mock-db")
+    parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="aws-dev-db")
     parser.add_argument("where",  help = "where clause")
 
     #db_logs get recent database logs.
