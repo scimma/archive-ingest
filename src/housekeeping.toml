@@ -1,6 +1,6 @@
 [log]
 log-type = "log-tty"
-#filename = "output/hopstream.log" 
+#filename = "output/hopstream.log"
 level = "INFO"
 
 ###########
@@ -18,7 +18,7 @@ db-secret-name = "hopdevel-housekeeping-db-password"
 db-aws-region  = "us-west-2"
 
 ###########
-# storage 
+# storage
 ###########
 
 [S3-dev]
@@ -53,10 +53,10 @@ hop-groupname         = "hopstream"
 hop-aws-secret-name   =  "hopdevel-housekeeping-hop-prod-credentials"
 hop-aws-secret-region =  "us-west-2"
 hop-port              = 9092
-hop-until-eos         = false 
+hop-until-eos         = false
 hop-vetoed-topics     = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
 hop-test-topic        = "cmb-s4-fabric-tests.housekeeping-test"
-hop-topic-refresh-interval-seconds = 300 #5 minutes 
+hop-topic-refresh-interval-seconds = 300 #5 minutes
 
 [kcat-prod]
 hop-type   = "kcat"

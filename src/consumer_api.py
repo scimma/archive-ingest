@@ -17,7 +17,7 @@ used at run-time.
 
 """
 ##################################
-#   Consumers 
+#   Consumers
 ##################################
 
 import boto3
@@ -35,7 +35,7 @@ import utility_api
 
 class ConsumerFactory:
     """
-    Factory class to create Mock, or HOP data consumers. 
+    Factory class to create Mock, or HOP data consumers.
     """
 
     def __init__(self, config):
@@ -46,17 +46,17 @@ class ConsumerFactory:
         if type == "hop"  : self.consumer =  Hop_consumer(config)  ; return
         logging.fatal(f"consumer {type} not supported")
         exit (1)
-        
+
     def get_consumer(self):
         "return the source sppecified in the toml file"
         return self.consumer
 
 class Base_consumer:
     "base class for common methods"
-    
+
     def __init__(self, config):
         pass
-    
+
 
     def get_text_uuid(self, headers):
         """
@@ -70,11 +70,11 @@ class Base_consumer:
         client is used.
 
         omit `urn:uuid:` in the retured text.
-        Ih those cases supply one to ensure we have a 
+        Ih those cases supply one to ensure we have a
         uniform down stream data model.
-        
+
         """
-        
+
         def urn_to_uuid(urn):
             "Trim urn:uuid:"
             return urn.split(':')[2]
@@ -89,12 +89,12 @@ class Base_consumer:
                 return urn_to_uuid(urn)
             except (ValueError, IndexError, TypeError) :
                 continue
-        
+
         #nothing there; so make one up.
         urn  = uuid.uuid4().urn
-        text_uuid = urn_to_uuid(urn)	
+        text_uuid = urn_to_uuid(urn)
         logging.debug(f"I made a UUID up: {text_uuid}")
-        return text_uuid 
+        return text_uuid
 
     def connect(self):
         pass
@@ -116,7 +116,7 @@ class Mock_consumer(Base_consumer):
         large_text     =  b"50K text  " * 5000     #50000 bytes
         xlarge_text    =  b"50K text  " * 50000   #500000 bytes
         max_text       =  b"50K text  " * 3000000  #3 meg
-        
+
         small_binary   = os.urandom(500)       #500 bytes
         medium_binary  = os.urandom(5000)      #5000 bytes
         large_binary   = os.urandom(50000)      #50000 byte
@@ -128,7 +128,7 @@ class Mock_consumer(Base_consumer):
         self.total_message_bytes = 0
         self.t0 =  time.time()
         super().__init__(config)
-        
+
 
     def is_active(self):
         if self.n_events > 0 :
@@ -139,14 +139,14 @@ class Mock_consumer(Base_consumer):
 
     def get_next(self):
         "get next mock message"
-        
+
         #put spread in times for S3 testing.
-        early_time = int(time.time()) - (60*60*24*5)  
+        early_time = int(time.time()) - (60*60*24*5)
         late_time  = int(time.time()) + (60*60*24*5)
         #vary names near the root for S3 testing
         anumber  = random.randrange(0,20)
         for message in self.messages:
-            #do fewer 
+            #do fewer
             import math
             message_size = len(message)
             #hack to scal down # interations with message size.
@@ -169,7 +169,7 @@ class Mock_consumer(Base_consumer):
                 text_uuid = self.get_text_uuid(headers)
 
                 yield (payload, metadata, text_uuid)
-            duration = int(time.time() - t0) 
+            duration = int(time.time() - t0)
             logging.info(f"msize, niter duration, totalb :{message_size}, {n_iter}, {duration}, {total_b}" )
 
     def record(self):
@@ -179,7 +179,7 @@ class Mock_consumer(Base_consumer):
             self.t0 = time.time()
 
         self.n_sent += 1
-        
+
 
 class Hop_consumer(Base_consumer):
     " A class to consumer data from Hop"
@@ -193,7 +193,7 @@ class Hop_consumer(Base_consumer):
         self.test_topic       = config["hop-test-topic"]
         self.refresh_interval = config["hop-topic-refresh-interval-seconds"]
         self.last_last_refresh_time = 0
-        
+
         self.authorize()
         self.base_url = (
                 f"kafka://"   \
@@ -205,39 +205,43 @@ class Hop_consumer(Base_consumer):
         self.refresh_url_every =  1000  # make this a config
         self.n_recieved = 0
         super().__init__(config)
-        
+
     def refresh_url(self):
         "initalize/refresh the list of topics to record PRN"
-        #return if not not needed.
-        if self.last_last_refresh_time - time.time()> self.refresh_interval : return
+        # return if interval too small
+        interval = time.time() - self.last_last_refresh_time
+        if self.refresh_interval > interval:
+            return
+
+        # interval exceeded -- reset time, and refresh topic list
         self.last_last_refresh_time = time.time()
         if self.config["test_topic"]:
-            #this topic supports  test and debug.
+            # trivial refresh this topic supports  test and debug.
             topics = self.test_topic
-        else: 
+        else:
             # Read the available topics from the given broker
             topic_dict = list_topics(url=self.base_url, auth=self.auth)
-        
+
             # Concatinate the avilable topics with the broker address
             # omit vetoed  topics
             topics = ','.join([t for t in topic_dict.keys() if t not in self.vetoed_topics])
         self.url = (f"{self.base_url}{topics}")
         logging.info(f"Hop Url (re)configured: {self.url} excluding {self.vetoed_topics}")
-    
-  
+
+
     def connect(self):
         "connect to HOP a a consumer (archiver)"
         start_at = StartPosition.EARLIEST
         #start_at = StartPosition.LATEST
         stream = Stream(auth=self.auth, start_at=start_at, until_eos=self.until_eos)
-        
+
         # Return the connection to the client as :class:"hop.io.Consumer" instance
         # THe commented uot group ID (below)) migh tbe useful in some development
         # environments it allows for re-consumption of all the existing events in all
-        # the topics. 
+        # the topics.
         #group_id = f"{self.username}-{self.groupname}{random.randint(0,10000)}"
         self.refresh_url()
-        group_id = f"{self.username}-{self.groupname}" 
+        group_id = f"{self.username}-{self.groupname}"
         self.client = stream.open(url=self.url, group_id=group_id)
         logging.info(f"opening stream at {self.url} group: {group_id} startpos {start_at}")
 
@@ -257,23 +261,23 @@ class Hop_consumer(Base_consumer):
         logging.info (f"hopskotch username is: {self.username}")
         self.auth  = hop.auth.Auth(resp["username"], resp["password"])
         return
-        
+
     def is_active(self):
         return True
-    
+
     def get_next(self):
-        self.refresh_url() 
+        self.refresh_url() # needed bfore first call to set topic list.
         for result in self.client.read(metadata=True, autocommit=False):
             # What happens on error? GEt nothing back? None?
             # -- seems to stall in self.client.read
-            # -- lack a full udnerstanding fo thsi case.
-
+            # -- lack a full understanding fo thsi case.
+            self.refresh_url()
             message = result[0].serialize()
             # metadata remarks
             # save the original metadata for mark_done api.
             # make a syntheite metadata reflecting what the ...
             # user would  see, omitting kafak internals,
-            self.original_metadata = result[1] 
+            self.original_metadata = result[1]
             if result[1].headers is None :
                 headers = []
             else:
@@ -294,5 +298,3 @@ class Hop_consumer(Base_consumer):
         """
         #import pdb; pdb.set_trace()
         self.client.mark_done(self.original_metadata)
-        
-
