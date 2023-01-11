@@ -184,13 +184,15 @@ class Mock_consumer(Base_consumer):
 class Hop_consumer(Base_consumer):
     " A class to consumer data from Hop"
     def __init__(self, config):
-        self.config    = config
-        self.vetoed_topics = config["hop-vetoed-topics"]
-        self.groupname     = config["hop-groupname"]
-        self.until_eos     = config["hop-until-eos"]
-        self.secret_name   = config["hop-aws-secret-name"]
-        self.region_name   = config["hop-aws-secret-region"]
-        self.test_topic    = config["hop-test-topic"]
+        self.config           = config
+        self.vetoed_topics    = config["hop-vetoed-topics"]
+        self.groupname        = config["hop-groupname"]
+        self.until_eos        = config["hop-until-eos"]
+        self.secret_name      = config["hop-aws-secret-name"]
+        self.region_name      = config["hop-aws-secret-region"]
+        self.test_topic       = config["hop-test-topic"]
+        self.refresh_interval = config["hop-topic-refresh-interval-seconds"]
+        self.last_last_refresh_time = 0
         
         self.authorize()
         self.base_url = (
@@ -207,7 +209,8 @@ class Hop_consumer(Base_consumer):
     def refresh_url(self):
         "initalize/refresh the list of topics to record PRN"
         #return if not not needed.
-        if self.n_recieved  % self.refresh_url_every != 0: return
+        if self.last_last_refresh_time - time.time()> self.refresh_interval : return
+        self.last_last_refresh_time = time.time()
         if self.config["test_topic"]:
             #this topic supports  test and debug.
             topics = self.test_topic
