@@ -105,7 +105,7 @@ def verify(args):
    if args["all"]:
        limit_clause = ""
    else:
-       limit_clause = "ORDER BY random() LIMIT 100"
+       limit_clause = "ORDER BY random() Limit 100"
    sql = f"select key, size from messages {limit_clause};"
    logging.info (sql)
    results = db.query(sql)
@@ -281,8 +281,8 @@ if __name__ == "__main__":
     #inspect display an object and or write it out.
     parser = subparsers.add_parser('inspect', help=inspect.__doc__)
     parser.set_defaults(func=inspect)
-    parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="mock-db")
-    parser.add_argument("-S", "--store_stanza", help = "storage config stanza", default="mock-store")
+    parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="aws-dev-db")
+    parser.add_argument("-S", "--store_stanza", help = "storage config stanza", default="S3-dev")
     parser.add_argument("-w", "--write", help = "write object to <uuid>.bson ", default=False, action="store_true")
     parser.add_argument("-q", "--quiet", help = "dont print object to stdout ", default=False, action="store_true")
     parser.add_argument("uuid",  help = "uuid of object")
