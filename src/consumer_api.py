@@ -86,15 +86,17 @@ class Base_consumer:
             try:
                 binary_uuid = _id[1]
                 urn  = uuid.UUID(bytes=binary_uuid).urn
-                return urn_to_uuid(urn)
+                is_client_uuid = True
+                return (urn_to_uuid(urn), is_client_uuid)
             except (ValueError, IndexError, TypeError) :
                 continue
 
         #nothing there; so make one up.
         urn  = uuid.uuid4().urn
         text_uuid = urn_to_uuid(urn)
+        is_client_uuid = False #made it up on the server
         logging.debug(f"I made a UUID up: {text_uuid}")
-        return text_uuid
+        return (text_uuid, is_client_uuid)
 
     def connect(self):
         pass
@@ -182,7 +184,7 @@ class Mock_consumer(Base_consumer):
 
 
 class Hop_consumer(Base_consumer):
-    " A class to consumer data from Hop"
+    " A class to consume data from Hop"
     def __init__(self, config):
         self.config           = config
         self.vetoed_topics    = config["hop-vetoed-topics"]
@@ -268,6 +270,7 @@ class Hop_consumer(Base_consumer):
     def get_next(self):
         self.refresh_url() # needed bfore first call to set topic list.
         for result in self.client.read(metadata=True, autocommit=False):
+            archiver_notes = {}
             # What happens on error? GEt nothing back? None?
             # -- seems to stall in self.client.read
             # -- lack a full understanding fo thsi case.
@@ -290,8 +293,10 @@ class Hop_consumer(Base_consumer):
                         }
             self.n_recieved  += 1
             #logging.info(f"topic, msg size, meta size: {metadata.topic} {len(message)}")
-            text_uuid = self.get_text_uuid(headers)
-            yield (message, metadata, text_uuid)
+            text_uuid, is_client_uuid  = self.get_text_uuid(headers)
+            archiver_notes["con_text_uuid"] = text_uuid
+            archiver_notes["con_is_client_uuid"] = is_client_uuid
+            yield (message, metadata, archiver_notes)
 
     def mark_done(self):
         """ mark that we are done processing, since autocommit=False

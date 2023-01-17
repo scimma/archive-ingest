@@ -7,7 +7,7 @@ topics into S3 and log into a housekeeping postgres database.
 
 to suport devleopment, Houskeeping.py  supports realized or mock
 hopskotch, database and store elements.  These are defined in
-toml files. Housekeeping.toml defines a variety of these readers. 
+toml files. Housekeeping.toml defines a variety of these readers.
 
 @author: Mahmoud Parvizi (parvizim@msu.edu)
 @author: Don Petravick (petravick@illinois.edu)
@@ -32,7 +32,7 @@ def make_logging(args):
     """
     establish python logging based on toms file stanza passed specifies on command line.
     """
-    
+
     # supply defaults to assure than logging of some sort is setup no matter what.
     # Note that the production environment captures stdout/stderr into logs for us.
     default_format  = '%(asctime)s:%(filename)s:%(levelname)s:%(message)s'
@@ -46,8 +46,8 @@ def make_logging(args):
 
 ##############
 #
-#  argparse functions 
-#  
+#  argparse functions
+#
 ###############
 def housekeep(args):
     """
@@ -63,24 +63,24 @@ def housekeep(args):
     for x in consumer.get_next():
         payload = x[0]
         metadata = x[1]
-        text_uuid = x[2]
+        archiver_notes = x[2]
         if args["test_topic"]:
             if args["verify"] and verify_api.is_known_test_data(metadata):
                 if payload["content"] == b"end": exit(0)
                 verify_api.compare_known_data(payload, metadata)
-        storeinfo = store.store(payload, metadata, text_uuid)
-        db.insert(payload, metadata, text_uuid, storeinfo)
-        verify_api.assert_ok(args, payload, metadata, text_uuid, storeinfo, db, store)
+        storeinfo = store.store(payload, metadata, archiver_notes)
+        db.insert(payload, metadata, archiver_notes)
+        verify_api.assert_ok(args, payload, metadata, archiver_notes,  db, store)
         consumer.mark_done()
 
-        
+
 def list(args):
     "list the stanzas so I dont have to grep toml files"
     import pprint
     dict = toml.load(args["toml_file"])
     print (args["toml_file"])
     pprint.pprint(dict)
-    
+
 if __name__ == "__main__":
 
     #main_parser = argparse.ArgumentParser(add_help=False)
@@ -91,8 +91,8 @@ if __name__ == "__main__":
     main_parser.add_argument("-t", "--toml_file", help = "toml configuration file", default="housekeeping.toml")
     main_parser.add_argument("-l", "--log_stanza", help = "log config stanza", default="log")
 
-    subparsers = main_parser.add_subparsers()   
-    #run -- perform housekeeping with  
+    subparsers = main_parser.add_subparsers()
+    #run -- perform housekeeping with
     parser = subparsers.add_parser('run', help= "house keep w/(defaults) all mocks")
     parser.set_defaults(func=housekeep)
     parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="mock-db")
@@ -101,19 +101,17 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--test_topic", help = "consume only from test_topic", default=False, action="store_true")
     parser.add_argument("-v", "--verify", help = "check after ingest", action='store_true' ,default=False)
 
-    #list -- list stanzas 
+    #list -- list stanzas
     parser = subparsers.add_parser('list', help="list stanzas")
     parser.set_defaults(func=list)
 
-    
+
     args = main_parser.parse_args()
 
     make_logging(args.__dict__)
     logging.info(args)
-    
+
     if not args.func:  # there are no subfunctions
         main_parser.print_help()
         exit(1)
     args.func(args.__dict__)
-                                    
-

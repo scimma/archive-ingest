@@ -156,7 +156,7 @@ def status(args):
         results = db.query(sql)
 
         # get totals
-        sql = """
+        sql = f"""
          SELECT
             count(distinct(topic)),
             count(*),
