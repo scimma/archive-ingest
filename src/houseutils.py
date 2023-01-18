@@ -17,6 +17,7 @@ import database_api
 import verify_api
 import utility_api
 import decision_api
+import consumer_api
 
 ##################################
 #   utilities
@@ -80,6 +81,7 @@ def publish(args):
     import sys
     publisher = publisher_api.PublisherFactory(args).get_publisher()
     publisher.connect()
+    
     message_dict, end_message = verify_api.get_known_data()
     for key in message_dict.keys():
         message, header = message_dict[key]
@@ -246,23 +248,37 @@ def kube_logs(args):
 
 
 def clean_tests(args):
-    "clean test messages"
+    """
+    clean test messages from archive and hop
+
+    purge the databse and store.
+    read the test topic in HOP dry
+    """
     test_group = 'cmb-s4-fabric-tests.housekeeping-test'
     db = database_api.DbFactory(args).get_db()
     db.connect()
     store = store_api.StoreFactory(args).get_store()
     store.connect()
-    sql = f"SELECT  id, key FROM messages WHERE topic = '{test_group}' LIMIT 100"
+    args["test_topic"] = True  #signal consumer to red test topic
+    consumer = consumer_api.ConsumerFactory(args).get_consumer()
+    consumer.until_eos  = True  #stop when toic is dry 
+    consumer.connect()
+        
+    sql = f"SELECT id, key FROM messages WHERE topic = '{test_group}';"
     logging.info(f"about to execute {sql}")
     for id, key in db.query(sql):
         logging.info(f"about to delete {key}")
-        utility_api.ask(args)
         store.deep_delete_from_archive(key)
         logging.info(f"delete finished {key}")
         sql = f"DELETE FROM messages WHERE id = {id}"
         db.query(sql, expect_results=False)
         logging.info(f"about to execute {sql}")
         logging.info(f"sql finished {sql}")
+    logging.info("off to drain messages") 
+    for payload, metadata, archiver_notes  in consumer.get_next():
+            consumer.mark_done()
+            logging.info("message_drained")
+    
 
 def clean_duplicates(args):
     "clean duplicates from the archive"
@@ -319,7 +335,9 @@ if __name__ == "__main__":
     parser = subparsers.add_parser('publish', help="publish some test data")
     parser.set_defaults(func=publish)
     parser.add_argument("-H", "--hop_stanza", help="hopskotch config stanza", default="hop-prod")
+    parser.add_argument("-D", "--database_stanza", help="database-config-stanza", default="aws-dev-db")
     parser.add_argument("-a", "--ask", help="interactive prompt before each publish", default=False, action="store_true")
+    parser.add_argument("-c", "--clean", help="purge old test data from archive before publish", default=False, action="store_true")
 
     # verify --
     parser = subparsers.add_parser('verify', help="check objects recored in DB exist")
@@ -356,6 +374,7 @@ if __name__ == "__main__":
     # clean test data
     parser = subparsers.add_parser('clean_tests', help=clean_tests.__doc__)
     parser.set_defaults(func=clean_tests)
+    parser.add_argument("-H", "--hop_stanza", help = "hopskotch config  stanza", default="hop-prod")
     parser.add_argument("-D", "--database_stanza", help="database-config-stanza", default="aws-dev-db")
     parser.add_argument("-S", "--store_stanza", help="storage config stanza", default="S3-dev")
     parser.add_argument("-q", "--quiet", help="don't ask before delete ", default=False, action="store_true")

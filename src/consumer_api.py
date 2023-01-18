@@ -159,7 +159,6 @@ class Mock_consumer(Base_consumer):
 
     def __init__(self, config):
         logging.info(f"Mock Consumer configured")
-        import pdb; pdb.set_trace()
         # repeated  recent  duplicate (e.g recived more than at least once) 
         # client_supplied UUID
         m = Mock_message(b'client-side uuid, recieved twice')
@@ -216,12 +215,13 @@ class Hop_consumer(Base_consumer):
     " A class to consume data from Hop"
     def __init__(self, config):
         self.config           = config
-        self.vetoed_topics    = config["hop-vetoed-topics"]
         self.groupname        = config["hop-groupname"]
         self.until_eos        = config["hop-until-eos"]
         self.secret_name      = config["hop-aws-secret-name"]
         self.region_name      = config["hop-aws-secret-region"]
         self.test_topic       = config["hop-test-topic"]
+        self.vetoed_topics    = config["hop-vetoed-topics"]
+        self.vetoed_topics.append(self.test_topic)  # don't consume test topic   
         self.refresh_interval = config["hop-topic-refresh-interval-seconds"]
         self.last_last_refresh_time = 0
 

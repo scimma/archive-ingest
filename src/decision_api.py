@@ -80,7 +80,6 @@ def is_content_identical (ids, db, store):
 
 def is_deemed_duplicate(annotations, metadata, db, store):
     "Decide if this message is a duplicate"
-
     # storage decision_data
     if annotations['con_is_client_uuid']:
         # Use the fact that client side UUID are unique
@@ -91,7 +90,6 @@ def is_deemed_duplicate(annotations, metadata, db, store):
         timestamp = metadata["timestamp"]
         duplicate = exists_in_db(db, topic, timestamp)
     annotations["duplicate"] = duplicate
-    logging.info(f"annotations: {annotations}")
     return duplicate
 
 
