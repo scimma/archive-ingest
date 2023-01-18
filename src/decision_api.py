@@ -9,9 +9,7 @@ def is_deemed_duplicate(annotations, metadata, db, store):
     # storage decision_data
     if annotations['con_is_client_uuid']:
         # Use the fact that client side UUID are unique
-        bucket = annotations['bucket']
-        key = annotations['key']
-        duplicate = uuid_in_db(annotations['con_text_uuid'])
+        duplicate = uuid_in_db(db, annotations['con_text_uuid'])
     else:
         # server side UUID.
         topic = metadata["topic"]
