@@ -16,20 +16,13 @@ import store_api
 import database_api
 import verify_api
 import utility_api
+import decision_api
 
 ##################################
 #   utilities
 ##################################
 
-
-def terse(object):
-    text = object.__repr__()
-    max_length = 30
-    if len(text) > max_length:
-        return text[:max_length-3] + '...'
-    return text
-
-def delete_by_id(id, db, store):
+def delete_by_id(id, db, store=None):
     sql_get_S3_info = """
     SELECT
         bucket, key
@@ -44,28 +37,10 @@ def delete_by_id(id, db, store):
     WHERE
         id = {}
     """
-    bucket, key = db.query(sql_get_S3_info.format(id))[0]
-    logging.info(f"about to delete {id}, {bucket}, {key}")
-    store.deep_delete(bucket, key)
-    results = db.query(sql_delete.format(id), expect_results=False)
-
-
-def is_content_identical (ids, db, store):
-    "ensure that  messages have the same content"
-    import zlib
-    import bson
-    list_text = "(" + ids.join(",")  + ")"
-    sql = f"select bucket, key from messages where id in {list_text}"
-    result = db.query(sql)
-    contents = []
-    for bucket, key in result:
-        content = bson.loads(store.get(key))
-        contents.append(content)
-    crc_set = {zlib.crc32(c["message"]["content"]) for c in contents}
-    n_items = len(crc_set)
-    if n_items == 1: return True
-    return False
-
+    if store:
+        bucket, key = db.query(sql_get_S3_info.format(id))[0]
+        store.deep_delete(bucket, key)
+    db.query(sql_delete.format(id), expect_results=False)
 
 
 ##################################
@@ -109,7 +84,7 @@ def publish(args):
     for key in message_dict.keys():
         message, header = message_dict[key]
         logging.info(f"about to publish {key}")
-        logging.info(f"{terse(message)}, {terse(header)}")
+        logging.info(f"{utility_api.terse(message)}, {utility_api.terse(header)}")
         if args["ask"]:
             print("> p:pdb; q:quit_ask_mode; s:skip this messagee, anything_else: continue")
             sys.stdout.write(">> ")
@@ -289,47 +264,28 @@ def clean_tests(args):
         logging.info(f"about to execute {sql}")
         logging.info(f"sql finished {sql}")
 
-def duplicate_check(args):
-    "perform tests for duplkiate messages in teh DB"
-    sql_client_side = f"""
-       SELECT
-         max(id), uuid, count(*)
-        FROM
-         messages
-        GROUP By
-         uuid
-        HAVING
-         count(*) > 1
-        LIMIT {args["limit"]}
-    """
-    sql_server_side = f"""
-       SELECT
-         max(id), topic, size, timestamp, count(*)
-        FROM
-         messages
-        GROUP By
-         topic, size, timestamp
-        HAVING
-         count(*) > 1
-        LIMIT {args["limit"]}
-    """
+def clean_duplicates(args):
+    "clean duplicates from the archive"
 
     db = database_api.DbFactory(args).get_db()
     db.connect()
     store = store_api.StoreFactory(args).get_store()
     store.connect()
 
-    results = db.query(sql_client_side)
+    results = decision_api.get_client_uuid_duplicates(args, db)
     print ("uuid test:")
     for r  in results:
         print(r)
+        id  = r[0]
+        delete_by_id(id, db)
 
-    results = db.query(sql_server_side)
+    results = decision_api.get_server_uuid_duplicates(args, db)
     print ("server side test:")
     for r in results:
         print(r)
+        utility_api.ask(args, key='quiet')
         id  = r[0]
-        delete_by_id(id, db, store)
+        delete_by_id(id, db, store=store)
 
 
 
@@ -404,13 +360,14 @@ if __name__ == "__main__":
     parser.add_argument("-S", "--store_stanza", help="storage config stanza", default="S3-dev")
     parser.add_argument("-q", "--quiet", help="don't ask before delete ", default=False, action="store_true")
 
-    # duplicate_check
-    parser = subparsers.add_parser('duplicate_check', help=clean_tests.__doc__)
-    parser.set_defaults(func=duplicate_check)
+    # clean_duplicates
+    parser = subparsers.add_parser('clean_duplicates', help=clean_duplicates.__doc__)
+    parser.set_defaults(func=clean_duplicates)
     parser.add_argument("-D", "--database_stanza", help="database-config-stanza", default="aws-dev-db")
     parser.add_argument("-S", "--store_stanza", help="storage config stanza", default="S3-dev")
     parser.add_argument("-c", "--count_only", help="just say how many", default=False, action="store_true")
     parser.add_argument("-l", "--limit", help="only consider limit number of matches (def 20)", type=int, default=20)
+    parser.add_argument("-q", "--quiet", help="don't ask before delete ", default=False, action="store_true")
 
     args = main_parser.parse_args()
     make_logging(args.__dict__)

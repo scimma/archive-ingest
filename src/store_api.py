@@ -146,7 +146,7 @@ class S3_store(Base_store):
         right now assert that bucket contain the string
         'devel' as part of its name out of paranoia
        """
-        assert 'devel' in bucket_name
+        assert 'devel' in bucket_name or 'mocktopic' in  bucket_name  
         s3  = boto3.resource('s3')
         bucket = s3.Bucket(bucket_name)
         bucket.object_versions.filter(Prefix=key).delete()

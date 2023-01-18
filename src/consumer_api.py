@@ -28,8 +28,10 @@ import time
 import random
 import uuid
 import json
-import certifi
 import hop
+import zlib
+import os
+import uuid
 from hop.io import Stream, StartPosition, list_topics
 import utility_api
 
@@ -90,7 +92,6 @@ class Base_consumer:
                 return (urn_to_uuid(urn), is_client_uuid)
             except (ValueError, IndexError, TypeError) :
                 continue
-
         #nothing there; so make one up.
         urn  = uuid.uuid4().urn
         text_uuid = urn_to_uuid(urn)
@@ -98,12 +99,59 @@ class Base_consumer:
         logging.debug(f"I made a UUID up: {text_uuid}")
         return (text_uuid, is_client_uuid)
 
+    def get_annotations(self, message, headers):
+        annotations = {}
+        text_uuid, is_client_uuid  = self.get_text_uuid(headers)
+        annotations["con_text_uuid"] = text_uuid
+        annotations["con_is_client_uuid"] = is_client_uuid
+        annotations["con_message_crc32"] =  zlib.crc32(message["content"])
+        return annotations
+
+    
     def connect(self):
         pass
 
     def mark_done(self):
         pass
 
+class Mock_message:
+    message_list = []
+    
+    def __init__(self, usecase, timestamp=None, binary_uuid=None, is_client_uuid=True):
+        "default to a  client-supplied UUID usecase"
+        self.usecase = usecase
+        self.message = os.urandom(50000)
+        self.topic = "mock.topic"
+        self.wrap_method =  hop.models.Blob
+        self.headers = [("_mock_use_case", usecase)]
+        # allow for simulating duplicates.
+        self.timestamp = timestamp if timestamp else int(time.time()/1000) 
+   
+        # allow for client and server-side simulatiosn
+        self.is_client_uuid = is_client_uuid
+        if self.is_client_uuid:
+            self.binary_uuid = binary_uuid if binary_uuid else uuid.uuid4().bytes
+            if self.is_client_uuid : self.headers.append (('_id',self.binary_uuid))
+        #keep them all 
+        Mock_message.message_list.append(self)
+        
+    def get_message(self):
+        return self.wrap_method(self.message).serialize()
+
+    def get_metadata(self):
+        metadata = {
+            "topic" : self.topic,
+            "timestamp" : self.timestamp,
+            "headers" : self.headers
+            }
+        return metadata
+
+    def get_all(self):
+        message = self.get_message()
+        metadata = self.get_metadata()
+        return message, metadata
+
+        
 class Mock_consumer(Base_consumer):
     """
     a mock consumer  that will support capacity testing.
@@ -111,24 +159,39 @@ class Mock_consumer(Base_consumer):
 
     def __init__(self, config):
         logging.info(f"Mock Consumer configured")
-        import os
-        #Move these to config file once we are happy
-        small_text     =  b"500 Text " * 50      #500 bytes
-        medium_text    =  b"5K Text   " * 500    #5000 bytes
-        large_text     =  b"50K text  " * 5000     #50000 bytes
-        xlarge_text    =  b"50K text  " * 50000   #500000 bytes
-        max_text       =  b"50K text  " * 3000000  #3 meg
+        import pdb; pdb.set_trace()
+        # repeated  recent  duplicate (e.g recived more than at least once) 
+        # client_supplied UUID
+        m = Mock_message(b'client-side uuid, recieved twice')
+        _ = Mock_message(b'client-side uuid, recieved twice',
+                         timestamp=m.timestamp, binary_uuid=m.binary_uuid)
+        
+        # repeted non-recent duplicate, (e.g cursor reset
+        # client_supplied BINARY_UUID, both UUID's the same.
+        t0 = time.time() - 24*60*60*10  #ten days old
+        t0 = int(t0/1000)
+        m = Mock_message(b'client-side uuid, recieved twice',timestamp = t0)
+        _ = Mock_message(b'client-side uuid, recieved twice',timestamp = t0, binary_uuid=m.binary_uuid)
 
-        small_binary   = os.urandom(500)       #500 bytes
-        medium_binary  = os.urandom(5000)      #5000 bytes
-        large_binary   = os.urandom(50000)      #50000 byte
-        xlarge_binary  = os.urandom(500000)    #50000 byte
-        max_binary     = os.urandom(3000000)   #3 meg
-        self.messages  = [small_text, medium_text, large_text, xlarge_text, max_text, small_binary, medium_binary, large_binary, xlarge_binary, max_binary]
-        self.n_sent    = 0
-        self.n_events  = 200
-        self.total_message_bytes = 0
-        self.t0 =  time.time()
+        # repeated  recent  duplicate (e.g recived more than at least once) 
+        # server_supplied UUID
+        m = Mock_message(b'server-side uuid, recieved twice',
+                         is_client_uuid=False)
+        m = Mock_message(b'server-side uuid, recieved twice',
+                            is_client_uuid=False,
+                            timestamp=m.timestamp)
+        
+        # repeated non-recent duplicate, (e.g cursor reset
+        # server_supplied UUID (e.g UUID's differ.)
+        t0 = time.time() - 24*60*60*10  #ten days old
+        t0 = int(t0/1000)
+        m = Mock_message(b'server-side uuid, recieved twice',
+                         is_client_uuid=False,
+                         timestamp = t0)
+        m = Mock_message(b'server-side uuid, recieved twice',
+                         is_client_uuid=False,
+                         timestamp = t0)
+
         super().__init__(config)
 
 
@@ -141,47 +204,13 @@ class Mock_consumer(Base_consumer):
 
     def get_next(self):
         "get next mock message"
+        for m  in Mock_message.message_list:
+            message, metadata = m.get_all()
+            annotations = self.get_annotations(message, metadata["headers"])
+            logging.info(f"moch data -- {metadata}  {annotations}")
+            yield (message, metadata, annotations)
 
-        #put spread in times for S3 testing.
-        early_time = int(time.time()) - (60*60*24*5)
-        late_time  = int(time.time()) + (60*60*24*5)
-        #vary names near the root for S3 testing
-        anumber  = random.randrange(0,20)
-        for message in self.messages:
-            #do fewer
-            import math
-            message_size = len(message)
-            #hack to scal down # interations with message size.
-            n_iter = int(2000/math.log(message_size,1.8))
-            total_b = 0
-            t0 = time.time()
-            headers = [("mock1", "this is mock one header"), ("mock2",b"sdf\007df")]
-
-            for i in range(n_iter):
-                anumber  = random.randrange(0,20)
-                topic     = f"mockgroup{anumber}.mocktopic"
-                timestamp = random.randrange(early_time,late_time)*1000
-
-                metadata = {"timestamp" :timestamp,
-                        "headers" : headers,
-                        "topic" : topic
-                        }
-                payload = message
-                total_b += len(payload)
-                text_uuid = self.get_text_uuid(headers)
-
-                yield (payload, metadata, text_uuid)
-            duration = int(time.time() - t0)
-            logging.info(f"msize, niter duration, totalb :{message_size}, {n_iter}, {duration}, {total_b}" )
-
-    def record(self):
-        if self.n_sent % 100 == 0 :
-            delta = time.time() - self.t0
-            logging.info(f"{self.n_sent} in {delta} total:{self.total_message_bytes:,}")
-            self.t0 = time.time()
-
-        self.n_sent += 1
-
+            
 
 class Hop_consumer(Base_consumer):
     " A class to consume data from Hop"
@@ -270,7 +299,6 @@ class Hop_consumer(Base_consumer):
     def get_next(self):
         self.refresh_url() # needed bfore first call to set topic list.
         for result in self.client.read(metadata=True, autocommit=False):
-            archiver_notes = {}
             # What happens on error? GEt nothing back? None?
             # -- seems to stall in self.client.read
             # -- lack a full understanding fo thsi case.
@@ -293,10 +321,8 @@ class Hop_consumer(Base_consumer):
                         }
             self.n_recieved  += 1
             #logging.info(f"topic, msg size, meta size: {metadata.topic} {len(message)}")
-            text_uuid, is_client_uuid  = self.get_text_uuid(headers)
-            archiver_notes["con_text_uuid"] = text_uuid
-            archiver_notes["con_is_client_uuid"] = is_client_uuid
-            yield (message, metadata, archiver_notes)
+            annotations = self.get_annotations(message, metadata["headers"])
+            yield (message, metadata, annotations)
 
     def mark_done(self):
         """ mark that we are done processing, since autocommit=False
