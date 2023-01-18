@@ -20,6 +20,7 @@ import consumer_api
 import store_api
 import database_api
 import verify_api
+import decision_api
 
 from hop.io import Stream, StartPosition, list_topics
 import hop
@@ -60,10 +61,10 @@ def housekeep(args):
     db.make_schema()
     consumer.connect()
     store.connect()
-    for x in consumer.get_next():
-        payload = x[0]
-        metadata = x[1]
-        archiver_notes = x[2]
+    for payload, metadata, archiver_notes  in consumer.get_next():
+        if decision_api.is_deemed_duplicate(archiver_notes, metadata, db, store):
+            logging.info(f"Duplicate not logged {archiver_notes}")
+            continue
         if args["test_topic"]:
             if args["verify"] and verify_api.is_known_test_data(metadata):
                 if payload["content"] == b"end": exit(0)
