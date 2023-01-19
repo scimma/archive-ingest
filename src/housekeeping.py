@@ -61,20 +61,20 @@ def housekeep(args):
     db.make_schema()
     consumer.connect()
     store.connect()
-    for payload, metadata, archiver_notes  in consumer.get_next():
-        if decision_api.is_deemed_duplicate(archiver_notes, metadata, db, store):
-            logging.info(f"Duplicate not logged {archiver_notes}")
+    for payload, metadata, annotations  in consumer.get_next():
+        if decision_api.is_deemed_duplicate(annotations, metadata, db, store):
+            logging.info(f"Duplicate not logged {annotations}")
             consumer.mark_done()
             continue
-        logging.info(f"Not Duplixate logging {archiver_notes}")
+        logging.info(f"Not Duplixate logging {annotations}")
 
         if args["test_topic"]:
             if payload["content"] == b"end": exit(0)
             if args["verify"] and verify_api.is_known_test_data(metadata):
                 verify_api.compare_known_data(payload, metadata)
-        storeinfo = store.store(payload, metadata, archiver_notes)
-        db.insert(payload, metadata, archiver_notes)
-        verify_api.assert_ok(args, payload, metadata, archiver_notes,  db, store)
+        storeinfo = store.store(payload, metadata, annotations)
+        db.insert(payload, metadata, annotations)
+        verify_api.assert_ok(args, payload, metadata, annotations,  db, store)
         consumer.mark_done()
 
 

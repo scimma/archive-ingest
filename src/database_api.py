@@ -94,7 +94,7 @@ class Mock_db(Base_db):
         super().__init__(config)
 
 
-    def insert(self, payload, message, archiver_notes):
+    def insert(self, payload, message, annotations):
         "accept and discard data"
         self.n_inserted += 1
         self.log()
@@ -185,7 +185,7 @@ class AWS_db(Base_db):
         """
         self.cur.execute(sql)
 
-    def insert(self, payload, metadata, archiver_notes):
+    def insert(self, payload, metadata, annotations):
         "insert one record into the DB"
 
         sql = f"""
@@ -195,13 +195,13 @@ class AWS_db(Base_db):
         COMMIT ; """
         values = [metadata["topic"],
                   metadata["timestamp"],
-                  archiver_notes['con_text_uuid'],
-                  archiver_notes['size'],
-                  archiver_notes['key'],
-                  archiver_notes['bucket'],
-                  archiver_notes['crc32'],
-                  archiver_notes['con_is_client_uuid'],
-                  archiver_notes['con_message_crc32']
+                  annotations['con_text_uuid'],
+                  annotations['size'],
+                  annotations['key'],
+                  annotations['bucket'],
+                  annotations['crc32'],
+                  annotations['con_is_client_uuid'],
+                  annotations['con_message_crc32']
                   ]
         self.cur.execute(sql,values)
         self.n_inserted +=1

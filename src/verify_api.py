@@ -144,7 +144,7 @@ def get_from_header(header, key):
     return values
 
 
-def assert_ok(args, recieved_payload, recieved_metadata, archiver_notes, db, store):
+def assert_ok(args, recieved_payload, recieved_metadata, annotations, db, store):
     """
     uses database an store to verify archive entries as they
     are created.
@@ -162,11 +162,11 @@ def assert_ok(args, recieved_payload, recieved_metadata, archiver_notes, db, sto
     #check DB match
     q = f"""select
                topic, timestamp, uuid, size, key
-            from messages where uuid = '{archiver_notes['con_text_uuid']}'""";
+            from messages where uuid = '{annotations['con_text_uuid']}'""";
     result = db.query(q)
     assert len(result) == 1   #uuid is unique in the databse.
     topic, timestamp, uuid, size, key   = result[0]
-    assert uuid == archiver_notes['con_text_uuid']
+    assert uuid == annotations['con_text_uuid']
     assert timestamp == recieved_metadata["timestamp"]
     assert topic == recieved_metadata["topic"]
 

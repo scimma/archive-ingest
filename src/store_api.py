@@ -57,10 +57,10 @@ class Base_store:
     def connect(self):
         pass
 
-    def log(self, archiver_notes):
+    def log(self, annotations):
         "log storage informmation, but not too often"
         msg1 = f"stored {self.n_stored} objects."
-        msg2 = f"This object: {archiver_notes['size']} bytes to {archiver_notes['bucket']} {archiver_notes['key']}"
+        msg2 = f"This object: {annotations['size']} bytes to {annotations['bucket']} {annotations['key']}"
         if self.n_stored < 5 :
             logging.info(msg1)
             logging.info(msg2)
@@ -75,18 +75,18 @@ class Base_store:
         key = f"{topic}/{t.tm_year}/{t.tm_mon}/{t.tm_mday}/{t.tm_hour}/{text_uuid}.bson"
         return key
 
-    def set_storeinfo(self, archiver_notes, key, size, crc32):
-        archiver_notes['size'] = size
-        archiver_notes['key'] = key
-        archiver_notes['bucket'] = self.primary_bucket
-        archiver_notes['crc32'] = crc32
+    def set_storeinfo(self, annotations, key, size, crc32):
+        annotations['size'] = size
+        annotations['key'] = key
+        annotations['bucket'] = self.primary_bucket
+        annotations['crc32'] = crc32
 
 
-    def get_as_bson(self, payload, metadata, archiver_notes):
+    def get_as_bson(self, payload, metadata, annotations):
         "return a blob of bson"
         ret = bson.dumps({"message" : payload,
                           "metadata" : metadata,
-                          "archiver_notes": archiver_notes
+                          "annotations": annotations
                           })
         return ret
 
@@ -115,18 +115,18 @@ class S3_store(Base_store):
         "obtain an S3 Client"
         self.client = boto3.client('s3')
 
-    def store(self, payload, metadata, archiver_notes):
+    def store(self, payload, metadata, annotations):
         """place data, metadata as an object in S3"""
 
         bucket = self.primary_bucket
-        key = self.get_key(metadata, archiver_notes["con_text_uuid"])
-        b = self.get_as_bson(payload, metadata, archiver_notes)
+        key = self.get_key(metadata, annotations["con_text_uuid"])
+        b = self.get_as_bson(payload, metadata, annotations)
         size = len(b)
         crc32 = zlib.crc32(b)
         self.client.put_object(Body=b, Bucket=bucket, Key=key)
         self.n_stored += 1
-        self.set_storeinfo(archiver_notes, key, size, crc32)
-        self.log(archiver_notes)
+        self.set_storeinfo(annotations, key, size, crc32)
+        self.log(annotations)
         return
 
     def deep_delete_from_archive(self, key):
@@ -198,12 +198,12 @@ class Mock_store(Base_store):
         logging.info(f"Mock store configured")
 
 
-    def store(self, payload, metadata, archiver_notes):
+    def store(self, payload, metadata, annotations):
         "mock operation of storing in s3"
         self.n_stored += 1
-        key = self.get_key(metadata, archiver_notes["con_text_uuid"])
-        b = self.get_as_bson(payload, metadata, archiver_notes)
+        key = self.get_key(metadata, annotations["con_text_uuid"])
+        b = self.get_as_bson(payload, metadata, annotations)
         size = len(b)
         crc32 = zlib.crc32(b)
-        self.set_storeinfo(archiver_notes, key, size, crc32)
-        self.log(archiver_notes)
+        self.set_storeinfo(annotations, key, size, crc32)
+        self.log(annotations)
