@@ -251,6 +251,9 @@ class Hop_consumer(Base_consumer):
             topics = self.test_topic
         else:
             # Read the available topics from the given broker
+            # notice that we are not given "public topics" we
+            # are given topics we are permitted to read. .seems
+            # to include the private test topic.
             topic_dict = list_topics(url=self.base_url, auth=self.auth)
 
             # Concatinate the avilable topics with the broker address

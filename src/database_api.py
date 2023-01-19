@@ -166,15 +166,16 @@ class AWS_db(Base_db):
         sql =  """
         CREATE TABLE IF NOT EXISTS
         messages(
-          id  BIGSERIAL PRIMARY KEY,
-          topic     TEXT,
-          timestamp BIGINT,
-          uuid      TEXT,
-          size      INTEGER,
-          key       TEXT,
-          bucket    TEXT,
-          crc32     BIGINT,
-          is_client_uuid BOOLEAN
+          id  BIGSERIAL  PRIMARY KEY,
+          topic          TEXT,
+          timestamp      BIGINT,
+          uuid           TEXT,
+          size           INTEGER,
+          key            TEXT,
+          bucket         TEXT,
+          crc32          BIGINT,
+          is_client_uuid BOOLEAN,
+          message_crc32  BIGINT
         );
 
         CREATE INDEX IF NOT EXISTS timestamp_idx ON messages (timestamp);
@@ -189,8 +190,8 @@ class AWS_db(Base_db):
 
         sql = f"""
         INSERT INTO messages
-          (topic, timestamp, uuid, size, key, bucket, crc32, is_client_uuid)
-          VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ;
+          (topic, timestamp, uuid, size, key, bucket, crc32, is_client_uuid, message_crc32)
+          VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ;
         COMMIT ; """
         values = [metadata["topic"],
                   metadata["timestamp"],
@@ -199,7 +200,8 @@ class AWS_db(Base_db):
                   archiver_notes['key'],
                   archiver_notes['bucket'],
                   archiver_notes['crc32'],
-                  archiver_notes['con_is_client_uuid']
+                  archiver_notes['con_is_client_uuid'],
+                  archiver_notes['con_message_crc32']
                   ]
         self.cur.execute(sql,values)
         self.n_inserted +=1

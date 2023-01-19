@@ -3,6 +3,8 @@
 # delete  the 0.0.0 images set
 # use make to load a new 0.0.0
 
+scimma # set environment
+
 mode=""
 if [ "$1" == "local" ] ; then mode="local" ; fi
 if [ "$1" == "aws"   ] ; then mode="aws"   ; fi
