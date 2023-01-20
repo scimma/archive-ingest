@@ -1,0 +1,27 @@
+#runm locally 
+docker run --platform  linux/amd64  -it scimma/housekeeping
+
+#### Global Kubernetes stuff
+kubectl config view                #log at config file
+                                   # global evennts,...
+                                   # start, pulls, etc...
+kubectl get events --sort-by=.metadata.creationTimestamp
+
+##### pod managmement
+
+
+kubectl get pods                   # find my pod
+docker stop container-id           # stop the pod
+kubectl describe pods $pod         # more 
+kubectl logs $pod                  # gather logs.
+kubectl logs -f 4pod               # stream pod logs
+kubectl attach $pod  -i            # attach to my pod
+                                   # run a shell on the pod  
+kubectl exec --stdin --tty $pos  -- /bin/sh
+                                   # fetch a file from pod 
+kubectl cp $pod:/root/decision_api.py  dog.outpod
+
+#######  service accounts
+kubectl get serviceAccounts
+kubectl describe serviceaccount housedevel-housekeeping
+kubectl describe secret   housedevel-housekeeping-token-qkwq6
