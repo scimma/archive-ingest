@@ -1,21 +1,19 @@
 """
-Provide classes and API to housekeepnig relational databse
+Provide classes and API to the housekeeping
+relational databse
 
-There are two types homeomorphic classes
+Access postgres in AWS. This class can be configured
+via housekeeping.toml and command line options. The
+class can be configured  to access the production or
+development versions of Psotgres via different
+configurations.
 
-One class accesses postgres in AWS. This class can be configured
-via housekeeping.toml. It can access the production or
-development versions of psotgres via different configurations. DB
-credentials  are stored in AWS secrets.
-
-The other class  is "mock" databse useful for
-development and test. It discards data.
+DB credentials and configuation information
+are stored in AWS secrets.
 
 The DbFactory class supports choosing which class is
-used at run-time.
-
-All classes use a namespace object (args), such
-as provided by argparse, as part of their interface.
+used at run-time. The framework supports a not-implemented
+extention to SQLite.
 
 """
 
@@ -87,7 +85,7 @@ class Base_db:
 
 class Mock_db(Base_db):
     """
-    a mock DB that does nothing -- support debug and devel.
+    a mock DB that discards. -- support debug and devel.
     """
     def __init__(self, config):
         logging.info(f"Mock Database configured")
@@ -208,7 +206,7 @@ class AWS_db(Base_db):
         self.log()
 
     def query(self, sql, expect_results=True):
-        "return results of query"
+        "executer SQL, return results if expected"
         self.cur.execute(sql)
         if expect_results:
             results = self.cur.fetchall()
@@ -232,10 +230,10 @@ class AWS_db(Base_db):
         ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO test_ro_user;
         REVOKE CREATE ON SCHEMA public FROM test_ro_user;
         """
-        pass
+        pass #not implemented this version
 
     def get_logs(self):
-        "print the latest postgres logs to stdout"
+        "return the latest postgres logs"
         session = boto3.session.Session()
         client = session.client(
             service_name='rds',

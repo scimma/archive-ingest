@@ -263,22 +263,33 @@ def clean_tests(args):
     consumer = consumer_api.ConsumerFactory(args).get_consumer()
     consumer.until_eos  = True  #stop when toic is dry 
     consumer.connect()
-        
-    sql = f"SELECT id, key FROM messages WHERE topic = '{test_group}';"
-    logging.info(f"about to execute {sql}")
-    for id, key in db.query(sql):
+
+    def delete_from_store(key):
         logging.info(f"about to delete {key}")
         store.deep_delete_from_archive(key)
         logging.info(f"delete finished {key}")
+
+    def delete_from_db(id): 
         sql = f"DELETE FROM messages WHERE id = {id}"
-        db.query(sql, expect_results=False)
         logging.info(f"about to execute {sql}")
+        db.query(sql, expect_results=False)
         logging.info(f"sql finished {sql}")
-    logging.info("off to drain messages") 
+
+    sql = f"SELECT id, key FROM messages WHERE topic = '{test_group}';"
+    for id, key in db.query(sql):
+        delete_from_store(key)
+        delete_from_db(id)
+
+    sql = f"SELECT id, key FROM messages WHERE topic = 'mock.topic';"
+    for id, key in db.query(sql):
+        delete_from_store(key)
+        delete_from_db(id)
+
+    logging.info(f"off to drain hop topic '{test_group}'") 
     for payload, metadata, archiver_notes  in consumer.get_next():
             consumer.mark_done()
             logging.info("message_drained")
-    
+
 
 def clean_duplicates(args):
     "clean duplicates from the archive"

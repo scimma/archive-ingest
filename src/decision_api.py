@@ -1,7 +1,20 @@
 """
+Support Poicy decsions about dupliate messages.
 
+Djuplicate messages arise from more-than-once
+delivery or a kafka cursor reset. The module is
+also a place holded for future decision logic.
+
+The modle trusts information in the Database.
+The module does not consult S3, which has a
+seperate disater recovery capabklity.
+
+This moodule supports
+- in-line decisions integrated into
+  message acquisitions.
+- decisions  intergrated into
+  archive-oriented tools
 """
-import logging
 
 #################
 # Batch decisions routines
@@ -12,8 +25,8 @@ def get_client_uuid_duplicates(args, db):
     list uuids that are duplicates of an original UUID
     
     This routine  detects messages having uuids
-    generated on the hop client.
-    some uuids may have multiple duplicates.
+    generated on the hop _client_.
+    Some uuids may have multiple duplicates.
     only one duplicate uuid is returned.
     
     """
@@ -36,9 +49,7 @@ def get_server_uuid_duplicates(args, db):
     list uuids that are duplicates of an original UUID
     
     This routine detects messages having uuids
-    generated on the archive server.
-    even though some uuids may have multiple ...
-    duplicates. only one duplicate uuid is returned.
+    generated on the housekeeping.py   _server_.
     """
     sql_server_side = f"""
        SELECT
@@ -88,7 +99,8 @@ def is_deemed_duplicate(annotations, metadata, db, store):
         # server side UUID.
         topic = metadata["topic"]
         timestamp = metadata["timestamp"]
-        duplicate = exists_in_db(db, topic, timestamp)
+        message_crc32 = annotations["con_message_crc32"]
+        duplicate = exists_in_db(db, topic, timestamp, message_crc32)
     annotations["duplicate"] = duplicate
     return duplicate
 
@@ -96,7 +108,6 @@ def is_deemed_duplicate(annotations, metadata, db, store):
 def uuid_in_db(db, uuid):
     """
     Determine if this UUID is in the database
-    then
     """
     sql = f"""
        SELECT
@@ -110,15 +121,15 @@ def uuid_in_db(db, uuid):
     if result[0][0] ==   0 : return False
     return True
 
-def exists_in_db(db, topic, timestamp):
+def exists_in_db(db, topic, timestamp, message_crc32):
     """
     server_side UUID, of it will change on
     redundant ingeests
 
     have we seen this before?  n.b we don;t
-    trust CRC or size becase we may have changes to
-    own metadata that is rolled up in the
-    saved object.
+    trust object CRC or size becase we may
+    have changes to annotatons saveed the
+    object.
 
     """    
     sql = f"""
@@ -130,6 +141,8 @@ def exists_in_db(db, topic, timestamp):
       timestamp = {timestamp}
       AND
       topic = '{topic}'
+      AND
+      message_crc32 = '{message_crc32}'
     """
     result = db.query(sql)
     if result[0][0] == 0 : return False
