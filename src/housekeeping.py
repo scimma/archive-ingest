@@ -1,13 +1,22 @@
 #!/usr/bin/env python3
 
-'''Log messages and metadata to S3. provide metadate to a databse.
+'''
+Log messages, metadata, and annotatopns to S3.
+Record meta-data about stored data in relational
+DB.  Omit duplicate due to more-tnan-once delivery or
+cursor resets.
 
-In production, log events from selected Hopscotch public
-topics into S3 and log into a housekeeping postgres database.
+Run time configuration is via command line options,
+including options to select configuration stanzas
+from a "toml" configuration file.
 
-to suport devleopment, Houskeeping.py  supports realized or mock
-hopskotch, database and store elements.  These are defined in
-toml files. Housekeeping.toml defines a variety of these readers.
+Support testing via
+- reading limited to a test topic
+- reading from a mock topic
+- in-line comparison of as-sent test data
+  to as-recieved test data.
+- in-line comparision of as-recieved data
+  to as-stored data.
 
 @author: Mahmoud Parvizi (parvizim@msu.edu)
 @author: Don Petravick (petravick@illinois.edu)
@@ -31,11 +40,15 @@ import hop
 
 def make_logging(args):
     """
-    establish python logging based on toms file stanza passed specifies on command line.
+    establish python logging
+
+    use toml file stanza passed specified on command line.
     """
 
-    # supply defaults to assure than logging of some sort is setup no matter what.
-    # Note that the production environment captures stdout/stderr into logs for us.
+    # supply defaults to assure that logging of some ...
+    # ... sort is setup no matter what.
+    # Note that the production environment captures ..
+    # ...stdout/stderr into logs for us.
     default_format  = '%(asctime)s:%(filename)s:%(levelname)s:%(message)s'
     toml_data = toml.load(args["toml_file"])
     config    =  toml_data[args["log_stanza"]]
@@ -52,7 +65,14 @@ def make_logging(args):
 ###############
 def housekeep(args):
     """
-    Acquire data from the specified consumer and log to specified DB
+    Acquire data from the specified consumer and record.
+
+    - For testing compare as-sent to as-recieved.
+    - Filter out duplicates.
+    - Log to S3
+    - Log to DB
+    - Optionally compare as-recieved to as-stored.
+    - Mark message processed in kafka.
     """
     db     = database_api.DbFactory(args).get_db()
     consumer = consumer_api.ConsumerFactory(args).get_consumer()
