@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 '''
 Utilities for housekeeping applications.
 
@@ -18,12 +17,13 @@ import verify_api
 import utility_api
 import decision_api
 import consumer_api
-
+import datetime
+import boto3
 ##################################
 #   utilities
 ##################################
 
-def delete_by_id(id, db, store=None):
+def _delete_by_id(id, db, store=None):
     sql_get_S3_info = """
     SELECT
         bucket, key
@@ -111,26 +111,96 @@ def list(args):
     pprint.pprint(dict)
 
 
-def verify(args):
+def verify_db_to_store(args):
+    """
+    Check that the DB has corresponding store objects.
+
+    DB records  are anomolus if the S3 store does not
+    agree with the DB record. Disagreement can be
+    due to the top level verison of the object is
+    absent or the size of the top level object is not
+    the size recorded in DB record.
+
+    Scan the topics passed in the SQL LIKE expression
+    in --topics defaujlt all topics
+
+    --sample causes the tool sample 100 DB
+    records (def do ot sample)
+    
+    Exit with the number of defective objects
+    """
     db = database_api.DbFactory(args).get_db()
     store = store_api.StoreFactory(args).get_store()
     db.connect()
     store.connect()
-    if args["all"]:
-        limit_clause = ""
-    else:
+    
+    topic = args["topic"]
+    
+    if args["sample"]:
         limit_clause = "ORDER BY random() Limit 100"
-    sql = f"select key, size from messages {limit_clause};"
+    else:
+        limit_clause = ""
+                
+    sql = f"select key, size from messages WHERE topic LIKE  '{topic}' {limit_clause};"
     logging.info(sql)
     results = db.query(sql)
+    anomolous_objects = []
     for key, size in results:
         summary = store.get_object_summary(key)
         if not summary["exists"]:
-            print(f"** object does not exist ***, {key}")
+            print(f"{key} does not exist ***")
+            anomolous_objects.append(key)
         elif size != summary["size"]:
-            print(f"** size mismatch, {key}")
+            print(f"{key} size mismatch, {key}")
+            anomolous_objects.append(key)
         else:
-            print(f"** key is ok, {key}")
+            if args["verbose"] :
+                print(f"{key} is ok")
+    print(f"anomolous entries {len(anomolous_objects)} detected")
+    exit (len(anomolous_objects))
+
+def verify_store_to_db(args):
+    """
+    Check that the store  has corresponding db objects.
+
+    Store objets are anomolus if the S3 store does not
+    agree with the DB record. Disagreements can be
+    due to
+    - the top-level verison of the object has no DB record
+    - the size of the top-level object is not the ..
+      size recorded in DB record
+    - more than one version of the object exists.
+
+    Scan the topics passed in the SQL LIKE expression
+    in --topics default:all topics.
+
+    Scan for the year/month indicated by -y  
+
+    --sample causes the tool to sample 100 DB
+    records (def do not sample)
+    
+    Exit with the number of defective S3 objects. 
+    """
+    db = database_api.DbFactory(args).get_db()
+    store = store_api.StoreFactory(args).get_store()
+    db.connect()
+    store.connect()
+    session = boto3.session.Session()
+    s3_client = session.client('s3')
+    
+    like_clause = f""" where topic LIKE  '{args["topic"]}'"""
+
+    # get all the topics.
+    results = db.query(f"SELECT distinct(topic) FROM messages {like_clause};")
+    topics = [r[0] for r in results]
+    print("****", topics)
+    import pdb; pdb.set_trace()
+    # check objects from the month in question 
+    for topic in topics:
+       prefix = f"""{topic}/{args["year_month"]}"""
+       logging.info(f"checking for objects under {prefix}")
+       for result in store.list_object_versions(prefix):
+           print(result)
 
 
 def status(args):
@@ -138,9 +208,9 @@ def status(args):
      First cut at a status
 
      - What topics have been colllected
-     ? what's "recent"
-     ? what topics are being archived?
-     ? is the service up?
+     - what's "recent"
+     - what topics are being archived
+     - is the service up
     """
     import tabulate
     db = database_api.DbFactory(args).get_db()
@@ -292,7 +362,9 @@ def clean_tests(args):
 
 
 def clean_duplicates(args):
-    "clean duplicates from the archive"
+    """
+    detect, clean duplicates from the Db and store
+    """
 
     db = database_api.DbFactory(args).get_db()
     db.connect()
@@ -304,7 +376,7 @@ def clean_duplicates(args):
     for r  in results:
         print(r)
         id  = r[0]
-        delete_by_id(id, db)
+        _delete_by_id(id, db)
 
     results = decision_api.get_server_uuid_duplicates(args, db)
     print ("server side test:")
@@ -312,7 +384,7 @@ def clean_duplicates(args):
         print(r)
         utility_api.ask(args, key='quiet')
         id  = r[0]
-        delete_by_id(id, db, store=store)
+        _delete_by_id(id, db, store=store)
 
 
 
@@ -350,12 +422,26 @@ if __name__ == "__main__":
     parser.add_argument("-a", "--ask", help="interactive prompt before each publish", default=False, action="store_true")
     parser.add_argument("-c", "--clean", help="purge old test data from archive before publish", default=False, action="store_true")
 
-    # verify --
-    parser = subparsers.add_parser('verify', help="check objects recored in DB exist")
-    parser.set_defaults(func=verify)
+    # verify_db_to_store --
+    parser = subparsers.add_parser('verify_db_to_store', help=verify_db_to_store.__doc__)
+    parser.set_defaults(func=verify_db_to_store)
     parser.add_argument("-D", "--database_stanza", help="database-config-stanza", default="aws-dev-db")
     parser.add_argument("-S", "--store_stanza", help="storage config stanza", default="S3-dev")
-    parser.add_argument("-a", "--all", help="do the whole archive (gulp)", default=False, action="store_true")
+    parser.add_argument("-t", "--topic", help="do topics LIKE this (SQL wildcard))", default="%")
+    parser.add_argument("-s", "--sample", help="sample up to 100 random objects", default=False, action="store_true")
+    parser.add_argument("-v", "--verbose", help="print more", default=False, action="store_true")
+
+    # verify_store_to_db --
+    parser = subparsers.add_parser('verify_store_to_db', help=verify_store_to_db.__doc__)
+    parser.set_defaults(func=verify_store_to_db)
+    current = datetime.datetime.utcnow().strftime("%Y/%m")
+    parser.add_argument("-D", "--database_stanza", help="database-config-stanza", default="aws-dev-db")
+    parser.add_argument("-S", "--store_stanza", help="storage config stanza", default="S3-dev")
+    parser.add_argument("-t", "--topic", help="do topics LIKE this (SQL wildcard, def '%')", default="%")
+    parser.add_argument("-y", "--year_month", help="constrian to this year/month (def: current year/month)",
+                        default=f"{current}")
+    parser.add_argument("-s", "--sample", help="sample up to 100 random objects", default=False, action="store_true")
+    parser.add_argument("-v", "--verbose", help="print more", default=False, action="store_true")
 
     # inspect display an object and or write it out.
     parser = subparsers.add_parser('inspect', help=inspect.__doc__)
@@ -395,7 +481,6 @@ if __name__ == "__main__":
     parser.set_defaults(func=clean_duplicates)
     parser.add_argument("-D", "--database_stanza", help="database-config-stanza", default="aws-dev-db")
     parser.add_argument("-S", "--store_stanza", help="storage config stanza", default="S3-dev")
-    parser.add_argument("-c", "--count_only", help="just say how many", default=False, action="store_true")
     parser.add_argument("-l", "--limit", help="only consider limit number of matches (def 20)", type=int, default=20)
     parser.add_argument("-q", "--quiet", help="don't ask before delete ", default=False, action="store_true")
 

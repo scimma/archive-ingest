@@ -186,7 +186,31 @@ class S3_store(Base_store):
         summary["size"] = size
         return summary
 
+    
+    def list_object_versions(self, prefix):
+        """ list all onecht verision under prefix"""
+        import pdb; pdb.set_trace()
+        s3 = session.resource('s3')
+        my_bucket = s3.Bucket('self.primary_bucket')
+        for _object in my_bucket.objects.all():
+            print(object.key)
+        """    
+        paginator = client.get_paginator('list_objects')
+        result = paginator.paginate(Bucket=self.primary_bucket
+                                    , Delimiter=prefix)
+        import pdb; pdb.set_trace()
+        for prefix in result.search('CommonPrefixes'):
+            print(prefix.get('Prefix'))
+        return
+        objectXSXCs = list(bucket.objects.filter(Prefix=prefix))
+        for object in objects:
+            for result in self.client.list_object_versions(
+                Bucket=self.primary_bucket,
+                Prefix=path_prefix):
+            yield result
+        """
 
+    
 class Mock_store(Base_store):
     """
     a mock store that does nothing -- support debug and devel.
