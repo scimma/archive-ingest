@@ -11,28 +11,28 @@ by an archive rather than a  stream.
 
 ##Implementation overview.
 
-Messages are acquired by the housekeeping app. The app archives 
-all  authorized by its credential excepting those to a veto-list
-that is read at stre up. The veto list is meant to
-exclude utilites related to the operation of Hopskotch, for example
-the heartbeat.
+The app archives all messages authorized by its credential, excepting
+those listed on veto-list that is read at start up. The veto list is
+meant to exclude utilities related to the operation of Hopskotch, for
+example the heartbeat.
 
-What is stored from these public messages?  1) Kafka messages 2)
+What is stored from these  messages?  1) Kafka messages 2)
 select Kafaka metdata: topic, millisecond integer timestamp, and
 headers are stored.
 
-Massese pubished using hop client 1.8.0 or later proved a UUIS
-in the _id header.  Thsi UUD is expose to the  end user. If an
-_id heder is absent, then housekeeping app supplies a UUID.
+Messages pubished using hop client 1.8.0 or later provide a UUID
+in the message's _id header.  This UUD is exposed to the  end user. If an
+_id header is absent, then housekeeping app supplies a UUID.
 
 How is the data stored?  All of the above are packed into a [BSON
-formatted object] (https://bsonspec.org).  Unlike JSON, BSON allows for
-the storage of binary blobs.  The packaging is such that a single BSON
-object byte-stream represents a kafka message and its select
-metadata. "Annotations" produced by the housekepeing app are
-stred in the bson for good measure. Wousekeeping stores the BSON
-object in AWS S3. The primary AWS bucket iw production are backed up
-by autoamtic AWS replication, 
+formatted object] (https://bsonspec.org).  Unlike JSON, BSON allows
+for the storage of binary blobs.  The packaging is such that a single
+BSON object kafka message and its select metadata and
+header.. "Annotations" produced by the houseeping app are stored in
+the bson for good measure. Housekeeping stores the BSON object an  AWS
+a primary S3 bucket. The primary AWS bucket is backed up by autoamtic
+AWS replication to a second bucket.  Paths in the AWS bucket are of
+the form <topic>/<year>/<month>/<day>/<uuid>.bson
 
 Additionally, select data are stored in an AWS postgres database.
 Database information includes the UUID, millisecond timestamp, topic,
