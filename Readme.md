@@ -11,8 +11,9 @@ by an archive rather than a  stream.
 
 ##Implementation overview.
 
-Messages are acquired by the housekeeping app. The app listens to
-public topics, subject to a veto-list.  The veto list is meant to
+Messages are acquired by the housekeeping app. The app archives 
+all  authorized by its credential excepting those to a veto-list
+that is read at stre up. The veto list is meant to
 exclude utilites related to the operation of Hopskotch, for example
 the heartbeat.
 
@@ -20,22 +21,24 @@ What is stored from these public messages?  1) Kafka messages 2)
 select Kafaka metdata: topic, millisecond integer timestamp, and
 headers are stored.
 
-Stored headers always include an _id header.  If an _id is absent,
-then housekeeping supplies a an _id header containing a UUID. If an
-_id header is supplied it is assumed to be a uuid supplied by
-HopSkotch software. These uuids are in binary.
+Massese pubished using hop client 1.8.0 or later proved a UUIS
+in the _id header.  Thsi UUD is expose to the  end user. If an
+_id heder is absent, then housekeeping app supplies a UUID.
 
 How is the data stored?  All of the above are packed into a [BSON
 formatted object] (https://bsonspec.org).  Unlike JSON, BSON allows for
 the storage of binary blobs.  The packaging is such that a single BSON
 object byte-stream represents a kafka message and its select
-metadata. Housekeeping stores the BSON object in AWS S3. AWS
-buckets in production are backed up.
+metadata. "Annotations" produced by the housekepeing app are
+stred in the bson for good measure. Wousekeeping stores the BSON
+object in AWS S3. The primary AWS bucket iw production are backed up
+by autoamtic AWS replication, 
 
 Additionally, select data are stored in an AWS postgres database.
 Database information includes the UUID, millisecond timestamp, topic,
 internally generated serial number, bucket and key to the BSON object
-used in S3. The production postgres database is backed up.
+used in S3. The production postgres database is backed up and
+snap-shotted.
 
 Headers and message payloads are stored only in the BSON object.
 Consequently, queries based on message or header contents
@@ -43,16 +46,20 @@ are for follow on projects, not this archive implementation.
 
 ## Usage/development  Notes
 
-Produciotn and development deployments are via containers.  Containers
+Producition and development deployments are via containers.  Containers
 are made via the Makefile in this directory.  There are AWS-Specifc
-mechanismns fordeployed containers gaining AWS credentials. Destop
-development is supported by running the housekeeping.py applicaiton
+mechanismns for deployed containers gaining AWS credentials. Desktop
+development is supported by running the housekeeping.py applicaition
 natively, using AWS credentails present supported by the AWS
-devleopment kit, boto3.
+devleopment kit, boto3, and useng the development 
 
 Developers can test againist live systems in the
-development area, mixedin with mocks of hop, the
-databse, and the onject store.
+development area, mixedin with mocks of hop.  The mock of hop produces
+data that is not deterministically replicable, or difficult to replicate.
+These include
+
+- data from early versions of hop_client
+- dat that is recieved more than once.
 
 Housekeeping.py also contains utilites to monitoring/ adminstering the
 application. (See the readme in the src diretory for further
