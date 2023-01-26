@@ -75,5 +75,31 @@ Makefile actions to push containers to gitub.io/scimma are commented out.
 ```
 make container
 make  push  GITHUB_REF=housekeeping-0.0.0
-``
+```
 
+
+## Local development with Docker Compose
+
+You can run this locally via Docker Compose without dependency on AWS or a remote database.
+
+First copy `env.tpl` to `.env` and fill in your Hopskotch credentials.
+
+Then launch the application with
+
+```bash
+docker compose up
+```
+
+Once the containers are bootstrapped, `docker exec` into the main container and run
+
+```bash
+$ docker exec -it hop-archiver bash
+
+[root@90fd75dd29a4 src]$ ./housekeeping.py run -H hop-local -D local-db -S mock-store
+```
+
+To start with a clean slate, run the following to destroy the database and any other persistent volumes:
+
+```bash
+docker compose down --remove-orphans --volumes
+```

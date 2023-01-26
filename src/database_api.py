@@ -23,7 +23,7 @@ import boto3
 import toml
 import logging
 import utility_api
-
+import os
 
 ##################################
 # "databases"
@@ -41,6 +41,7 @@ class DbFactory:
         #instantiate, then return db object of correct type.
         if type == "mock"   : self.db  =  Mock_db(config)  ; return
         if type == "aws"    : self.db  =  AWS_db (config) ; return
+        if type == "local"    : self.db  =  SQL_db (config) ; return
         logging.fatal(f"database {type} not supported")
         exit (1)
 
@@ -249,3 +250,103 @@ class AWS_db(Base_db):
             )
             all_logs += log_text_result["LogFileData"]
         return all_logs
+
+class SQL_db(Base_db):
+    """
+    Logging to SQL postgres DBs
+    """
+    def __init__(self, config):
+        # get these from the configuration file
+        self.MasterUserName = os.environ['POSTGRESQL_USERNAME']
+        self.DBName         = os.environ['POSTGRESQL_DATABASE']
+        self.password       = os.environ['POSTGRESQL_PASSWORD']
+        self.Address        = os.environ['POSTGRESQL_HOST']
+        self.Port           = 5432
+
+        super().__init__(config)
+
+
+    def connect(self):
+        "create  a session to postgres"
+        self.conn = psycopg2.connect(
+            dbname  = self.DBName,
+            user    = self.MasterUserName,
+            password = self.password,
+            host     = self.Address
+        )
+        self.conn.autocommit = True
+        self.cur = self.conn.cursor()
+
+    def make_schema(self):
+        "Declare tables"
+        sql =  """
+        CREATE TABLE IF NOT EXISTS
+        messages(
+          id  BIGSERIAL  PRIMARY KEY,
+          topic          TEXT,
+          timestamp      BIGINT,
+          uuid           TEXT,
+          size           INTEGER,
+          key            TEXT,
+          bucket         TEXT,
+          crc32          BIGINT,
+          is_client_uuid BOOLEAN,
+          message_crc32  BIGINT
+        );
+
+        CREATE INDEX IF NOT EXISTS timestamp_idx ON messages (timestamp);
+        CREATE INDEX IF NOT EXISTS topic_idx     ON messages (topic);
+        COMMIT;
+
+        """
+        self.cur.execute(sql)
+
+    def insert(self, payload, metadata, annotations):
+        "insert one record into the DB"
+
+        sql = f"""
+        INSERT INTO messages
+          (topic, timestamp, uuid, size, key, bucket, crc32, is_client_uuid, message_crc32)
+          VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ;
+        COMMIT ; """
+        values = [metadata["topic"],
+                  metadata["timestamp"],
+                  annotations['con_text_uuid'],
+                  annotations['size'],
+                  annotations['key'],
+                  annotations['bucket'],
+                  annotations['crc32'],
+                  annotations['con_is_client_uuid'],
+                  annotations['con_message_crc32']
+                  ]
+        self.cur.execute(sql,values)
+        self.n_inserted +=1
+        self.log()
+
+    def query(self, sql, expect_results=True):
+        "executer SQL, return results if expected"
+        self.cur.execute(sql)
+        if expect_results:
+            results = self.cur.fetchall()
+            return results
+
+    def launch_db_session(self):
+        "lauch a query_session tool for AWS databases"
+        print (f"use password: {self.password}")
+        import subprocess
+        cmd = f"psql --dbname {self.DBName} --host={self.Address} --username={self.MasterUserName} --password"
+        print (cmd)
+        subprocess.run(cmd, shell=True)
+
+    def make_readonly_user(self):
+        """
+        tested model SQL -- not importemented, though
+        CREATE USER test_ro_user WITH PASSWORD ‘skjfdkjfd’;
+        GRANT CONNECT ON DATABASE housekeeping TO test_ro_user ;
+        GRANT USAGE ON SCHEMA public TO test_ro_user;
+        GRANT SELECT ON ALL TABLES IN SCHEMA public TO test_ro_user;
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO test_ro_user;
+        REVOKE CREATE ON SCHEMA public FROM test_ro_user;
+        """
+        pass #not implemented this version
+

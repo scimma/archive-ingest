@@ -12,7 +12,7 @@ RUN curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscl
 COPY requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
 
-RUN mkdir -p /root.config/hop /root/src
+RUN mkdir -p /root/.config/hop /root/src
 
 WORKDIR /root/src
 COPY src/housekeeping.py housekeeping.py

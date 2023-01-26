@@ -6,98 +6,65 @@ networks:
 
 volumes:
   dbdata: {}
-  # waitforit: {}
-  # hopauth: {}
+  waitforit: {}
 
 services:
   db:
-    image: bitnami/mariadb:10.5
-    container_name: hop-ingest-db
+    image: bitnami/postgresql:latest
+    container_name: hop-archiver-db
     env_file: .env
     ports:
       - 5432:5432
     networks:
       - internal
     volumes:
-      - dbdata:/bitnami/mariadb
-  # app-init-db:
-  #   image: bitnami/mariadb:10.5
-  #   container_name: hop-ingest-db-init
-  #   env_file: .env
-  #   depends_on:
-  #     - db
-  #   networks:
-  #     - internal
-  #   command:
-  #     - sh
-  #     - -c
-  #     - >
-  #       until pg_isready \
-  #           --username=${POSTGRES_USER} \
-  #           --dbname=${POSTGRES_DB} \
-  #           --host=${DB_HOST} \
-  #           --port=5432;
-  #         do echo waiting for database;
-  #         sleep 2;
-  #         done;
-  #         touch /tmp/db_ready;
-  #   volumes:
-  #     - waitforit:/tmp
-  # app-init-hop-auth:
-  #   # image: ubuntu:20.04
-  #   image: scimma/hop-ingest:dev
-  #   build:
-  #     context: .
-  #     args:
-  #     - UID=${CUID}
-  #   container_name: hop-ingest-auth-init
-  #   env_file: .env
-  #   user: root
-  #   depends_on:
-  #     - db
-  #   networks:
-  #     - internal
-  #   command:
-  #     - '/bin/bash'
-  #     - '-c'
-  #     - >
-  #       chown -R worker /home/worker/.config/hop && touch /tmp/hop_auth_ready
-  #   volumes:
-  #     # - ./auth.toml.tpl:/tmp/auth.toml.tpl:ro
-  #     - waitforit:/tmp
-  #     - hopauth:/home/worker/.config/hop
+      - dbdata:/bitnami/postgresql
+  app-init-db:
+    image: bitnami/postgresql:latest
+    container_name: hop-archiver-db-init
+    env_file: .env
+    depends_on:
+      - db
+    networks:
+      - internal
+    command:
+      - sh
+      - -c
+      - >
+        until pg_isready \
+            --username=${POSTGRESQL_USERNAME} \
+            --dbname=${POSTGRESQL_DATABASE} \
+            --host=db \
+            --port=5432;
+          do echo waiting for database;
+          sleep 2;
+          done;
+          touch /tmp/db_ready;
+    volumes:
+      - waitforit:/tmp
   app:
-    image: scimma/hop-ingest:dev
+    image: scimma/housekeeping:dev
     build:
       context: .
       args:
       - UID=${CUID}
-    container_name: hop-ingest
+    container_name: hop-archiver
     env_file: .env
     depends_on:
       - db
-      # - app-init-db
-      # - app-init-hop-auth
-    ports:
-      - 8000:8000
     networks:
       - internal
     command:
       - '/bin/bash'
       - '-c'
       - >
-        bash copy_auth.sh && python hop_ingest.py
+        while [[ ! -f /tmp/db_ready ]]; do
+          echo waiting for db_ready...;
+          sleep 2;
+        done;
+        sleep 1000d
+        # bash copy_auth.sh && sleep 1000d
     volumes:
-      - ./src:/home/worker/src
-      - ./src/config.yaml:/home/worker/src/config.yaml:ro
-      # - waitforit:/tmp
-      # - hopauth:/home/worker/.config/hop
-      # - type: bind
-      #   source: ./src/config.yaml
-      #   target: /etc/config/config.yaml
-      #   read_only: true
+      - ./src:/root/src
+      - waitforit:/tmp
 
-        # while [[ ! -f /tmp/hop_auth_ready ]]; do
-        #   echo waiting for hop_auth_ready...;
-        #   sleep 2;
-        # done;
