@@ -87,10 +87,12 @@ First copy `env.tpl` to `.env` and fill in your Hopskotch credentials.
 Then launch the application with
 
 ```bash
-docker compose up
+./launch
 ```
 
-Once the containers are bootstrapped, `docker exec` into the main container and run
+Available launch script options are `--build` to build the images, `--logs` to watch the container logs, and `--down` to destroy containers and wipe the local database.
+
+Once the containers are bootstrapped, `docker exec` into the main container and run `housekeeping.py` as shown:
 
 ```bash
 $ docker exec -it hop-archiver bash
@@ -104,13 +106,6 @@ Access the local database instance using:
 $ docker exec -it hop-archiver-db bash
 I have no name!@73d75c60f19a:/$ PGPASSWORD=$POSTGRESQL_PASSWORD psql -U $POSTGRESQL_USERNAME $POSTGRESQL_DATABASE
 ```
-
-To start with a clean slate, run the following to destroy the database and any other persistent volumes:
-
-```bash
-docker compose down --remove-orphans --volumes
-```
-
 
 
 # Housekeeping Software
