@@ -282,6 +282,7 @@ class Hop_consumer(Base_consumer):
             self.secret_name      = config["hop-aws-secret-name"]
             self.region_name      = config["hop-aws-secret-region"]
         self.test_topic       = config["hop-test-topic"]
+        self.test_topic_max_messages       = config["hop-test-max-messages"]
         self.vetoed_topics    = config["hop-vetoed-topics"]
         self.vetoed_topics.append(self.test_topic)  # don't consume test topic   
         self.refresh_interval = config["hop-topic-refresh-interval-seconds"]
