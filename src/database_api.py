@@ -20,7 +20,7 @@ extention to SQLite.
 import psycopg2
 import psycopg2.extensions
 import boto3
-import toml
+import json
 import logging
 import utility_api
 import os
@@ -294,6 +294,14 @@ class SQL_db(Base_db):
           message_crc32  BIGINT
         );
 
+        CREATE TABLE IF NOT EXISTS
+        message_data(
+          id  BIGSERIAL  PRIMARY KEY,
+          uuid           TEXT,
+          field_name     TEXT,
+          field_value    TEXT
+        );
+
         CREATE INDEX IF NOT EXISTS timestamp_idx ON messages (timestamp);
         CREATE INDEX IF NOT EXISTS topic_idx     ON messages (topic);
         COMMIT;
@@ -322,6 +330,23 @@ class SQL_db(Base_db):
         self.cur.execute(sql,values)
         self.n_inserted +=1
         self.log()
+
+    def insert_message_data(self, data: dict = {}, annotations: dict = {}) -> None:
+        '''Message data is assumed to be a flat object of key-value pairs, where the values are scalar.'''
+        for field_name, field_value in data.items():
+            logging.debug(f'''Message data field to insert into db: {field_name}: {field_value}''')
+            sql = f"""
+            INSERT INTO message_data
+            (uuid, field_name, field_value)
+            VALUES (%s, %s, %s) ;
+            COMMIT ; """
+            values = [
+                annotations['con_text_uuid'],
+                field_name,
+                field_value,
+            ]
+            self.cur.execute(sql, values)
+
 
     def query(self, sql, expect_results=True):
         "executer SQL, return results if expected"
