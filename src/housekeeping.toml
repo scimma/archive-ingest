@@ -1,7 +1,7 @@
 [log]
 log-type = "log-tty"
 #filename = "output/hopstream.log"
-level = "INFO"
+level = "DEBUG"
 
 ###########
 # database
@@ -47,6 +47,7 @@ hop-type                = "hop"
 hop-hostname            = "dev.hop.scimma.org"
 hop-port                = 9092
 hop-vetoed-topics = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
+hop-test-max-messages = 0
 
 [hop-prod]
 hop-type              = "hop"
@@ -59,6 +60,7 @@ hop-until-eos         = false
 hop-vetoed-topics     = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
 hop-test-topic        = "cmb-s4-fabric-tests.housekeeping-test"
 hop-topic-refresh-interval-seconds = 300 #5 minutes
+hop-test-max-messages = 0
 
 [hop-local]
 hop-type              = "hop"
@@ -67,9 +69,10 @@ hop-hostname          = "kafka.scimma.org"
 hop-groupname         = "hopstream"
 hop-port              = 9092
 hop-until-eos         = false
-hop-vetoed-topics     = ["__consumer_offsets", "sys.heartbeat-cit"]
-hop-test-topic        = "sys.heartbeat"
+hop-vetoed-topics     = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
+hop-test-topic        = "gcn.notice"
 hop-topic-refresh-interval-seconds = 300 #5 minutes
+hop-test-max-messages = 1
 
 [kcat-prod]
 hop-type   = "kcat"
@@ -79,3 +82,4 @@ hop-port       = 9092
 hoptest-topic = "cmb-s4-fabric-tests.housekeeping-test"
 hop-aws-secret-name   =  "hopdevel-housekeeping-hop-prod-credentials"
 hop-aws-secret-region =  "us-west-2"
+hop-test-max-messages = 0
