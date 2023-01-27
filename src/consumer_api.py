@@ -347,12 +347,13 @@ class Hop_consumer(Base_consumer):
         self.refresh_url()
         group_id = f"{self.username}-{self.groupname}"
         self.client = stream.open(url=self.url, group_id=group_id)
+        # self.client = stream.open(url=self.url)
         logging.info(f"opening stream at {self.url} group: {group_id} startpos {start_at}")
 
     def authorize(self):
         if self.local_auth_file:
             self.username = os.environ['HOP_USERNAME']
-            self.auth  = hop.auth.Auth(self.username, os.environ['HOP_PASSWORD'])
+            self.auth  = hop.auth.load_auth(self.local_auth_file)
         else:
             "authorize using AWS secrets"
             from hop.auth import Auth
