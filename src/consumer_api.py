@@ -312,10 +312,11 @@ class Hop_consumer(Base_consumer):
 
         # interval exceeded -- reset time, and refresh topic list
         self.last_last_refresh_time = time.time()
-        if self.config["test_topic"]:
+        if self.test_topic:
             # trivial refresh this topic supports  test and debug.
             topics = self.test_topic
             self.url = (f"{self.base_url}{topics}")
+            logging.info(f'''Consuming hop-test-topic URL: "{self.url}"''')
         else:
             # Read the available topics from the given broker
             # notice that we are not given "public topics" we
