@@ -30,9 +30,12 @@ import store_api
 import database_api
 import verify_api
 import decision_api
+import json
+from typing import Union
 
 from hop.io import Stream, StartPosition, list_topics
 import hop
+
 
 ##################################
 #   environment
@@ -81,7 +84,16 @@ def housekeep(args):
     db.make_schema()
     consumer.connect()
     store.connect()
+    max_messages = consumer.test_topic_max_messages
+    msg_idx = 0
     for payload, metadata, annotations  in consumer.get_next():
+        msg_idx += 1
+        ## If max_messages is set to zero, there is no maximum
+        if max_messages > 0 and msg_idx > max_messages:
+            break
+        logging.info(metadata)
+        logging.info(annotations)
+        # logging.info(payload)
         if decision_api.is_deemed_duplicate(annotations, metadata, db, store):
             logging.info(f"Duplicate not logged {annotations}")
             consumer.mark_done()
@@ -93,9 +105,26 @@ def housekeep(args):
             if args["verify"] and verify_api.is_known_test_data(metadata):
                 verify_api.compare_known_data(payload, metadata)
         storeinfo = store.store(payload, metadata, annotations)
+        logging.info(storeinfo)
         db.insert(payload, metadata, annotations)
         verify_api.assert_ok(args, payload, metadata, annotations,  db, store)
+        ## TODO: Do we want to parse message data for known schemas prior to marking the ingest done?
         consumer.mark_done()
+        ## Parse message data for known schemas, where for now the Hopskotch topic is a proxy for a
+        ## message schema. 
+        ## TODO: This should instead be declared in the metadata via a "schema" field in the headers.
+        if metadata['topic'] == 'gcn.notice':
+            try:
+                ## Attempt to parse the message 
+                gcn_notice_data = parse_gcn_notice(payload)
+                logging.debug(f'''Extracted GCN notice data\n{json.dumps(gcn_notice_data, indent=2)}''')
+            except Exception as e:
+                logging.warning(f'''Invalid GCN notice. Error: {e}''')
+                continue
+            try:
+                db.insert_message_data(data=gcn_notice_data, annotations=annotations)
+            except Exception as e:
+                logging.error(f'''Failed to store GCN notice message data. Error: {e}''')
 
 
 def list(args):
@@ -104,6 +133,48 @@ def list(args):
     dict = toml.load(args["toml_file"])
     print (args["toml_file"])
     pprint.pprint(dict)
+
+
+def get_json_property_by_path(dict_object: dict = {}, path: list = []) -> Union[float, int, str, list, bool]:
+    assert isinstance(dict_object, dict)
+    element = None
+    value = dict_object
+    for element in path:
+        value = value[element]
+    assert not isinstance(value, dict)
+    return value
+
+
+def parse_gcn_notice(payload: str = '') -> dict:
+    '''Parse the GCN notice message from the Hopskotch topic'''
+    assert payload['format'].lower() == 'json'
+    message_content = payload['content'].decode('utf-8')
+    gcn_notice = json.loads(message_content)
+    ## Define paths to the desired data within the JSON object
+    AstroCoords_path = ['WhereWhen', 'ObsDataLocation', 'ObservationLocation', 'AstroCoords']
+    ISOTime_path = AstroCoords_path + ['Time', 'TimeInstant', 'ISOTime']
+    RA_DEC_path = AstroCoords_path + ['Position2D', 'Value2']
+    RA_val_path = RA_DEC_path + ['C1']
+    DEC_val_path = RA_DEC_path + ['C2']
+
+    ISOTime = get_json_property_by_path(dict_object=gcn_notice, path=ISOTime_path)
+    RA_val = get_json_property_by_path(dict_object=gcn_notice, path=RA_val_path)
+    DEC_val = get_json_property_by_path(dict_object=gcn_notice, path=DEC_val_path)
+
+    '''
+    ref: https://voevent.readthedocs.io/en/latest/reading.html#ivorns-and-identifiers
+    ... IVORNs, or "IVOA Resource Names" ... provide unique 
+    identifiers for entities known to the virtual observatory, where "entity" is 
+    quite broadly defined. 
+    '''
+    ivorn = get_json_property_by_path(dict_object=gcn_notice, path=['ivorn'])
+    data = {
+        "ivorn": ivorn,
+        "ra": RA_val,
+        "dec": DEC_val,
+        "time": ISOTime,
+    }
+    return data
 
 if __name__ == "__main__":
 
