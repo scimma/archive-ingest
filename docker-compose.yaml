@@ -62,8 +62,7 @@ services:
           echo waiting for db_ready...;
           sleep 2;
         done;
-        sleep 1000d
-        # bash copy_auth.sh && sleep 1000d
+        bash copy_auth.sh && sleep 1000d
     volumes:
       - ./src:/root/src
       - waitforit:/tmp
