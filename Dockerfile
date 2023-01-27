@@ -15,14 +15,6 @@ RUN pip3 install -r requirements.txt
 RUN mkdir -p /root/.config/hop /root/src
 
 WORKDIR /root/src
-COPY src/housekeeping.py housekeeping.py
-COPY src/database_api.py database_api.py
-COPY src/consumer_api.py consumer_api.py
-COPY src/store_api.py store_api.py
-COPY src/database_api.py database_api.py
-COPY src/verify_api.py verify_api.py 
-COPY src/decision_api.py decision_api.py
-COPY src/utility_api.py utility_api.py
-COPY src/housekeeping.toml housekeeping.toml
+COPY src/ .
 
 CMD ["./housekeeping.py", "run", "-H",  "hop-prod", "-D", "aws-dev-db", "-S",  "S3-dev"]
