@@ -28,6 +28,8 @@ WORKDIR /root
 #ENTRYPOINT ["/bin/bash"]
 ARG STORE
 ARG DB
+ARG HOP
 ENV DB=$DB
 ENV STORE=$STORE
-CMD /root/housekeeping.py run -H hop-prod -D $DB -S  $STORE
+ENV HOP=$HOP
+CMD /root/housekeeping.py run -H $HOP -D $DB -S  $STORE

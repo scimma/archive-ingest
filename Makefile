@@ -22,10 +22,12 @@ RELEASE_TAG := $(TAG)
 MAJOR_TAG   := $(shell V=$(TAG) ; echo $${V%%.*} )
 MINOR_TAG   := $(shell V=$(TAG) ; echo $${V%.*} )
 
-ifeq ($(TAG), 0.0.0 )
+ifeq ($(TAG),0.0.0)
+   HOP   := --build-arg  HOP=hop-devel
    STORE := --build-arg  STORE=S3-dev
    DB    := --build-arg  DB=aws-dev-db
 else
+   HOP   := --build-arg  HOP=hop-prod
    STORE := --build-arg  STORE=S3-prod
    DB    := --build-arg  DB=aws-prod-db
 endif
@@ -41,7 +43,7 @@ print-%  : ; @echo $* = $($*)
 
 container: Dockerfile
 	@(echo $(RELEASE_TAG) | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$$' > /dev/null ) || (echo Bad release tag: $(RELEASE_TAG) && exit 1)
-	docker build $(DB) $(STORE) --platform linux/amd64  -f $< -t $(CNT_IMG) .  
+	docker build $(DB) $(STORE) $(HOP) --platform linux/amd64  -f $< -t $(CNT_IMG) .  
 	docker tag $(CNT_IMG) $(CNT_LTST)
 	docker tag $(CNT_IMG) $(AWSREG)/$(CNT_NAME)
 	docker tag $(CNT_IMG) $(AWSREG)/$(CNT_NAME):$(RELEASE_TAG)
