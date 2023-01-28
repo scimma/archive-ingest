@@ -26,4 +26,8 @@ ADD requirements.txt       /root/requirements.txt
 RUN pip3 install -r        /root/requirements.txt
 WORKDIR /root
 #ENTRYPOINT ["/bin/bash"]
-CMD ["./housekeeping.py", "run", "-H",  "hop-prod", "-D", "aws-dev-db", "-S",  "S3-dev"]
+ARG STORE
+ARG DB
+ENV DB=$DB
+ENV STORE=$STORE
+CMD /root/housekeeping.py run -H hop-prod -D $DB -S  $STORE

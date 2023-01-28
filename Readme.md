@@ -9,7 +9,7 @@ The archive supports use cases such as  1)restore a karka stream,
 2) Provide the basis for follow-on value-added services, best served
 by an archive rather than a  stream.
 
-##Implementation overview.
+## Implementation overview.
 
 The app archives all messages authorized by its credential, excepting
 those listed on veto-list that is read at start up. The veto list is
@@ -59,7 +59,7 @@ data that is not deterministically replicable, or difficult to replicate.
 These include
 
 - data from early versions of hop_client
-- dat that is recieved more than once.
+- data that is recieved more than once.
 
 Housekeeping.py also contains utilites to monitoring/ adminstering the
 application. (See the readme in the src diretory for further
@@ -70,12 +70,28 @@ informaation).
 The goal of this git repository is to make and push containers containing
 the housekeeping application into into both the SCiMMA
 AWS ecs repository and to push containers into the
-docker.io/scimma/housekeeping repository.
+docker.io/scimma/housekeeping repository for local contiainre testing.
 
-Ultimatelu This is done in the context of a set of github actions.
-These actions are not yet implemented.  Right now,
-the Makefile can only push containers to aws, using the
-following commands.
+### Version conventions
+
+Version 0.0.0 is hardwired (in terrafrom) for a deployed
+pod in the development Kubernets.
+
+The ""most reset" tag in the sense of semantic versioning
+begnning with "1."  is hardwired in terraform for production
+veriskos
+
+Version namespace 0.8.x is used to debug or develop such
+deveops/container deployment as we have (OK this is naive).
+
+### Production release checklist
+
+- Test
+- Checkin 
+- Tag     example $ git tag -a v1.0.0 -m "my version 1.4"
+- Deploy
+
+### ad-hoc continer pushes during development
 
 Makefile actions to push containers to gitub.io/scimma are commented out.
 

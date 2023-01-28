@@ -17,14 +17,26 @@ db-name = "hopdevel-housekeeping-db"
 db-secret-name = "hopdevel-housekeeping-db-password"
 db-aws-region  = "us-west-2"
 
+[aws-prod-db]
+db-type = "aws"
+db-name = "hopprod-housekeeping-db"
+db-secret-name = "hopprod-housekeeping-db-password"
+db-aws-region  = "us-west-2"
+
 ###########
 # storage
 ###########
 
 [S3-dev]
 store-type = "S3"
-store-primary-bucket =  "hopdevel-scimma-housekeeping"
-store-backup-bucket  =  "hopdevel-scimma-housekeeping-backup"
+store-primary-bucket =  "hopdev-scimma-housekeeping"
+store-backup-bucket  =  "hopdev-scimma-housekeeping-backup"
+store-log-every = 20
+
+[S3-prod]
+store-type = "S3"
+store-primary-bucket =  "hopprod-scimma-housekeeping"
+store-backup-bucket  =  "hopprod-scimma-housekeeping-backup"
 store-log-every = 20
 
 [mock-store]
@@ -46,7 +58,8 @@ hop-hostname            = "dev.hop.scimma.org"
 hop-port                = 9092
 hop-vetoed-topics = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
 
-[hop-prod]
+[hop-devel]
+#note devleopment is configured to use production hop.
 hop-type              = "hop"
 hop-hostname          = "kafka.scimma.org"
 hop-groupname         = "hopstream"
@@ -57,6 +70,19 @@ hop-until-eos         = false
 hop-vetoed-topics     = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
 hop-test-topic        = "cmb-s4-fabric-tests.housekeeping-test"
 hop-topic-refresh-interval-seconds = 300 #5 minutes
+
+[hop-prod]
+hop-type              = "hop"
+hop-hostname          = "kafka.scimma.org"
+hop-groupname         = "hopstream"
+hop-aws-secret-name   =  "hopprod-housekeeping-hop-prod-credentials"
+hop-aws-secret-region =  "us-west-2"
+hop-port              = 9092
+hop-until-eos         = false
+hop-vetoed-topics     = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
+hop-test-topic        = "cmb-s4-fabric-tests.housekeeping-test"
+hop-topic-refresh-interval-seconds = 300 #5 minutes
+
 
 [kcat-prod]
 hop-type   = "kcat"
