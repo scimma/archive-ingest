@@ -234,7 +234,6 @@ def compare_known_data(as_recieved_payload, as_recieved_metadata):
         assert sent_value in get_from_header(as_recieved_header, sent_key)
 
 def is_known_test_data(metadata):
-    import pdb; pdb.set_trace()
     keywords  = [ header[0] for header in metadata["headers"]]
     is_known_test_data =  "_known_test_data" in keywords
     return  is_known_test_data

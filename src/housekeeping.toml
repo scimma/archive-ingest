@@ -29,8 +29,8 @@ db-aws-region  = "us-west-2"
 
 [S3-dev]
 store-type = "S3"
-store-primary-bucket =  "hopdev-scimma-housekeeping"
-store-backup-bucket  =  "hopdev-scimma-housekeeping-backup"
+store-primary-bucket =  "hopdevel-scimma-housekeeping"
+store-backup-bucket  =  "hopdevel-scimma-housekeeping-backup"
 store-log-every = 20
 
 [S3-prod]

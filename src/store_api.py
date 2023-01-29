@@ -129,24 +129,25 @@ class S3_store(Base_store):
         self.log(annotations)
         return
 
-    def deep_delete_from_archive(self, key):
+    def deep_delete_object_from_store(self, key):
         """
-        delete all contents from S3 archive
-
+        delete all corresponding objects  from all S3 archive
+        including versions and delete markers.
         right now assert that buckets contian
         'devel' as part fo their name out of paranoia
        """
-        self.deep_delete(self.primary_bucket, key)
-        self.deep_delete(self.backup_bucket, key)
+        self.deep_delete_object(self.primary_bucket, key)
+        self.deep_delete_object(self.backup_bucket, key)
 
-    def deep_delete(self, bucket_name, key):
+    def deep_delete_object(self, bucket_name, key):
         """
-        delete all contents from S3 archive
-
+        delete all contents related  to object from the S3
+        bucket.
         right now assert that bucket contain the string
         'devel' as part of its name out of paranoia
        """
-        assert 'devel' in bucket_name or 'mocktopic' in  bucket_name  
+        assert 'devel' in bucket_name
+        assert "mock" in key or "test" in key
         s3  = boto3.resource('s3')
         bucket = s3.Bucket(bucket_name)
         bucket.object_versions.filter(Prefix=key).delete()

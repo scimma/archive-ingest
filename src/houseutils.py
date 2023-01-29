@@ -336,7 +336,7 @@ def clean_tests(args):
 
     def delete_from_store(key):
         logging.info(f"about to delete {key}")
-        store.deep_delete_from_archive(key)
+        store.deep_delete_object_from_store(key)
         logging.info(f"delete finished {key}")
 
     def delete_from_db(id): 
@@ -358,7 +358,7 @@ def clean_tests(args):
     logging.info(f"off to drain hop topic '{test_group}'") 
     for payload, metadata, archiver_notes  in consumer.get_next():
             consumer.mark_done()
-            logging.info("message_drained")
+            logging.info(f"message_drained {metadata}")
 
 
 def clean_duplicates(args):

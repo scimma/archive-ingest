@@ -391,7 +391,10 @@ class Hop_consumer(Base_consumer):
             yield (message, metadata, annotations)
 
     def mark_done(self):
-        """ mark that we are done processing, since autocommit=False
+        """
+        mark that we are done processing, since autocommit=False
+
+        original metadata is required per source code.
         """
         #import pdb; pdb.set_trace()
         self.client.mark_done(self.original_metadata)
