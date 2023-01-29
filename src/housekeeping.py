@@ -86,8 +86,6 @@ def housekeep(args):
             logging.info(f"Duplicate not logged {annotations}")
             consumer.mark_done()
             continue
-        logging.info(f"Not Duplixate logging {annotations}")
-
         if args["test_topic"]:
             if payload["content"] == b"end": exit(0)
             if args["verify"] and verify_api.is_known_test_data(metadata):

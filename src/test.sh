@@ -14,9 +14,12 @@ runit() {
     fi
 }
 
-echo test run on `date` > test.log
+echo test run on `date` > $LOGS
 
 runit ./houseutils.py clean_tests
 runit ./houseutils.py publish
 runit ./housekeeping.py run -t -v -H hop-prod -D aws-dev-db -S S3-dev
 runit ./houseutils.py verify_db_to_store -s -t 'house*test*'
+runit ./housekeeping.py run  -v -H mock-hop -D aws-dev-db -S S3-dev
+runit ./houseutils.py verify_db_to_store -s -t '*mock*'
+
