@@ -117,6 +117,9 @@ class Base_consumer:
     def mark_done(self):
         pass
 
+    def close(self):
+        pass
+
 class Mock_message:
     """
     A class to define hold, and issue mock messages.
@@ -398,3 +401,6 @@ class Hop_consumer(Base_consumer):
         """
         #import pdb; pdb.set_trace()
         self.client.mark_done(self.original_metadata)
+
+    def close(self):
+        self.client.close()

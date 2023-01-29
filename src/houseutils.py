@@ -357,9 +357,9 @@ def clean_tests(args):
 
     logging.info(f"off to drain hop topic '{test_group}'") 
     for payload, metadata, archiver_notes  in consumer.get_next():
-            consumer.mark_done()
-            logging.info(f"message_drained {metadata}")
-
+        consumer.mark_done()
+        logging.info(f"message_drained {metadata}")
+    consumer.close()
 
 def clean_duplicates(args):
     """

@@ -94,7 +94,7 @@ def housekeep(args):
         db.insert(payload, metadata, annotations)
         verify_api.assert_ok(args, payload, metadata, annotations,  db, store)
         consumer.mark_done()
-
+    consumer.close()
 
 def list(args):
     "list the stanzas so I dont have to grep toml files"
