@@ -42,7 +42,7 @@ runit ./houseutils.py publish
 
 # read taht test dats compare to published (-t) ...
 #  and aslo read back form store and verify saved data (-v).
-runit ./housekeeping.py run -t -v -H hop-prod -D aws-dev-db -S S3-de
+runit ./housekeeping.py run -t -v -H hop-prod -D aws-dev-db -S S3-dev
 v
 # further check that the DB models the store for this test..
 # sampel teh DB rows and see that objects exist

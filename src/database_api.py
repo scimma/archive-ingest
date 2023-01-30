@@ -178,8 +178,8 @@ class AWS_db(Base_db):
 
         CREATE INDEX IF NOT EXISTS timestamp_idx ON messages (timestamp);
         CREATE INDEX IF NOT EXISTS topic_idx     ON messages (topic);
-        COMMIT;
-
+        CREATE INDEX IF NOT EXISTS key_idx       ON messages (key);
+        CREATE INDEX IF NOT EXISTS uuid_idx      ON messages (uuid);
         """
         self.cur.execute(sql)
 
