@@ -1,11 +1,11 @@
 """
-Provide classes and API to the housekeeping
+Provide classes and API to the archive_ingest
 relational databse
 
 Access postgres in AWS. This class can be configured
-via housekeeping.toml and command line options. The
+via archive_ingest.toml and command line options. The
 class can be configured  to access the production or
-development versions of Psotgres via different
+development versions of postgres via different
 configurations.
 
 DB credentials and configuation information

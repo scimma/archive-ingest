@@ -15,14 +15,14 @@ import sys
 
 # Collect data of interest
 
-result = subprocess.run([" ./housekeeping.py"], shell=True, capture_output=True)
-housekeeping_help = result.stdout.decode("utf-8")
+result = subprocess.run([" ./archive_ingest.py"], shell=True, capture_output=True)
+archive_ingest_help = result.stdout.decode("utf-8")
 
-result = subprocess.run([" ./houseutils.py"], shell=True, capture_output=True)
-houseutils_help = result.stdout.decode("utf-8")
+result = subprocess.run([" ./ingestutils.py"], shell=True, capture_output=True)
+ingestutils_help = result.stdout.decode("utf-8")
 
-result = subprocess.run([" ./houseutils.py"], shell=True, capture_output=True)
-housekeeping_run = result.stdout.decode("utf-8")
+result = subprocess.run([" ./archive_ingest.py run -h"], shell=True, capture_output=True)
+archive_ingest_run = result.stdout.decode("utf-8")
 
 
 when = datetime.datetime.now().isoformat()
@@ -34,9 +34,9 @@ with open("README.template","r") as t:
     template = t.read()
     
 x = template.format(
-    housekeeping_help=housekeeping_help,
-    houseutils_help=houseutils_help,
-    housekeeping_run=housekeeping_run,
+    archive_ingest_help=archive_ingest_help,
+    ingestutils_help=ingestutils_help,
+    archive_ingest_run=archive_ingest_run,
     date = when,
     program = program
     )

@@ -49,7 +49,7 @@ def get_server_uuid_duplicates(args, db):
     list uuids that are duplicates of an original UUID
     
     This routine detects messages having uuids
-    generated on the housekeeping.py   _server_.
+    generated on the archive_ingest.py   _server_.
     """
     sql_server_side = f"""
        SELECT

@@ -1,14 +1,14 @@
 """
-Provide classes and API to stores  of housekeeping objects.
+Provide classes and API to stores  of archive objects.
 
 There are two types homeomorphic classes
 
 One class accesses AWS S3. This class can be configured
-via housekeeping.toml. It can access the production or
+via archive_ingest.toml. It can access the production or
 development S3 buckets via different configurations.
 
 The other class  is "mock" store useful for
-development and test. Thsi sote discards the data.
+development and test. This class  discards the data.
 
 The StoreFactory class supports choosing which class is
 used at run-time.

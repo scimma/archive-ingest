@@ -2,14 +2,12 @@
 support for verifying the Correctness of archiving.
 
 1) Generate a known data stream to publish on HOP
-2) Code to ocheck that the hop recieve code cin housekepeing
+2) Code to ocheck that the hop recieve code in archive_ingest
    correctly presnts the known data stream to the database and
-   store components within house keeping.
-3) Code to readback the datbae and archive state after
-   the stae os written and verify all data items
+   store components within archive_ingest.
+3) Code to readback the datbase and archive state after
+   the data was written and verify all data items
    are stored accurately.
-
-
 
 """
 import bson
@@ -149,12 +147,12 @@ def assert_ok(args, recieved_payload, recieved_metadata, annotations, db, store)
     uses database an store to verify archive entries as they
     are created.
 
-    Verification is from thr output of the housekeeping
+    Verification is from the output of the archive_ingest
     source object  to readback and comparison to the
     records in the archive.
 
     ie. does not verify errors in the hop ->
-    output-of-housekeeping-"source call"
+    output-of-archiving-ingest-"source call"
     but is lightweight to run.
     """
     if not args["verify"] : return
@@ -199,10 +197,10 @@ def assert_ok(args, recieved_payload, recieved_metadata, annotations, db, store)
 COMPARE_DICT = {}
 def compare_known_data(as_recieved_payload, as_recieved_metadata):
     """
-    Compare what housekeeping presents as recieved to original data
+    Compare what archiving_ingest presents as recieved to original data
     sent.
 
-    The supported sender is a special publish from houseutils,
+    The supported sender is a special publish from ingestutils,
     which sends data returned by get_known_data(), defined abouve.
     """
 

@@ -1,10 +1,10 @@
 """
-Provide classes and API to sources of housekeeping data.
+Provide classes and API to sources of archive-ingest data.
 
-There are two types homeomorphic classes
+There are two types archive-ingest classes
 
 One class accesses hopskotch. This class can be configured
-via housekeeping.toml. It can access the production or
+via archive_ingestx.toml. It can access the production or
 development versions of hop via different configurations. Hop
 credentials  are stored in AWS secrets.
 

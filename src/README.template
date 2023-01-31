@@ -1,9 +1,10 @@
 <!-- a comment -->
 <!-- use generateREADME.py to process this into README.md -->
 
-# Housekeeping Software
 
-Housekeeping uses three system elements.
+# Archive_Ingest Software
+
+Archive_Ingest uses three system elements.
 
 - Sources which  hopskotch or mocks
 - Databases which are either AWS rds Postgres of mocks
@@ -24,36 +25,36 @@ to allow for injection of test data.   FOr production, credntials
 for hop shodl be read only.
 
 
-## Housekeeping.py
+## Archive_Ingest.py
 
-Housekeeping.py is the program that loads the housekeeping archive.
+Archive_Ingest.py is the program that loads the archive_ingest archive.
 Housekeepling.py can be run during development against the live ements
 in the deevepoment instance or mock elements. It's pososbel to use the
 the production HOP as a data source in development.
 
 ```
-{housekeeping_help}
+{archive_ingest_help}
 ```
 
-### housekeeping.py run
+### archive_ingest.py run
 ```
-{housekeeping_run}
+{archive_ingest_run}
 ```
 
 
-## Housekeeping.toml
+## Archive_Ingest.toml
 
-Housekeeping.toml holds configuration data for the producion and
-development instnances of housekeeping.py, and for houseutils.py
+Archive_Ingest.toml holds configuration data for the producion and
+development instnances of archive_ingest.py, and for ingest_utils.py
 
 
-##  Houseutils.py
+##  Ingest_Utils.py
 
-Houseutils.py contains a number of sub funcitons used to test
+Ingest_Utils.py contains a number of sub funcitons used to test
 and access the running system.
 
 ```
-{houseutils_help}
+{ingestutils_help}
 ``
 
 ## generate_README.py
