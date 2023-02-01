@@ -23,7 +23,7 @@ MAJOR_TAG   := $(shell V=$(TAG) ; echo $${V%%.*} )
 MINOR_TAG   := $(shell V=$(TAG) ; echo $${V%.*} )
 
 ifeq ($(TAG),0.0.0)
-   HOP   := --build-arg  HOP=hop-devel
+   HOP   := --build-arg  HOP=hop-prod-devel
    STORE := --build-arg  STORE=S3-dev
    DB    := --build-arg  DB=aws-dev-db
 else
