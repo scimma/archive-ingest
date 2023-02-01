@@ -46,8 +46,6 @@ services:
     image: scimma/housekeeping:dev
     build:
       context: .
-      args:
-      - UID=${CUID}
     container_name: hop-archiver
     env_file: .env
     depends_on:
