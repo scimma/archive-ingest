@@ -13,7 +13,7 @@
 ##
 ##  this fle assumees AWS credentials have been configured.
 ##
-CNT_NAME := scimma/housekeeping
+CNT_NAME := scimma/archive_ingest
 REGION   := us-west-2
 AWSREG   := 585193511743.dkr.ecr.us-west-2.amazonaws.com
 #TAG      := $(shell git log -1 --pretty=%H || echo MISSING )

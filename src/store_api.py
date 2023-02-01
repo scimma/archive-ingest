@@ -218,7 +218,7 @@ class Mock_store(Base_store):
     """
 
     def __init__(self, config):
-        self.primary_bucket = "scimma-housekeeping"
+        self.primary_bucket = "hopdevel-scimma-archive-ingest"
         super().__init__(config)
         logging.info(f"Mock store configured")
 

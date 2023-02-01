@@ -12,6 +12,7 @@ kubectl get events --sort-by=.metadata.creationTimestamp
 
 kubectl get pods                   # find my pod
 docker stop container-id           # stop the pod
+kubectl delete pod $pod            # stop the pod it will restart
 kubectl describe pods $pod         # more 
 kubectl logs $pod                  # gather logs.
 kubectl logs -f 4pod               # stream pod logs

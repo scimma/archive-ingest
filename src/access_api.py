@@ -24,11 +24,11 @@ class Archive_access():
         """
         hard_config =         {
         "db-type" : "aws",
-        "db-name" : "hopdevel-housekeeping-db",
-        "db-secret-name" : "hopdevel-housekeeping-db-password", 
+        "db-name" : "hopdevel-archive-ingest-db"",
+        "db-secret-name" : "hopDevel-archive-ingest-db-password", 
         "db-aws-region"   : "us-west-2",
         "store-type"      :  "S3",
-        "store-bucket"    :  "hopdevel-scimma-housekeeping",
+        "store-bucket"    :  "hopdevel-scimma-archive-ingest",
         "store-log-every" :  20
                           }
         hard_config.update(config)
