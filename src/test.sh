@@ -58,13 +58,13 @@ runit ./ingestutils.py clean_tests $hop_flag  $db_flag $store_flag
 # pubish know test  known test data on the test topic
 runit ./ingestutils.py publish $hop_flag 
 
-# read taht test dats compare to published (-t) ...
+# read that test data compare to published (-t) ...
 #  and aslo read back form store and verify saved data (-v).
 runit ./archive_ingest.py run -t -v $hop_flag  $db_flag $store_flag
 
 # further check that the DB models the store for this test..
 # sampel teh DB rows and see that objects exist
-runit ./ingestutils.py verify_db_to_store -s -t 'house*test*'  $db_flag $store_flag
+runit ./ingestutils.py verify_db_to_store -s -t sys.archive-ingest-test  $db_flag $store_flag
 
 # for kicks sample the whole DB and see that objects exist in the store
 runit ./ingestutils.py verify_db_to_store -s  $db_flag $store_flag
@@ -74,6 +74,6 @@ runit ./ingestutils.py verify_db_to_store -s  $db_flag $store_flag
 runit ./archive_ingest.py run  -v  $hop_mock_flag  $db_flag $store_flag
 
 # verify stored mocks are as recieved. 
-runit ./ingestutils.py verify_db_to_store -s -t '*mock*'  $db_flag $store_flag
+runit ./ingestutils.py verify_db_to_store -s -t mock.topic  $db_flag $store_flag
 
 

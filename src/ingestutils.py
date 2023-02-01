@@ -309,13 +309,6 @@ def db_logs(args):
     print(logs)
 
 
-def kube_logs(args):
-    "print kube logs for devel or prod"
-    import os
-    cmd = "kubectl logs `kubectl get pods | grep archive_ingest | grep %s | awk '{print $1}'`" % args["kind"]
-    os.system(cmd)
-
-
 def clean_tests(args):
     """
     clean test messages from archive and hop
@@ -468,10 +461,6 @@ if __name__ == "__main__":
     parser.set_defaults(func=db_logs)
     parser.add_argument("-D", "--database_stanza", help="database-config-stanza", default="aws-dev-db")
 
-    # kube_logs get recent kube logs and kube status
-    parser = subparsers.add_parser('kube_logs', help=kube_logs.__doc__)
-    parser.set_defaults(func=kube_logs)
-    parser.add_argument("kind", help="filter for e.g 'prod' or 'devel'")
 
     # clean test data
     parser = subparsers.add_parser('clean_tests', help=clean_tests.__doc__)
