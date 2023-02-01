@@ -92,19 +92,19 @@ Then launch the application with
 
 Available launch script options are `--build` to build the images, `--logs` to watch the container logs, `--down` to stop containers, and `--down --wipe` to destroy containers *and wipe the persistent storage volumes* (this deletes your database and any S3 object storage).
 
-By default, the archiver container will run 
+By default, the archiver container will immediately run 
 
 ```bash
 ./housekeeping.py run -H hop-local -D local-db -S local-store
 ```
 
-and consume 1000 messages before stopping. You may then `docker exec` into the container and manually execute commands:
+and consume a finite number of messages before sleeping (see `hop-test-max-messages` param in `src/housekeeping.toml`). You may then `docker exec` into the container and manually execute commands:
 
 ```bash
 $ docker exec -it hop-archiver bash
 ```
 
-Access the local database instance using:
+The local database instance is accessed using:
 
 ```bash
 $ docker exec -it hop-archiver-db bash
@@ -113,6 +113,10 @@ I have no name!@73d75c60f19a:/$ PGPASSWORD=$POSTGRESQL_PASSWORD psql -U $POSTGRE
 
 app=> select * from messages;
 ```
+
+The local MinIO S3-compatible object storage can be accessed at http://127.0.0.1:9001 in a web browser, where the bucket contents can be browsed.
+
+The archive API server listens at http://127.0.0.1:8000 to respond to API endpoints such as `api/message`. This API server is built using the Django framework.
 
 
 # Housekeeping Software

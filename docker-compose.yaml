@@ -77,8 +77,78 @@ services:
           echo waiting for db_ready...;
           sleep 2;
         done;
-        bash copy_auth.sh && ./housekeeping.py run -H hop-local -D local-db -S local-store && sleep 1000d
+        bash copy_auth.sh && ./housekeeping.py run -H hop-local -D local-db -S local-store && sleep 1000d;
     volumes:
       - ./src:/root/src
       - waitforit:/tmp
-
+  archive-api-init-django-migrate:
+    image: scimma/archive-api:dev
+    build:
+      context: ./api/
+    env_file: .env
+    depends_on:
+      - archive-db
+      - archiver-init-db
+    networks:
+      - internal
+    command:
+      - '/bin/bash'
+      - '-c'
+      - >
+        while [[ ! -f /tmp/db_ready ]]; do
+          echo waiting for database...;
+          sleep 2;
+        done;
+        python manage.py migrate && python manage.py makemigrations && touch /tmp/migration_complete
+    volumes:
+      - ./api/src:/home/worker/src
+      - waitforit:/tmp
+  archive-api-init-django-createsuperuser:
+    image: scimma/archive-api:dev
+    build:
+      context: ./api/
+    env_file: .env
+    depends_on:
+      - archive-db
+      - archiver-init-db
+      - archive-api-init-django-migrate
+    networks:
+      - internal
+    command:
+      - '/bin/bash'
+      - '-c'
+      - >
+        while [[ ! -f /tmp/migration_complete ]]; do
+          echo waiting for database migration...;
+          sleep 2;
+        done;
+        bash ../provisionsuperuser.sh && touch /tmp/superuser_created
+    volumes:
+      - ./api/src:/home/worker/src
+      - waitforit:/tmp
+  archive-api:
+    image: scimma/archive-api:dev
+    build:
+      context: ./api/
+    env_file: .env
+    depends_on:
+      - archive-db
+      - archiver-init-db
+      - archive-api-init-django-migrate
+      - archive-api-init-django-createsuperuser
+    ports:
+      - 127.0.0.1:8000:8000
+    networks:
+      - internal
+    command:
+      - '/bin/bash'
+      - '-c'
+      - >
+        while [[ ! -f /tmp/superuser_created ]]; do
+          echo waiting for Django superuser provisioning...;
+          sleep 2;
+        done;
+        python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./api/src:/home/worker/src
+      - waitforit:/tmp

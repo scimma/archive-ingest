@@ -80,7 +80,7 @@ hop-until-eos         = false
 hop-vetoed-topics     = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
 hop-test-topic        = "gcn.notice"
 hop-topic-refresh-interval-seconds = 300 #5 minutes
-hop-test-max-messages = 1000
+hop-test-max-messages = 1
 
 [kcat-prod]
 hop-type   = "kcat"
