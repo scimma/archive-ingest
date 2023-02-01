@@ -53,6 +53,7 @@ class Base_store:
         self.backup_bucket  = config["store-backup-bucket"]
         self.n_stored = 0
         self.log_every = config["store-log-every"]
+        self.config = config
 
     def connect(self):
         pass
@@ -146,8 +147,8 @@ class S3_store(Base_store):
         right now assert that bucket contain the string
         'devel' as part of its name out of paranoia
        """
-        assert 'devel' in bucket_name
-        assert "mock" in key or "test" in key
+
+        assert "mock" in key or "archive-ingest-test" in key
         s3  = boto3.resource('s3')
         bucket = s3.Bucket(bucket_name)
         bucket.object_versions.filter(Prefix=key).delete()

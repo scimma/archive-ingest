@@ -52,6 +52,7 @@ class DbFactory:
 class Base_db:
     "Base class holding common methods"
     def __init__(self, config):
+        self.config = config
         self.n_inserted = 0
         self.log_every  = 100 # get from config file
 
