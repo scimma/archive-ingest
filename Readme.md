@@ -87,7 +87,7 @@ First copy `env.tpl` to `.env` and fill in your Hopskotch credentials.
 Then launch the application with
 
 ```bash
-./launch
+./launch --build && ./launch --logs
 ```
 
 Available launch script options are `--build` to build the images, `--logs` to watch the container logs, `--down` to stop containers, and `--down --wipe` to destroy containers *and wipe the persistent storage volumes* (this deletes your database and any S3 object storage).
