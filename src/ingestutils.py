@@ -328,7 +328,7 @@ def clean_tests(args):
     db.connect()
     store = store_api.StoreFactory(args).get_store()
     store.connect()
-    args["test_topic"] = True  #signal consumer to red test topic
+    args["test_topic"] = True  #signal consumer to read test topic
     consumer = consumer_api.ConsumerFactory(args).get_consumer()
     consumer.until_eos  = True  #stop when toic is dry 
     consumer.connect()
@@ -349,12 +349,18 @@ def clean_tests(args):
         delete_from_store(key)
         delete_from_db(id)
 
-    sql = f"SELECT id, key FROM messages WHERE topic = 'mock.topic';"
+    sql = f"SELECT id, key FROM messages WHERE topic = 'mock.topic';"  
     for id, key in db.query(sql):
         delete_from_store(key)
         delete_from_db(id)
 
-    logging.info(f"off to drain hop topic '{test_group}'") 
+    sql = f"SELECT id, key FROM messages WHERE topic = 'sys.archive-ingest-test';"  
+    for id, key in db.query(sql):
+        delete_from_store(key)
+        delete_from_db(id)
+
+        
+    logging.info(f"off to drain hop topic 'sys.archive-ingest-test'") 
     for payload, metadata, archiver_notes  in consumer.get_next():
         consumer.mark_done()
         logging.info(f"message_drained {metadata}")

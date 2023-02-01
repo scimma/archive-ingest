@@ -148,7 +148,7 @@ class S3_store(Base_store):
         'devel' as part of its name out of paranoia
        """
 
-        assert "mock" in key or "archive-ingest-test" in key
+        assert "mock" in key or "archive-ingest-test" or "cmb-s4-fabric-tests.housekeeping-test" in key
         s3  = boto3.resource('s3')
         bucket = s3.Bucket(bucket_name)
         bucket.object_versions.filter(Prefix=key).delete()

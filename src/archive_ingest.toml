@@ -91,6 +91,6 @@ hop-type   = "kcat"
 hop-hostname   = "kafka.scimma.org"
 hop-groupname  = "hopstream"
 hop-port       = 9092
-hoptest-topic = "cmb-s4-fabric-tests.housekeeping-test"
+hop-test-topic = "sys.archive-ingest-prod"
 hop-aws-secret-name   =  "hopdevel-housekeeping-hop-prod-credentials"
 hop-aws-secret-region =  "us-west-2"
