@@ -90,21 +90,28 @@ Then launch the application with
 ./launch
 ```
 
-Available launch script options are `--build` to build the images, `--logs` to watch the container logs, and `--down` to destroy containers and wipe the local database.
+Available launch script options are `--build` to build the images, `--logs` to watch the container logs, `--down` to stop containers, and `--down --wipe` to destroy containers *and wipe the persistent storage volumes* (this deletes your database and any S3 object storage).
 
-Once the containers are bootstrapped, `docker exec` into the main container and run `housekeeping.py` as shown:
+By default, the archiver container will run 
+
+```bash
+./housekeeping.py run -H hop-local -D local-db -S local-store
+```
+
+and consume 1000 messages before stopping. You may then `docker exec` into the container and manually execute commands:
 
 ```bash
 $ docker exec -it hop-archiver bash
-
-[root@90fd75dd29a4 src]$ ./housekeeping.py run -H hop-local -D local-db -S mock-store
 ```
 
 Access the local database instance using:
 
 ```bash
 $ docker exec -it hop-archiver-db bash
+
 I have no name!@73d75c60f19a:/$ PGPASSWORD=$POSTGRESQL_PASSWORD psql -U $POSTGRESQL_USERNAME $POSTGRESQL_DATABASE
+
+app=> select * from messages;
 ```
 
 

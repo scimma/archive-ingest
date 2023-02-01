@@ -25,6 +25,7 @@ import logging
 import time
 import utility_api
 import zlib
+import os
 
 ##################################
 # stores
@@ -51,6 +52,20 @@ class Base_store:
     def __init__(self, config):
         self.primary_bucket = config["store-primary-bucket"]
         self.backup_bucket  = config["store-backup-bucket"]
+        ## If custom S3 endpoint is specified, assume non-AWS config
+        if 'store-endpoint-url' in config:
+            self.s3_provider = 'custom'
+            self.s3_endpoint_url = config['store-endpoint-url']
+            self.s3_region_name = config['store-region-name']
+            self.aws_access_key_id=os.environ['S3_ACCESS_KEY_ID']
+            self.aws_secret_access_key=os.environ['S3_SECRET_ACCESS_KEY']
+        else:
+            self.s3_provider = 'aws'
+            self.s3_provider = 'custom'
+            self.s3_endpoint_url = ''
+            self.s3_region_name = ''
+            self.aws_access_key_id= ''
+            self.aws_secret_access_key= ''
         self.n_stored = 0
         self.log_every = config["store-log-every"]
 
@@ -111,9 +126,32 @@ class S3_store(Base_store):
     def __init__(self, config):
         super().__init__(config)
 
+    def initialize_bucket(self, bucket=''):
+        exists = True
+        try:
+            self.client.head_bucket(Bucket=bucket)
+        except botocore.exceptions.ClientError as e:
+            # If a client error is thrown, then check that it was a 404 error.
+            # If it was a 404 error, then the bucket does not exist.
+            error_code = e.response['Error']['Code']
+            if error_code == '404':
+                exists = False
+        if not exists:
+            ## Create buckets if they do not exist
+            self.client.create_bucket(Bucket=bucket)
     def connect(self):
         "obtain an S3 Client"
-        self.client = boto3.client('s3')
+        if self.s3_provider == 'custom':
+            self.client = boto3.client('s3',
+                endpoint_url=self.s3_endpoint_url,
+                region_name = self.s3_region_name,
+                aws_access_key_id=self.aws_access_key_id,
+                aws_secret_access_key=self.aws_secret_access_key,
+            )
+            self.initialize_bucket(bucket=self.primary_bucket)
+            self.initialize_bucket(bucket=self.backup_bucket)
+        else:
+            self.client = boto3.client('s3')
 
     def store(self, payload, metadata, annotations):
         """place data, metadata as an object in S3"""

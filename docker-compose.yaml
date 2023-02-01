@@ -6,25 +6,42 @@ networks:
 
 volumes:
   dbdata: {}
+  objectstoredata: {}
   waitforit: {}
 
 services:
-  db:
+  object-store:
+    image: quay.io/minio/minio:RELEASE.2023-01-31T02-24-19Z
+    container_name: hop-archiver-object-store
+    env_file: .env
+    ports:
+      - 127.0.0.1:9000:9000
+      - 127.0.0.1:9001:9001
+    networks:
+      - internal
+    command:
+    - server
+    - /data
+    - --console-address
+    - ":9001"
+    volumes:
+      - objectstoredata:/data
+  archive-db:
     image: bitnami/postgresql:latest
     container_name: hop-archiver-db
     env_file: .env
-    ports:
-      - 5432:5432
+    # ports:
+    #   - 5432:5432
     networks:
       - internal
     volumes:
       - dbdata:/bitnami/postgresql
-  app-init-db:
+  archiver-init-db:
     image: bitnami/postgresql:latest
     container_name: hop-archiver-db-init
     env_file: .env
     depends_on:
-      - db
+      - archive-db
     networks:
       - internal
     command:
@@ -34,7 +51,7 @@ services:
         until pg_isready \
             --username=${POSTGRESQL_USERNAME} \
             --dbname=${POSTGRESQL_DATABASE} \
-            --host=db \
+            --host=archive-db \
             --port=5432;
           do echo waiting for database;
           sleep 2;
@@ -42,14 +59,14 @@ services:
           touch /tmp/db_ready;
     volumes:
       - waitforit:/tmp
-  app:
-    image: scimma/housekeeping:dev
+  archiver:
+    image: scimma/archive-ingest:dev
     build:
       context: .
     container_name: hop-archiver
     env_file: .env
     depends_on:
-      - db
+      - archive-db
     networks:
       - internal
     command:
@@ -60,7 +77,7 @@ services:
           echo waiting for db_ready...;
           sleep 2;
         done;
-        bash copy_auth.sh && sleep 1000d
+        bash copy_auth.sh && ./housekeeping.py run -H hop-local -D local-db -S local-store && sleep 1000d
     volumes:
       - ./src:/root/src
       - waitforit:/tmp

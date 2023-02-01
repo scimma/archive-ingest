@@ -29,6 +29,14 @@ store-primary-bucket =  "hopdevel-scimma-housekeeping"
 store-backup-bucket  =  "hopdevel-scimma-housekeeping-backup"
 store-log-every = 20
 
+[local-store]
+store-type = "S3"
+store-primary-bucket =  "hop-messages"
+store-backup-bucket  =  "hop-messages-backup"
+store-endpoint-url = "http://object-store:9000"
+store-region-name = ""
+store-log-every = 20
+
 [mock-store]
 store-type = "mock"
 store-primary-bucket =  "hopdevel-scimma-housekeeping"
@@ -72,7 +80,7 @@ hop-until-eos         = false
 hop-vetoed-topics     = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
 hop-test-topic        = "gcn.notice"
 hop-topic-refresh-interval-seconds = 300 #5 minutes
-hop-test-max-messages = 1
+hop-test-max-messages = 1000
 
 [kcat-prod]
 hop-type   = "kcat"

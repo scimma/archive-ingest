@@ -53,8 +53,14 @@ then
   $dc_cmd logs -f
 elif [[ "$1" == "--down" ]]
 then
-  echo "Destroying all containers and wiping database..."
-  $dc_cmd down --volumes --remove-orphans 
+  if [[ "$2" == "--wipe" ]]
+  then
+    echo "Destroying all containers and wiping database..."
+    $dc_cmd down --volumes --remove-orphans 
+  else
+    echo "Stopping containers and retaining data volumes..."
+    $dc_cmd down
+  fi
 else
   $dc_cmd pull && $dc_cmd up && $dc_cmd ps
   echo
