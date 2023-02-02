@@ -90,7 +90,7 @@ Available launch script options are `--build` to build the images, `--logs` to w
 By default, the archiver container will immediately run 
 
 ```bash
-./housekeeping.py run -H hop-local -D local-db -S local-store
+./archive_ingest.py run -H hop-local -D local-db -S local-store
 ```
 
 and consume a finite number of messages before sleeping (see `hop-test-max-messages` param in `src/housekeeping.toml`). You may then `docker exec` into the container and manually execute commands:
