@@ -1,11 +1,11 @@
 """
-Provide classes and API to the housekeeping
+Provide classes and API to the archive_ingest
 relational databse
 
 Access postgres in AWS. This class can be configured
-via housekeeping.toml and command line options. The
+via archive_ingest.toml and command line options. The
 class can be configured  to access the production or
-development versions of Psotgres via different
+development versions of postgres via different
 configurations.
 
 DB credentials and configuation information
@@ -53,6 +53,7 @@ class DbFactory:
 class Base_db:
     "Base class holding common methods"
     def __init__(self, config):
+        self.config = config
         self.n_inserted = 0
         self.log_every  = 100 # get from config file
 
@@ -179,8 +180,8 @@ class AWS_db(Base_db):
 
         CREATE INDEX IF NOT EXISTS timestamp_idx ON messages (timestamp);
         CREATE INDEX IF NOT EXISTS topic_idx     ON messages (topic);
-        COMMIT;
-
+        CREATE INDEX IF NOT EXISTS key_idx       ON messages (key);
+        CREATE INDEX IF NOT EXISTS uuid_idx      ON messages (uuid);
         """
         self.cur.execute(sql)
 
@@ -304,6 +305,8 @@ class SQL_db(Base_db):
 
         CREATE INDEX IF NOT EXISTS timestamp_idx ON messages (timestamp);
         CREATE INDEX IF NOT EXISTS topic_idx     ON messages (topic);
+        CREATE INDEX IF NOT EXISTS key_idx       ON messages (key);
+        CREATE INDEX IF NOT EXISTS uuid_idx      ON messages (uuid);
         COMMIT;
 
         """

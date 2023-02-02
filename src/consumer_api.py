@@ -1,10 +1,10 @@
 """
-Provide classes and API to sources of housekeeping data.
+Provide classes and API to sources of archive-ingest data.
 
-There are two types homeomorphic classes
+There are two types archive-ingest classes
 
 One class accesses hopskotch. This class can be configured
-via housekeeping.toml. It can access the production or
+via archive_ingestx.toml. It can access the production or
 development versions of hop via different configurations. Hop
 credentials  are stored in AWS secrets.
 
@@ -115,6 +115,9 @@ class Base_consumer:
         pass
 
     def mark_done(self):
+        pass
+
+    def close(self):
         pass
 
 class Mock_message:
@@ -404,7 +407,13 @@ class Hop_consumer(Base_consumer):
             yield (message, metadata, annotations)
 
     def mark_done(self):
-        """ mark that we are done processing, since autocommit=False
+        """
+        mark that we are done processing, since autocommit=False
+
+        original metadata is required per source code.
         """
         #import pdb; pdb.set_trace()
         self.client.mark_done(self.original_metadata)
+
+    def close(self):
+        self.client.close()

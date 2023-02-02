@@ -17,4 +17,11 @@ RUN mkdir -p /root/.config/hop /root/src
 WORKDIR /root/src
 COPY src/ .
 
-CMD ["./housekeeping.py", "run", "-H",  "hop-prod", "-D", "aws-dev-db", "-S",  "S3-dev"]
+ARG STORE
+ARG DB
+ARG HOP
+ENV DB=$DB
+ENV STORE=$STORE
+ENV HOP=$HOP
+
+CMD ["./archive_ingest.py", "run", "-H",  "$HOP", "-D", "$DB", "-S",  "$STORE"]

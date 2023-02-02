@@ -5,37 +5,41 @@
 Goal: Provide an accurate, binary-level archive that introduces no
 addiional constraints on message or header to constraints of HopSkootch.
 
-The archive supports use cases such as  1)restore a karka stream,
+The archive supports use cases such as  1)restore a kafka stream,
 2) Provide the basis for follow-on value-added services, best served
 by an archive rather than a  stream.
 
 ## Implementation overview.
 
-Messages are acquired by the housekeeping app. The app listens to
-public topics, subject to a veto-list.  The veto list is meant to
-exclude utilites related to the operation of Hopskotch, for example
-the heartbeat.
+The app archives all messages authorized by its credential, excepting
+those listed on veto-list that is read at start up. The veto list is
+meant to exclude utilities related to the operation of Hopskotch, for
+example the heartbeat.
 
-What is stored from these public messages?  1) Kafka messages 2)
+What is stored from these  messages?  1) Kafka messages 2)
 select Kafaka metdata: topic, millisecond integer timestamp, and
-headers are stored.
+headers. 3) "annotations" indicating events within the archiver are 
+also stored.
 
-Stored headers always include an _id header.  If an _id is absent,
-then housekeeping supplies a an _id header containing a UUID. If an
-_id header is supplied it is assumed to be a uuid supplied by
-HopSkotch software. These uuids are in binary.
+Messages pubished using hop client 1.8.0 or later provide a UUID
+in the message's _id header.  This UUD is exposed to the  end user. If an
+_id header is absent, then archive_ingest app supplies a UUID.
 
 How is the data stored?  All of the above are packed into a [BSON
-formatted object] (https://bsonspec.org).  Unlike JSON, BSON allows for
-the storage of binary blobs.  The packaging is such that a single BSON
-object byte-stream represents a kafka message and its select
-metadata. Housekeeping stores the BSON object in AWS S3. AWS
-buckets in production are backed up.
+formatted object] (https://bsonspec.org).  Unlike JSON, BSON allows
+for the storage of binary blobs.  The packaging is such that a single
+BSON object kafka message and its select metadata and
+header and  "Annotations" produced by the houseeping app are stored in
+the bson for good measure. Housekeeping stores the BSON object an  AWS
+a primary S3 bucket. The primary AWS bucket is backed up by automatic
+AWS replication to a second bucket.  Paths in the AWS bucket are of
+the form <topic>/<year>/<month>/<day>/<uuid>.bson
 
 Additionally, select data are stored in an AWS postgres database.
 Database information includes the UUID, millisecond timestamp, topic,
 internally generated serial number, bucket and key to the BSON object
-used in S3. The production postgres database is backed up.
+used in S3. The production postgres database is backed up and
+snap-shotted.
 
 Headers and message payloads are stored only in the BSON object.
 Consequently, queries based on message or header contents
@@ -43,40 +47,31 @@ are for follow on projects, not this archive implementation.
 
 ## Usage/development  Notes
 
-Produciotn and development deployments are via containers.  Containers
+Production and development deployments are via containers.  Containers
 are made via the Makefile in this directory.  There are AWS-Specifc
-mechanismns fordeployed containers gaining AWS credentials. Destop
-development is supported by running the housekeeping.py applicaiton
+mechanismns for deployed containers gaining AWS credentials. Desktop
+development is supported by running the housekeeping.py application
 natively, using AWS credentails present supported by the AWS
-devleopment kit, boto3.
+development kit, boto3, and the like. 
 
 Developers can test againist live systems in the
-development area, mixedin with mocks of hop, the
-databse, and the onject store.
+development area, mixedin with mocks of hop.  The mock of hop produces
+data that is not deterministically replicable, or difficult to replicate.
+These include
 
-Housekeeping.py also contains utilites to monitoring/ adminstering the
+- data from early versions of hop_client
+- data that is recieved more than once.
+
+archive_ingest module also contains utilites to monitoring/ adminstering the
 application. (See the readme in the src diretory for further
 informaation).
 
 ## (interim) Container deployment example
 
 The goal of this git repository is to make and push containers containing
-the housekeeping application into into both the SCiMMA
+the archive_ingest application into into both the SCiMMA
 AWS ecs repository and to push containers into the
-docker.io/scimma/housekeeping repository.
-
-Ultimatelu This is done in the context of a set of github actions.
-These actions are not yet implemented.  Right now,
-the Makefile can only push containers to aws, using the
-following commands.
-
-Makefile actions to push containers to gitub.io/scimma are commented out.
-
-```
-make container
-make  push  GITHUB_REF=housekeeping-0.0.0
-```
-
+docker.io/scimma/archive_ingest repository for local contiainer testing.
 
 ## Local development with Docker Compose
 
@@ -118,129 +113,25 @@ The local MinIO S3-compatible object storage can be accessed at http://127.0.0.1
 
 The archive API server listens at http://127.0.0.1:8000 to respond to API endpoints such as `api/message`. This API server is built using the Django framework.
 
+### Version conventions
 
-# Housekeeping Software
+Version 0.0.0 is hardwired (in terrafrom) for a deployed
+pod in the development Kubernetes.
 
-Housekeeping uses three system elements.
-
-- Sources which  hopskotch or mocks
-- Databases which are either AWS rds Postgres of mocks
-- Stores which can be AWS S3 store or mocks
-
-Realized (i.e non-mock) elements can be either from the SCiMMA
-development or producion instances as appropriate.  The softare
-is such that there is a configuraton to source  production hopskotch
-while developing. 
+The ""most resecent" tag in the sense of semantic versioning
+begnning with "1."  is hardwired in terraform for production
+versions.
 
 
-## Credentials
+### Production release checklist
 
-Credentials for HOP, and the database are kept in AWS.
+- Test
+- Checkin 
+- Tag     example $ git tag -a v1.0.0 -m "my version 1.4"
+- Deploy
+- Test.
 
-For the development instance HOP credntials whold be read/write,
-to allow for injection of test data.   FOr production, credntials
-for hop shodl be read only.
+### ad-hoc continer pushes during development
 
-
-
-## Housekeeping.toml
-
-Housekeeping.toml holds configuration data for the producion and
-development instnances of housekeeping.py, and for houseutils.py
-
-
-## Housekeeping.py
-
-Housekeeping.py is the program that loads the housekeeping archive.
-Housekeepling.py can be run during development against the live ements
-in the deevepoment instance or mock elements. It's pososbel to use the
-the production HOP as a data source in development.
-
-```
-usage: housekeeping.py [-h] [-t TOML_FILE] [-l LOG_STANZA] {run,list} ...
-
-Log messages, metadata, and annotatopns to S3.
-Record meta-data about stored data in relational
-DB.  Omit duplicate due to more-tnan-once delivery or
-cursor resets.
-
-Run time configuration is via command line options,
-including options to select configuration stanzas
-from a "toml" configuration file.
-
-Support testing via
-- reading limited to a test topic
-- reading from a mock topic
-- in-line comparison of as-sent test data
-  to as-recieved test data.
-- in-line comparision of as-recieved data
-  to as-stored data.
-
-@author: Mahmoud Parvizi (parvizim@msu.edu)
-@author: Don Petravick (petravick@illinois.edu)
-
-positional arguments:
-  {run,list}
-    run                 house keep w/(defaults) all mocks
-    list                list stanzas
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -t TOML_FILE, --toml_file TOML_FILE
-                        toml configuration file
-  -l LOG_STANZA, --log_stanza LOG_STANZA
-                        log config stanza
-
-```
-
-## Houseutils.py
-
-Houseutils.py contains a number of sub funcitons used to test
-and access the running system.
-
-```
-usage: houseutils.py [-h] [-t TOML_FILE] [-l LOG_STANZA]
-                     {list,connect,status,publish,verify,inspect,uuids,db_logs,kube_logs,clean_tests,clean_duplicates}
-                     ...
-
-Utilities for housekeeping applications.
-
-@author: Mahmoud Parvizi (parvizim@msu.edu)
-@author: Don Petravick (petravick@illinois.edu)
-
-positional arguments:
-  {list,connect,status,publish,verify,inspect,uuids,db_logs,kube_logs,clean_tests,clean_duplicates}
-    list                list stanzas
-    connect             Launch a query session shell against AWS databases
-    status              get a sense of what's happpening
-    publish             publish some test data
-    verify              check objects recored in DB exist
-    inspect             inspect an object given a uuid
-    uuids               print a list of uuids consistent w user supplied where
-                        clause
-    db_logs             print recent db logs
-    kube_logs           print kube logs for devel or prod
-    clean_tests         clean test messages from archive and hop purge the
-                        databse and store. read the test topic in HOP dry
-    clean_duplicates    clean duplicates from the archive
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -t TOML_FILE, --toml_file TOML_FILE
-                        toml configuration file
-  -l LOG_STANZA, --log_stanza LOG_STANZA
-                        log config stanza
-
-```
-
-## Troubleshooting
-
-If the reconfiguration of AWS secrets happens, then you need to re-make credentials.
-thie erros indicates new credentials are needed:
-
-```
-botocore.errorfactory.ResourceNotFoundException:
-An error occurred (ResourceNotFoundException) when calling the GetSecretValue operation:
-Secrets Manager can't find the specified secret value for staging label: AWSCURRENT
-```
-
+make TAG=0.0.0 # devleopment version will pich this up.
+kubectl <kill the pod so it take the new version>

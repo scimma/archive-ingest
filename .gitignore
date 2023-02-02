@@ -1,3 +1,11 @@
+## dlp stuff
+Dockerfile.base
+*Minibuf-2*
+.DS_Store
+*~
+
+
+## dunno --someone's template? -- DLP
 *ipynb_checkpoints
 .astropy/
 .bash_history

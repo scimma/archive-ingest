@@ -66,7 +66,7 @@ def make_logging(args):
 #  argparse functions
 #
 ###############
-def housekeep(args):
+def archive_ingest(args):
     """
     Acquire data from the specified consumer and record.
 
@@ -98,8 +98,6 @@ def housekeep(args):
             logging.info(f"Duplicate not logged {annotations}")
             consumer.mark_done()
             continue
-        logging.info(f"Not Duplixate logging {annotations}")
-
         if args["test_topic"]:
             if payload["content"] == b"end": exit(0)
             if args["verify"] and verify_api.is_known_test_data(metadata):
@@ -126,6 +124,7 @@ def housekeep(args):
             except Exception as e:
                 logging.error(f'''Failed to store GCN notice message data. Error: {e}''')
 
+    consumer.close()
 
 def list(args):
     "list the stanzas so I dont have to grep toml files"
@@ -183,13 +182,13 @@ if __name__ == "__main__":
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     main_parser.set_defaults(func=None)
-    main_parser.add_argument("-t", "--toml_file", help = "toml configuration file", default="housekeeping.toml")
+    main_parser.add_argument("-t", "--toml_file", help = "toml configuration file", default="archive_ingest.toml")
     main_parser.add_argument("-l", "--log_stanza", help = "log config stanza", default="log")
 
     subparsers = main_parser.add_subparsers()
-    #run -- perform housekeeping with
-    parser = subparsers.add_parser('run', help= "house keep w/(defaults) all mocks")
-    parser.set_defaults(func=housekeep)
+    #run -- perform archive_ingesting with
+    parser = subparsers.add_parser('run', help= "archive_ingest w/(defaults) all mocks")
+    parser.set_defaults(func=archive_ingest)
     parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="mock-db")
     parser.add_argument("-H", "--hop_stanza", help = "hopskotch config  stanza", default="mock-hop")
     parser.add_argument("-S", "--store_stanza", help = "storage config stanza", default="mock-store")

@@ -18,22 +18,29 @@ class Archive_access():
         """
         Instantiate DB objects and store objects
 
-        replace hard-codede config items wiht user supplied
-        configuration dictionary. for hardcoded defaults
-        supply an empty dictionary for config.
         """
-        hard_config =         {
-        "db-type" : "aws",
-        "db-name" : "hopdevel-housekeeping-db",
-        "db-secret-name" : "hopdevel-housekeeping-db-password", 
-        "db-aws-region"   : "us-west-2",
-        "store-type"      :  "S3",
-        "store-bucket"    :  "hopdevel-scimma-housekeeping",
-        "store-log-every" :  20
+
+        """"
+        Save this. the idea is to nu require toml, if use case is just prod.
+        bu tdemad for thsi at v 1.0.0 is null.
+        if not config:
+            config =         {
+                "db-type" : "aws",
+                "db-secret-name"  : "hopProd-archive-ingest-db-password", 
+                "db-name"         : "hopprod-archive-ingest-db",
+                "db-aws-region"   : "us-west-2",
+                "store-type"      :  "S3",
+                "store-bucket"    :  "hopprod-scimma-archive-ingest",
+                "store-log-every" :  20
                           }
-        hard_config.update(config)
-        self.db     = database_api.DbFactory(hard_config).get_db()
-        self.store  = store_api.StoreFactory(hard_config).get_store()
+            
+            config["db-name"] = "hopdevel-archive-ingest-db"
+            config["db-secret-name"] =  "hopDevel-archive-ingest-db-password" 
+            config["store-bucket"] =  "hopdevel-scimma-archive-ingest"
+        """
+            
+        self.db     = database_api.DbFactory(config).get_db()
+        self.store  = store_api.StoreFactory(config).get_store()
         self.db.connect()
         self.db.query(
             "SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY;",

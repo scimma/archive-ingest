@@ -12,19 +12,19 @@ if [ -z "$mode"       ] ; then echo argment must be local or AWS ; exit 1 ; fi
                            
                               
 
-echo '======= Nuke Old Stuff ========'
-sleep 3 
+#echo '======= Nuke Old Stuff ========'
+#sleep 3 
 
-# remove image from  local docker
-id=`docker image ls  | grep housekeeping | grep "0\.0\.0" | awk '{print $3}'`
-if [ -n "$id" ] ; then docker image rm $id --force ; fi
-
-if [ "$mode" = "aws"  ] ; then
+## remove image from  local docker
+#id=`docker image ls  | grep housekeeping | grep "0\.0\.0" | awk '{print $3}'`
+#if [ -n "$id" ] ; then docker image rm $id --force ; fi
+#
+#if [ "$mode" = "aws"  ] ; then
 # remove images from Awb
-    aws ecr batch-delete-image --repository-name scimma/housekeeping --image-ids imageTag=0.0.0
-    aws ecr batch-delete-image --repository-name scimma/housekeeping --image-ids imageTag=0.0
-    aws ecr batch-delete-image --repository-name scimma/housekeeping --image-ids imageTag=0
-fi
+#    aws ecr batch-delete-image --repository-name scimma/housekeeping --image-ids imageTag=0.0.0
+#    aws ecr batch-delete-image --repository-name scimma/housekeeping --image-ids imageTag=0.0
+#    aws ecr batch-delete-image --repository-name scimma/housekeeping --image-ids imageTag=0
+#fi
 
 echo '======= Make Container ========'
 sleep 3 

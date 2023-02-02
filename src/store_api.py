@@ -1,14 +1,14 @@
 """
-Provide classes and API to stores  of housekeeping objects.
+Provide classes and API to stores  of archive objects.
 
 There are two types homeomorphic classes
 
 One class accesses AWS S3. This class can be configured
-via housekeeping.toml. It can access the production or
+via archive_ingest.toml. It can access the production or
 development S3 buckets via different configurations.
 
 The other class  is "mock" store useful for
-development and test. Thsi sote discards the data.
+development and test. This class  discards the data.
 
 The StoreFactory class supports choosing which class is
 used at run-time.
@@ -68,6 +68,7 @@ class Base_store:
             self.aws_secret_access_key= ''
         self.n_stored = 0
         self.log_every = config["store-log-every"]
+        self.config = config
 
     def connect(self):
         pass
@@ -167,24 +168,25 @@ class S3_store(Base_store):
         self.log(annotations)
         return
 
-    def deep_delete_from_archive(self, key):
+    def deep_delete_object_from_store(self, key):
         """
-        delete all contents from S3 archive
-
+        delete all corresponding objects  from all S3 archive
+        including versions and delete markers.
         right now assert that buckets contian
         'devel' as part fo their name out of paranoia
        """
-        self.deep_delete(self.primary_bucket, key)
-        self.deep_delete(self.backup_bucket, key)
+        self.deep_delete_object(self.primary_bucket, key)
+        self.deep_delete_object(self.backup_bucket, key)
 
-    def deep_delete(self, bucket_name, key):
+    def deep_delete_object(self, bucket_name, key):
         """
-        delete all contents from S3 archive
-
+        delete all contents related  to object from the S3
+        bucket.
         right now assert that bucket contain the string
         'devel' as part of its name out of paranoia
        """
-        assert 'devel' in bucket_name or 'mocktopic' in  bucket_name  
+
+        assert "mock" in key or "archive-ingest-test" or "cmb-s4-fabric-tests.housekeeping-test" in key
         s3  = boto3.resource('s3')
         bucket = s3.Bucket(bucket_name)
         bucket.object_versions.filter(Prefix=key).delete()
@@ -224,14 +226,38 @@ class S3_store(Base_store):
         summary["size"] = size
         return summary
 
+    
+    def list_object_versions(self, prefix):
+        """ list all onecht verision under prefix"""
+        import pdb; pdb.set_trace()
+        s3 = session.resource('s3')
+        my_bucket = s3.Bucket('self.primary_bucket')
+        for _object in my_bucket.objects.all():
+            print(object.key)
+        """    
+        paginator = client.get_paginator('list_objects')
+        result = paginator.paginate(Bucket=self.primary_bucket
+                                    , Delimiter=prefix)
+        import pdb; pdb.set_trace()
+        for prefix in result.search('CommonPrefixes'):
+            print(prefix.get('Prefix'))
+        return
+        objectXSXCs = list(bucket.objects.filter(Prefix=prefix))
+        for object in objects:
+            for result in self.client.list_object_versions(
+                Bucket=self.primary_bucket,
+                Prefix=path_prefix):
+            yield result
+        """
 
+    
 class Mock_store(Base_store):
     """
     a mock store that does nothing -- support debug and devel.
     """
 
     def __init__(self, config):
-        self.primary_bucket = "scimma-housekeeping"
+        self.primary_bucket = "hopdevel-scimma-archive-ingest"
         super().__init__(config)
         logging.info(f"Mock store configured")
 
