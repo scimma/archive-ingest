@@ -1,7 +1,7 @@
 [log]
 log-type = "log-tty"
 #filename = "output/hopstream.log"
-level = "INFO"
+level = "DEBUG"
 
 ###########
 # database
@@ -10,6 +10,8 @@ level = "INFO"
 [mock-db]
 db-type = "mock"
 
+[local-db]
+db-type = "local"
 
 [aws-dev-db]
 db-type = "aws"
@@ -39,6 +41,14 @@ store-primary-bucket =  "hopprod-scimma-archive-ingest"
 store-backup-bucket  =  "hopprod-scimma-archive-ingest-backup"
 store-log-every = 20
 
+[local-store]
+store-type = "S3"
+store-primary-bucket =  "hop-messages"
+store-backup-bucket  =  "hop-messages-backup"
+store-endpoint-url = "http://object-store:9000"
+store-region-name = ""
+store-log-every = 20
+
 [mock-store]
 store-type = "mock"
 store-primary-bucket =  "hopdevel-scimma-housekeeping"
@@ -51,6 +61,18 @@ store-log-every = 1
 
 [mock-hop]
 hop-type = "mock"
+
+[hop-local]
+hop-type              = "hop"
+hop-local-auth        = "/root/.config/hop/auth.toml"
+hop-hostname          = "kafka.scimma.org"
+hop-groupname         = "hopstream"
+hop-port              = 9092
+hop-until-eos         = false
+hop-vetoed-topics     = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
+hop-test-topic        = "gcn.notice"
+hop-topic-refresh-interval-seconds = 300 #5 minutes
+hop-test-max-messages = 1
 
 [hop-devel-devel]
 # a configuration to use the development hop (not complete)
@@ -84,7 +106,6 @@ hop-until-eos         = false
 hop-vetoed-topics     = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
 hop-test-topic        = "sys.archive-ingest-test"
 hop-topic-refresh-interval-seconds = 300 #5 minutes
-
 
 [kcat-prod]
 hop-type   = "kcat"

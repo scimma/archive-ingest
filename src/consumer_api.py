@@ -276,9 +276,16 @@ class Hop_consumer(Base_consumer):
         self.config           = config
         self.groupname        = config["hop-groupname"]
         self.until_eos        = config["hop-until-eos"]
-        self.secret_name      = config["hop-aws-secret-name"]
-        self.region_name      = config["hop-aws-secret-region"]
+        if 'hop-local-auth' in config:
+            self.local_auth_file      = config['hop-local-auth']
+            self.secret_name      = ''
+            self.region_name      = ''
+        else:
+            self.local_auth_file      = ''
+            self.secret_name      = config["hop-aws-secret-name"]
+            self.region_name      = config["hop-aws-secret-region"]
         self.test_topic       = config["hop-test-topic"]
+        self.test_topic_max_messages       = config["hop-test-max-messages"]
         self.vetoed_topics    = config["hop-vetoed-topics"]
         self.vetoed_topics.append(self.test_topic)  # don't consume test topic   
         self.refresh_interval = config["hop-topic-refresh-interval-seconds"]
@@ -308,10 +315,11 @@ class Hop_consumer(Base_consumer):
 
         # interval exceeded -- reset time, and refresh topic list
         self.last_last_refresh_time = time.time()
-        if self.config["test_topic"]:
+        if self.test_topic:
             # trivial refresh this topic supports  test and debug.
             topics = self.test_topic
             self.url = (f"{self.base_url}{topics}")
+            logging.info(f'''Consuming hop-test-topic URL: "{self.url}"''')
         else:
             # Read the available topics from the given broker
             # notice that we are not given "public topics" we
@@ -332,7 +340,7 @@ class Hop_consumer(Base_consumer):
     def connect(self):
         "connect to HOP a a consumer (archiver)"
         start_at = StartPosition.EARLIEST
-        #start_at = StartPosition.LATEST
+        # start_at = StartPosition.LATEST
         stream = Stream(auth=self.auth, start_at=start_at, until_eos=self.until_eos)
 
         # Return the connection to the client as :class:"hop.io.Consumer" instance
@@ -343,23 +351,28 @@ class Hop_consumer(Base_consumer):
         self.refresh_url()
         group_id = f"{self.username}-{self.groupname}"
         self.client = stream.open(url=self.url, group_id=group_id)
+        # self.client = stream.open(url=self.url)
         logging.info(f"opening stream at {self.url} group: {group_id} startpos {start_at}")
 
     def authorize(self):
-        "authorize using AWS secrets"
-        from hop.auth import Auth
-        session = boto3.session.Session()
-        client = session.client(
-            service_name='secretsmanager',
-            region_name=self.region_name
-        )
-        resp = client.get_secret_value(
-            SecretId=self.secret_name
-        )['SecretString']
-        resp = json.loads(resp)
-        self.username = resp["username"]
-        logging.info (f"hopskotch username is: {self.username}")
-        self.auth  = hop.auth.Auth(resp["username"], resp["password"])
+        if self.local_auth_file:
+            self.username = os.environ['HOP_USERNAME']
+            self.auth  = hop.auth.load_auth(self.local_auth_file)
+        else:
+            "authorize using AWS secrets"
+            from hop.auth import Auth
+            session = boto3.session.Session()
+            client = session.client(
+                service_name='secretsmanager',
+                region_name=self.region_name
+            )
+            resp = client.get_secret_value(
+                SecretId=self.secret_name
+            )['SecretString']
+            resp = json.loads(resp)
+            self.username = resp["username"]
+            logging.info (f"hopskotch username is: {self.username}")
+            self.auth  = hop.auth.Auth(resp["username"], resp["password"])
         return
 
     def is_active(self):

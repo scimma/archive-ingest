@@ -6,98 +6,149 @@ networks:
 
 volumes:
   dbdata: {}
-  # waitforit: {}
-  # hopauth: {}
+  objectstoredata: {}
+  waitforit: {}
 
 services:
-  db:
-    image: bitnami/mariadb:10.5
-    container_name: hop-ingest-db
+  object-store:
+    image: quay.io/minio/minio:RELEASE.2023-01-31T02-24-19Z
+    container_name: hop-archiver-object-store
     env_file: .env
     ports:
-      - 5432:5432
+      - 127.0.0.1:9000:9000
+      - 127.0.0.1:9001:9001
+    networks:
+      - internal
+    command:
+    - server
+    - /data
+    - --console-address
+    - ":9001"
+    volumes:
+      - objectstoredata:/data
+  archive-db:
+    image: bitnami/postgresql:latest
+    container_name: hop-archiver-db
+    env_file: .env
+    # ports:
+    #   - 5432:5432
     networks:
       - internal
     volumes:
-      - dbdata:/bitnami/mariadb
-  # app-init-db:
-  #   image: bitnami/mariadb:10.5
-  #   container_name: hop-ingest-db-init
-  #   env_file: .env
-  #   depends_on:
-  #     - db
-  #   networks:
-  #     - internal
-  #   command:
-  #     - sh
-  #     - -c
-  #     - >
-  #       until pg_isready \
-  #           --username=${POSTGRES_USER} \
-  #           --dbname=${POSTGRES_DB} \
-  #           --host=${DB_HOST} \
-  #           --port=5432;
-  #         do echo waiting for database;
-  #         sleep 2;
-  #         done;
-  #         touch /tmp/db_ready;
-  #   volumes:
-  #     - waitforit:/tmp
-  # app-init-hop-auth:
-  #   # image: ubuntu:20.04
-  #   image: scimma/hop-ingest:dev
-  #   build:
-  #     context: .
-  #     args:
-  #     - UID=${CUID}
-  #   container_name: hop-ingest-auth-init
-  #   env_file: .env
-  #   user: root
-  #   depends_on:
-  #     - db
-  #   networks:
-  #     - internal
-  #   command:
-  #     - '/bin/bash'
-  #     - '-c'
-  #     - >
-  #       chown -R worker /home/worker/.config/hop && touch /tmp/hop_auth_ready
-  #   volumes:
-  #     # - ./auth.toml.tpl:/tmp/auth.toml.tpl:ro
-  #     - waitforit:/tmp
-  #     - hopauth:/home/worker/.config/hop
-  app:
-    image: scimma/hop-ingest:dev
-    build:
-      context: .
-      args:
-      - UID=${CUID}
-    container_name: hop-ingest
+      - dbdata:/bitnami/postgresql
+  archiver-init-db:
+    image: bitnami/postgresql:latest
+    container_name: hop-archiver-db-init
     env_file: .env
     depends_on:
-      - db
-      # - app-init-db
-      # - app-init-hop-auth
-    ports:
-      - 8000:8000
+      - archive-db
+    networks:
+      - internal
+    command:
+      - sh
+      - -c
+      - >
+        until pg_isready \
+            --username=${POSTGRESQL_USERNAME} \
+            --dbname=${POSTGRESQL_DATABASE} \
+            --host=archive-db \
+            --port=5432;
+          do echo waiting for database;
+          sleep 2;
+          done;
+          touch /tmp/db_ready;
+    volumes:
+      - waitforit:/tmp
+  archiver:
+    image: scimma/archive-ingest:dev
+    build:
+      context: .
+    container_name: hop-archiver
+    env_file: .env
+    depends_on:
+      - archive-db
     networks:
       - internal
     command:
       - '/bin/bash'
       - '-c'
       - >
-        bash copy_auth.sh && python hop_ingest.py
+        while [[ ! -f /tmp/db_ready ]]; do
+          echo waiting for db_ready...;
+          sleep 2;
+        done;
+        bash copy_auth.sh && ./archive_ingest.py run -H hop-local -D local-db -S local-store && sleep 1000d;
     volumes:
-      - ./src:/home/worker/src
-      - ./src/config.yaml:/home/worker/src/config.yaml:ro
-      # - waitforit:/tmp
-      # - hopauth:/home/worker/.config/hop
-      # - type: bind
-      #   source: ./src/config.yaml
-      #   target: /etc/config/config.yaml
-      #   read_only: true
-
-        # while [[ ! -f /tmp/hop_auth_ready ]]; do
-        #   echo waiting for hop_auth_ready...;
-        #   sleep 2;
-        # done;
+      - ./src:/root/src
+      - waitforit:/tmp
+  archive-api-init-django-migrate:
+    image: scimma/archive-api:dev
+    build:
+      context: ./api/
+    env_file: .env
+    depends_on:
+      - archive-db
+      - archiver-init-db
+    networks:
+      - internal
+    command:
+      - '/bin/bash'
+      - '-c'
+      - >
+        while [[ ! -f /tmp/db_ready ]]; do
+          echo waiting for database...;
+          sleep 2;
+        done;
+        python manage.py migrate && python manage.py makemigrations && touch /tmp/migration_complete
+    volumes:
+      - ./api/src:/home/worker/src
+      - waitforit:/tmp
+  archive-api-init-django-createsuperuser:
+    image: scimma/archive-api:dev
+    build:
+      context: ./api/
+    env_file: .env
+    depends_on:
+      - archive-db
+      - archiver-init-db
+      - archive-api-init-django-migrate
+    networks:
+      - internal
+    command:
+      - '/bin/bash'
+      - '-c'
+      - >
+        while [[ ! -f /tmp/migration_complete ]]; do
+          echo waiting for database migration...;
+          sleep 2;
+        done;
+        bash ../provisionsuperuser.sh && touch /tmp/superuser_created
+    volumes:
+      - ./api/src:/home/worker/src
+      - waitforit:/tmp
+  archive-api:
+    image: scimma/archive-api:dev
+    build:
+      context: ./api/
+    env_file: .env
+    depends_on:
+      - archive-db
+      - archiver-init-db
+      - archive-api-init-django-migrate
+      - archive-api-init-django-createsuperuser
+    ports:
+      - 127.0.0.1:8000:8000
+    networks:
+      - internal
+    command:
+      - '/bin/bash'
+      - '-c'
+      - >
+        while [[ ! -f /tmp/superuser_created ]]; do
+          echo waiting for Django superuser provisioning...;
+          sleep 2;
+        done;
+        python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./api/src:/home/worker/src
+      - waitforit:/tmp
