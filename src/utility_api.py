@@ -1,8 +1,30 @@
 """
     Utility  functions 
 """
+import os
+import logging
+import toml
+##################################                                                                                                          
+#   environment                                                                                                                             
+##################################                                                                                                          
+
+def make_logging(args):
+    """                                                                                                                                     
+    establish python logging based on toms file stanza passed specifies on command line.                                                    
+    """
+
+    # supply defaults to assure than logging of some sort is setup no matter what.                                                          
+    # Note that the production environment captures stdout/stderr into logs for us.                                                         
+    default_format = '%(asctime)s:%(filename)s:%(levelname)s:%(message)s'
+    toml_data = toml.load(args["toml_file"])
+    config = toml_data[args["log_stanza"]]
+    level = config.get("level", "DEBUG")
+    format = config.get("format", default_format)
+    logging.basicConfig(level=level, format=format)
+    logging.info(f"Basic logging is configured at {level}")
 
 
+    
 def merge_config(args):
     """
     produce a configuration dictionary from inpud dictionary args.
@@ -18,6 +40,23 @@ def merge_config(args):
     for stanza in stanzas:
         hard_defaults.update(toml_data[args[stanza]])
     hard_defaults.update(args)
+    
+    #
+    # Acquite any changes from the enviroment. the maps is
+    # config-key to SCIMMA_ARCH_CONFIG_KEY 
+    #
+    for key in hard_defaults.keys():        
+        env_var_name = f"SCIMMA_ARCH_{key}".upper()
+        t_table = str.maketrans("-", "_")
+        env_var_name = env_var_name.translate(t_table)
+        env_var_value = os.environ.get(env_var_name)
+        if env_var_value :
+            hard_defaults[key] = env_var_value
+            logging.info(f"{key} set via {env_var_name} to  {env_var_value}")
+
+    for key in hard_defaults.keys():
+        logging.info(f"final configuration: {key}:{hard_defaults[key]}")
+        
     return hard_defaults
 
 
