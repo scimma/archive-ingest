@@ -1,4 +1,4 @@
-# Housekeeping
+# Hopskotch topic archiver
 
 ## Goal and use cases
 
@@ -72,6 +72,46 @@ The goal of this git repository is to make and push containers containing
 the archive_ingest application into into both the SCiMMA
 AWS ecs repository and to push containers into the
 docker.io/scimma/archive_ingest repository for local contiainer testing.
+
+## Local development with Docker Compose
+
+You can run this locally via Docker Compose without dependency on AWS or a remote database.
+
+First copy `env.tpl` to `.env` and fill in your Hopskotch credentials.
+
+Then launch the application with
+
+```bash
+./launch --build && ./launch --logs
+```
+
+Available launch script options are `--build` to build the images, `--logs` to watch the container logs, `--down` to stop containers, and `--down --wipe` to destroy containers *and wipe the persistent storage volumes* (this deletes your database and any S3 object storage).
+
+By default, the archiver container will immediately run 
+
+```bash
+./archive_ingest.py run -H hop-local -D local-db -S local-store
+```
+
+and consume a finite number of messages before sleeping (see `hop-test-max-messages` param in `src/housekeeping.toml`). You may then `docker exec` into the container and manually execute commands:
+
+```bash
+$ docker exec -it hop-archiver bash
+```
+
+The local database instance is accessed using:
+
+```bash
+$ docker exec -it hop-archiver-db bash
+
+I have no name!@73d75c60f19a:/$ PGPASSWORD=$POSTGRESQL_PASSWORD psql -U $POSTGRESQL_USERNAME $POSTGRESQL_DATABASE
+
+app=> select * from messages;
+```
+
+The local MinIO S3-compatible object storage can be accessed at http://127.0.0.1:9001 in a web browser, where the bucket contents can be browsed.
+
+The archive API server listens at http://127.0.0.1:8000 to respond to API endpoints such as `api/message`. This API server is built using the Django framework.
 
 ### Version conventions
 
