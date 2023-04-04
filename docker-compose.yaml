@@ -6,10 +6,14 @@ networks:
 
 volumes:
   dbdata: {}
+  archive-api-db: {}
   objectstoredata: {}
   waitforit: {}
 
 services:
+  ## 
+  ## MinIO: S3-compatible object store for archived messages
+  ##
   object-store:
     image: quay.io/minio/minio:RELEASE.2023-01-31T02-24-19Z
     container_name: hop-archiver-object-store
@@ -26,6 +30,9 @@ services:
     - ":9001"
     volumes:
       - objectstoredata:/data
+  ## 
+  ## Archive database for storing Hopskotch messages
+  ##
   archive-db:
     image: bitnami/postgresql:latest
     container_name: hop-archiver-db
@@ -36,6 +43,9 @@ services:
       - internal
     volumes:
       - dbdata:/bitnami/postgresql
+  ## 
+  ## Semaphore to await archive database availability
+  ##
   archiver-init-db:
     image: bitnami/postgresql:latest
     container_name: hop-archiver-db-init
@@ -59,6 +69,10 @@ services:
           touch /tmp/db_ready;
     volumes:
       - waitforit:/tmp
+  ## 
+  ## Archiver system that ingests public Hopskotch topics and stores them 
+  ## in the Archive database
+  ##
   archiver:
     image: scimma/archive-ingest:dev
     build:
@@ -81,11 +95,26 @@ services:
     volumes:
       - ./src:/root/src
       - waitforit:/tmp
+  ## 
+  ## Archive API server Django database
+  ##
+  archive-api-db:
+    image: bitnami/postgresql:latest
+    container_name: archive-api-db
+    env_file: api/.env
+    networks:
+      - internal
+    volumes:
+      - archive-api-db:/bitnami/postgresql
+  ## 
+  ## Archive API initialization: Django database migration
+  ##
   archive-api-init-django-migrate:
     image: scimma/archive-api:dev
     build:
       context: ./api/
-    env_file: .env
+    container_name: archive-api-init-django-migrate
+    env_file: api/.env
     depends_on:
       - archive-db
       - archiver-init-db
@@ -103,11 +132,16 @@ services:
     volumes:
       - ./api/src:/home/worker/src
       - waitforit:/tmp
+      - archive-api-db:/bitnami/postgresql
+  ## 
+  ## Archive API initialization: create Django admin account if it does not exist
+  ##
   archive-api-init-django-createsuperuser:
     image: scimma/archive-api:dev
     build:
       context: ./api/
-    env_file: .env
+    container_name: archive-api-init-django-createsuperuser
+    env_file: api/.env
     depends_on:
       - archive-db
       - archiver-init-db
@@ -126,11 +160,15 @@ services:
     volumes:
       - ./api/src:/home/worker/src
       - waitforit:/tmp
-  archive-api:
+  ## 
+  ## Archive API server
+  ##
+  archive-api-server:
     image: scimma/archive-api:dev
     build:
       context: ./api/
-    env_file: .env
+    container_name: archive-api-server
+    env_file: api/.env
     depends_on:
       - archive-db
       - archiver-init-db
@@ -152,3 +190,28 @@ services:
     volumes:
       - ./api/src:/home/worker/src
       - waitforit:/tmp
+  ## 
+  ## Archive browser web app
+  ##
+  archive-browser:
+    image: scimma/archive-browser:dev
+    build:
+      context: ./browser/
+    container_name: archive-browser
+    env_file: browser/.env
+    depends_on:
+      - archive-db
+      - archiver-init-db
+      - archive-api-init-django-migrate
+      - archive-api-init-django-createsuperuser
+      - archive-api-server
+    ports:
+      - 127.0.0.1:3000:3000
+    networks:
+      - internal
+    command:
+      - '/bin/bash'
+      - '-c'
+      - yarn start
+    volumes:
+      - ./browser/src:/usr/src/app
