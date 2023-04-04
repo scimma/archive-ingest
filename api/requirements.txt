@@ -3,3 +3,4 @@ gunicorn[gevent]
 tzdata
 djangorestframework
 django
+django-cors-headers
