@@ -3,7 +3,7 @@ Dockerfile.base
 *Minibuf-2*
 .DS_Store
 *~
-
+.vscode/
 
 ## dunno --someone's template? -- DLP
 *ipynb_checkpoints
