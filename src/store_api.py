@@ -61,7 +61,6 @@ class Base_store:
             self.aws_secret_access_key=os.environ['S3_SECRET_ACCESS_KEY']
         else:
             self.s3_provider = 'aws'
-            self.s3_provider = 'custom'
             self.s3_endpoint_url = ''
             self.s3_region_name = ''
             self.aws_access_key_id= ''
