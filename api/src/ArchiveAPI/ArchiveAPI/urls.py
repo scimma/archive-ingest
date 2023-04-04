@@ -26,6 +26,5 @@ if base_path:
 urlpatterns = [
     path(f'''{base_path}{trailing_slash}admin/''', admin.site.urls),
     path(f'''{base_path}{trailing_slash}api/message''', views.message, name="api-message"),
-    # path(f'''{base_path}{trailing_slash}oidc/''', include('mozilla_django_oidc.urls')),
-    # path(f'''{base_path}{trailing_slash}targets/<int:pk>/''', AlertsDemoTargetDetailView.as_view(), name='detail'),
+    path(f'''{base_path}{trailing_slash}api/test''', views.test_endpoint.as_view(), name="api-test"),
 ]
