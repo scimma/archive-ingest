@@ -2,18 +2,34 @@ from django.http import HttpResponse
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
+import os
+from .db_connector import DbConnector
 
 
-def message(request):
-    return HttpResponse("Here is a message!")
+# Get global instance of the job handler database interface
+db = DbConnector(
+    hostname=os.environ.get('ARCHIVE_DB_HOST', 'archive-db'),
+    username=os.environ.get('ARCHIVE_DB_USERNAME', 'archiver'),
+    password=os.environ.get('ARCHIVE_DB_PASSWORD', 'archiver'),
+    database=os.environ.get('ARCHIVE_DB_DATABASE', 'archiver'),
+)
 
-class test_endpoint(APIView):
-    def post(self, request):
-        if 'param1' not in request.data or 'param2' not in request.data:
+
+class list_topic(APIView):
+    def get(self, request, topic):
+        if not topic:
             return Response(status=status.HTTP_400_BAD_REQUEST)
-        param1 = request.data['param1']
-        param2 = request.data['param2']
+        messages = db.list_topic(topic=topic)
         data = {
-            'message': f'''param1: {param1}, param2: {param2}'''
+            'topic': topic,
+            'messages': messages,
+        }
+        return Response(status=status.HTTP_200_OK, data=data)
+
+class list_topics(APIView):
+    def get(self, request):
+        topics = db.list_topics()
+        data = {
+            'topics': topics,
         }
         return Response(status=status.HTTP_200_OK, data=data)

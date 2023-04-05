@@ -25,6 +25,6 @@ if base_path:
 
 urlpatterns = [
     path(f'''{base_path}{trailing_slash}admin/''', admin.site.urls),
-    path(f'''{base_path}{trailing_slash}api/message''', views.message, name="api-message"),
-    path(f'''{base_path}{trailing_slash}api/test''', views.test_endpoint.as_view(), name="api-test"),
+    path(f'''{base_path}{trailing_slash}api/topic/<str:topic>''', views.list_topic.as_view(), name="get-messages"),
+    path(f'''{base_path}{trailing_slash}api/topics''', views.list_topics.as_view(), name="get-topics"),
 ]
