@@ -285,7 +285,7 @@ class Hop_consumer(Base_consumer):
             self.secret_name      = config["hop-aws-secret-name"]
             self.region_name      = config["hop-aws-secret-region"]
         self.test_topic       = config["hop-test-topic"]
-        self.test_topic_max_messages       = config["hop-test-max-messages"]
+        self.test_topic_max_messages       = config.get("hop-test-max-messages",10)  #demo hack
         self.vetoed_topics    = config["hop-vetoed-topics"]
         self.vetoed_topics.append(self.test_topic)  # don't consume test topic   
         self.refresh_interval = config["hop-topic-refresh-interval-seconds"]
@@ -347,9 +347,9 @@ class Hop_consumer(Base_consumer):
         # THe commented uot group ID (below)) migh tbe useful in some development
         # environments it allows for re-consumption of all the existing events in all
         # the topics.
-        #group_id = f"{self.username}-{self.groupname}{random.randint(0,10000)}"
         self.refresh_url()
         group_id = f"{self.username}-{self.groupname}"
+        group_id = f"{self.username}-{self.groupname}{random.randint(0,10000)}"
         self.client = stream.open(url=self.url, group_id=group_id)
         # self.client = stream.open(url=self.url)
         logging.info(f"opening stream at {self.url} group: {group_id} startpos {start_at}")
@@ -394,7 +394,13 @@ class Hop_consumer(Base_consumer):
             if result[1].headers is None :
                 headers = []
             else:
-                headers = [h for h in result[1].headers]
+                # Bson Librsy compatablity:
+                # tuple -> list
+                # Nuke Null values to empty string
+                headers = []
+                for key, val in result[1].headers:
+                    if val == None : val = ""
+                    headers.append([key, val]) 
 
             #copy out the metadata of interest to what we save
             metadata = {"timestamp" : result[1].timestamp,

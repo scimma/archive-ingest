@@ -7,7 +7,7 @@ users. and as a shim for trusted co-developers.
 """
 import database_api
 import store_api
-import bson
+import simple_bson
 
 ###########
 # storage 
@@ -60,7 +60,7 @@ class Archive_access():
     def get_all(self, key):
         "get message and all retained metadata (includes header)"
         bundle = self.get_raw_object(key)
-        bundle =  bson.loads(bundle)
+        bundle =  simple_bson.loads(bundle)
         message = bundle["message"]["content"]
         metadata = bundle["metadata"]
         return (message, metadata)

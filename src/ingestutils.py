@@ -21,8 +21,9 @@ import datetime
 import boto3
 import json
 import bson
+import simple_bson
 ##################################
-#   utilities
+#   Utilitie
 ##################################
 
 def _delete_by_id(id, db, store=None):
@@ -277,7 +278,7 @@ def status(args):
 
 def inspect(args):
     """inspect an object given a uuid"""
-    import bson
+    import simple_bson
     import access_api
     config = utility_api.merge_config(args)
     accessor = access_api.Archive_access(config)
@@ -288,7 +289,7 @@ def inspect(args):
     if args["write"]:
         with open(f"{uuid}.bson", "wb") as f:
             f.write(bundle)
-    bundle = bson.loads(bundle)
+    bundle = simple_bson.loads(bundle)
     if args["burst"]:
         m_format = bundle["message"]["format"]
         m_content = bundle["message"]["content"]
@@ -402,6 +403,16 @@ def clean_duplicates(args):
         _delete_by_id(id, db, store=store)
 
 
+def mongo_query(args):
+    "dump the mongo db"
+    import mongo_api
+    mdb =  mongo_api.MongoFactory(args).get_mdb()
+    mdb.connect()
+    mdb.make_schema() # make a no-op
+    mdb.query("")
+
+
+
 
 if __name__ == "__main__":
 
@@ -478,6 +489,11 @@ if __name__ == "__main__":
     parser = subparsers.add_parser('db_logs', help=db_logs.__doc__)
     parser.set_defaults(func=db_logs)
     parser.add_argument("-D", "--database_stanza", help="database-config-stanza", default="aws-dev-db")
+
+    # moogo query
+    parser = subparsers.add_parser('mongo_query', help=mongo_query.__doc__)
+    parser.set_defaults(func=mongo_query)
+    parser.add_argument("-M", "--mongo_stanza", help="mongo-config-stanza", default="mongo-demo")
 
 
     # clean test data

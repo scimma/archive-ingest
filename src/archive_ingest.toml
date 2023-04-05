@@ -4,6 +4,15 @@ log-type = "log-tty"
 level = "INFO"
 
 ###########
+# mongo even store
+##########
+[mongo-demo]
+mongo-type = "local"
+mongo-ip  = "127.0.0.1"
+mongo-port = 27017
+
+
+###########
 # database
 ###########
 

@@ -20,7 +20,7 @@ as provided by argparse, as part of their interface.
 
 import boto3
 import botocore
-import bson
+import simple_bson
 import logging
 import time
 import utility_api
@@ -99,7 +99,7 @@ class Base_store:
 
     def get_as_bson(self, payload, metadata, annotations):
         "return a blob of bson"
-        ret = bson.dumps({"message" : payload,
+        ret = simple_bson.dumps({"message" : payload,
                           "metadata" : metadata,
                           "annotations": annotations
                           })
