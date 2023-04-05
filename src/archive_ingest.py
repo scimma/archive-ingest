@@ -96,9 +96,10 @@ def archive_ingest(args):
             if msg_count_total > num_topics * max_messages:
                 break
         try:
-            msg_count[metadata['topic']] += 1
             if msg_count[metadata['topic']] > max_messages:
                 continue
+            else:
+                msg_count[metadata['topic']] += 1
         except:
             msg_count[metadata['topic']] = 0
         ## If max_messages is set to zero, there is no maximum
