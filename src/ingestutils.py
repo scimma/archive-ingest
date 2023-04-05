@@ -22,6 +22,9 @@ import boto3
 import json
 import bson
 import simple_bson
+import tabulate
+import pymongo
+
 ##################################
 #   Utilitie
 ##################################
@@ -214,7 +217,6 @@ def status(args):
      - what topics are being archived
      - is the service up
     """
-    import tabulate
     db = database_api.DbFactory(args).get_db()
     db.connect()
     import time
@@ -403,15 +405,71 @@ def clean_duplicates(args):
         _delete_by_id(id, db, store=store)
 
 
-def mongo_query(args):
-    "dump the mongo db"
+def mongo_schema(args):
+    """
+    print an outline form for the dictionary structure for
+    a document in the mongo database.
+
+    specify ither a topic or a uuid
+    for topics, the most recent event is chosen
+    """
+    import mongo_api
+    topic = args["topic"]
+    uuid  = args["uuid"] 
+    if not uuid and not topic:
+        logging.fatal("specify uuid or topic")
+        exit(1)
+    if uuid and  topic:
+        logging.fatal("specify either uuid or topic")
+        exit(1)
+    if topic: filter = {"SciMMA_topic": topic}
+    if uuid : filter = {"SciMMA_uuid":  uuid}
+    mdb =  mongo_api.MongoFactory(args).get_mdb()
+    mdb.connect()
+    item = mdb.collection.find_one(filter, sort=[("SciMMA_topic", pymongo.DESCENDING)])
+    
+    def print_schema_tree(d, indent = 0):
+        t = type(d)
+        if t != type({}) :
+            s_all = d.__str__()
+            if len(s_all) > 30 : s_all = s_all[1:27] + "..."
+            print (">"*indent*3, indent, f"{s_all}")
+            return
+        for key in d.keys():
+            print (">"*indent*3, indent,  key)
+            print_schema_tree(d[key], indent=indent+1)
+    
+    print_schema_tree(item)
+
+    
+def mongo_status(args):
+    "print a bried summary of the DB"
     import mongo_api
     mdb =  mongo_api.MongoFactory(args).get_mdb()
     mdb.connect()
-    mdb.make_schema() # make a no-op
-    mdb.query("")
+    print(mdb.collection.distinct("SciMMA_topic"))
+    print(mdb.collection.distinct("format"))
+    data = []
+    for topic in mdb.collection.distinct("SciMMA_topic"):
+        filter = {"SciMMA_topic" : topic}
+        item  = mdb.collection.find_one(filter, sort=[("SciMMA_topic", pymongo.DESCENDING)])
+        count = "coming soon"
+        count = len( [i for i in mdb.collection.find(filter)] )
+        data.append( [item["SciMMA_topic"], item["SciMMA_uuid"], item["SciMMA_published_time"], count])
+    headers = ["topic", "uuid", "newest", "count"]
+    print(
+         tabulate.tabulate(data, headers=headers)
+         )
 
-
+    print(); print()
+    data = []
+    for f in mdb.collection.distinct("format"):
+        filter ={"format" : f}
+        item  = mdb.collection.find_one(filter, sort=[("SciMMA_topic", pymongo.DESCENDING)])
+        count = len( [i for i in mdb.collection.find(filter)] )
+        data.append( [item["format"], item["SciMMA_uuid"], item["SciMMA_published_time"], count])
+    headers = ["format", "uuid", "newest", "count"]
+    print(tabulate.tabulate(data, headers=headers))
 
 
 if __name__ == "__main__":
@@ -490,9 +548,16 @@ if __name__ == "__main__":
     parser.set_defaults(func=db_logs)
     parser.add_argument("-D", "--database_stanza", help="database-config-stanza", default="aws-dev-db")
 
-    # moogo query
-    parser = subparsers.add_parser('mongo_query', help=mongo_query.__doc__)
-    parser.set_defaults(func=mongo_query)
+    # mongo print schema 
+    parser = subparsers.add_parser('mongo_schema', help=mongo_schema.__doc__)
+    parser.set_defaults(func=mongo_schema)
+    parser.add_argument("-t", "--topic", help="topic", default=None)
+    parser.add_argument("-u", "--uuid", help="uuid", default=None)
+    parser.add_argument("-M", "--mongo_stanza", help="mongo-config-stanza", default="mongo-demo")
+
+    # mongo status
+    parser = subparsers.add_parser('mongo_status', help=mongo_status.__doc__)
+    parser.set_defaults(func=mongo_status)
     parser.add_argument("-M", "--mongo_stanza", help="mongo-config-stanza", default="mongo-demo")
 
 
