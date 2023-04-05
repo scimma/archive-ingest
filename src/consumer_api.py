@@ -285,9 +285,13 @@ class Hop_consumer(Base_consumer):
             self.secret_name      = config["hop-aws-secret-name"]
             self.region_name      = config["hop-aws-secret-region"]
         self.test_topic       = config["hop-test-topic"]
+        ## Max messages PER TOPIC
         self.test_topic_max_messages       = config["hop-test-max-messages"]
         self.vetoed_topics    = config["hop-vetoed-topics"]
-        self.vetoed_topics.append(self.test_topic)  # don't consume test topic   
+        if isinstance(self.test_topic, list):
+            self.vetoed_topics.extend(self.test_topic)  # don't consume test topic
+        else:
+            self.vetoed_topics.append(self.test_topic)  # don't consume test topic
         self.refresh_interval = config["hop-topic-refresh-interval-seconds"]
         self.last_last_refresh_time = 0
 
@@ -344,12 +348,14 @@ class Hop_consumer(Base_consumer):
         stream = Stream(auth=self.auth, start_at=start_at, until_eos=self.until_eos)
 
         # Return the connection to the client as :class:"hop.io.Consumer" instance
-        # THe commented uot group ID (below)) migh tbe useful in some development
+        # The commented out group ID (below) might be useful in some development
         # environments it allows for re-consumption of all the existing events in all
         # the topics.
-        #group_id = f"{self.username}-{self.groupname}{random.randint(0,10000)}"
+        if self.groupname == 'random':
+            group_id = f"{self.username}-{self.groupname}{random.randint(0,10000)}"
+        else:
+            group_id = f"{self.username}-{self.groupname}"
         self.refresh_url()
-        group_id = f"{self.username}-{self.groupname}"
         self.client = stream.open(url=self.url, group_id=group_id)
         # self.client = stream.open(url=self.url)
         logging.info(f"opening stream at {self.url} group: {group_id} startpos {start_at}")

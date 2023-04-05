@@ -85,12 +85,23 @@ def archive_ingest(args):
     consumer.connect()
     store.connect()
     max_messages = consumer.test_topic_max_messages
-    msg_idx = 0
-    for payload, metadata, annotations  in consumer.get_next():
-        msg_idx += 1
+    num_topics = len(consumer.test_topic.split(','))
+    msg_count = {}
+    for payload, metadata, annotations in consumer.get_next():
+        if max_messages > 0:
+            msg_count_total = 0
+            for topic in msg_count:
+                msg_count_total += msg_count[topic]
+            logging.debug(f'''Total message count: {msg_count_total}''')
+            if msg_count_total > num_topics * max_messages:
+                break
+        try:
+            msg_count[metadata['topic']] += 1
+            if msg_count[metadata['topic']] > max_messages:
+                continue
+        except:
+            msg_count[metadata['topic']] = 0
         ## If max_messages is set to zero, there is no maximum
-        if max_messages > 0 and msg_idx > max_messages:
-            break
         logging.info(metadata)
         logging.info(annotations)
         # logging.info(payload)
