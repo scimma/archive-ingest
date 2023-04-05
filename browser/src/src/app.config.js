@@ -8,6 +8,5 @@ config["port"] = port;
 config["protocol"] = protocol;
 config["baseUrl"] = '/';
 config["baseApiUrl"] = '/api';
-config["endpointTest"] = '/test';
 
 export default config;
