@@ -34,7 +34,18 @@ def merge_config(args):
     """
     import toml
     hard_defaults = {"region": "us-west-2", "loglevel": "INFO"}
-    # this is a poor assumption.
+    
+    #
+    # Acquire configuration data from the .toml file,
+    # also acquire knowldge  of configuration parameters by discovering
+    # parameter names.
+
+    # Recall that the current convention is to have the command line
+    # select specific config stanzas.  Relying that, we name those
+    # <something> stanza discover them, and throw them into the config dict.
+    # 
+    # Yes this is not ideal, and the idea should be refactored.
+    
     stanzas = [stanza for stanza in args.keys() if "stanza" in stanza]
     if "toml_file" in args: toml_data = toml.load(args["toml_file"])
     for stanza in stanzas:
@@ -42,8 +53,9 @@ def merge_config(args):
     hard_defaults.update(args)
     
     #
-    # Acquite any changes from the enviroment. the maps is
-    # config-key to SCIMMA_ARCH_CONFIG_KEY 
+    # Acquire any changes from the enviroment. do this by lookng for
+    # evironment analog for parameters named in the config file
+    # e.g. config-key to SCIMMA_ARCH_CONFIG_KEY 
     #
     for key in hard_defaults.keys():        
         env_var_name = f"SCIMMA_ARCH_{key}".upper()
@@ -55,7 +67,7 @@ def merge_config(args):
             logging.info(f"{key} set via {env_var_name} to  {env_var_value}")
 
     for key in hard_defaults.keys():
-        logging.info(f"final configuration: {key}:{hard_defaults[key]}")
+        logging.debug(f"final configuration: {key}:{hard_defaults[key]}")
         
     return hard_defaults
 
@@ -74,7 +86,7 @@ def setup_logging(args):
 
 
 def terse(object):
-    "shotren the text used to represent an object"
+    "shorten the text used to represent an object"
     text = object.__repr__()
     max_length = 30
     if len(text) > max_length:

@@ -61,7 +61,6 @@ class Base_store:
             self.aws_secret_access_key=os.environ['S3_SECRET_ACCESS_KEY']
         else:
             self.s3_provider = 'aws'
-            self.s3_provider = 'custom'
             self.s3_endpoint_url = ''
             self.s3_region_name = ''
             self.aws_access_key_id= ''
@@ -229,7 +228,6 @@ class S3_store(Base_store):
     
     def list_object_versions(self, prefix):
         """ list all onecht verision under prefix"""
-        import pdb; pdb.set_trace()
         s3 = session.resource('s3')
         my_bucket = s3.Bucket('self.primary_bucket')
         for _object in my_bucket.objects.all():
@@ -238,7 +236,6 @@ class S3_store(Base_store):
         paginator = client.get_paginator('list_objects')
         result = paginator.paginate(Bucket=self.primary_bucket
                                     , Delimiter=prefix)
-        import pdb; pdb.set_trace()
         for prefix in result.search('CommonPrefixes'):
             print(prefix.get('Prefix'))
         return

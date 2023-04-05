@@ -19,6 +19,8 @@ import decision_api
 import consumer_api
 import datetime
 import boto3
+import json
+import bson
 ##################################
 #   utilities
 ##################################
@@ -277,7 +279,8 @@ def inspect(args):
     """inspect an object given a uuid"""
     import bson
     import access_api
-    accessor = access_api.Archive_access(args)
+    config = utility_api.merge_config(args)
+    accessor = access_api.Archive_access(config)
     uuid = args["uuid"]
     sql = f"select key from messages where uuid = '{uuid}'"
     key = accessor.query(sql)[0][0]
@@ -286,11 +289,25 @@ def inspect(args):
         with open(f"{uuid}.bson", "wb") as f:
             f.write(bundle)
     bundle = bson.loads(bundle)
+    if args["burst"]:
+        m_format = bundle["message"]["format"]
+        m_content = bundle["message"]["content"]
+        m_metadata = bundle["metadata"]
+        m_annotations = bundle["annotations"]
+        if m_format not in ["avro", "json"] : print ("I do not yet know how to dump {m_format}")
+        if m_format == "avro" : write_binary (f"{uuid}.content.avro", m_content)
+        if m_format == "json" : write_json (f"{uuid}.content.json", m_content)
+        write_json(f"{uuid}.annotations.json", m_annotations)
     if not args["quiet"]:
         import pprint
         pprint.pprint(bundle)
 
 
+def  write_binary(filename, data):
+     with open(filename, "wb") as f: f.write(data)
+def  write_json(filename, data):
+    with open(filename, "w") as f : json.dump(data, f)
+        
 def uuids(args):
     "print a list of uuids consistent w user supplied where clause"
     db = database_api.DbFactory(args).get_db()
@@ -447,6 +464,7 @@ if __name__ == "__main__":
     parser.add_argument("-D", "--database_stanza", help="database-config-stanza", default="aws-dev-db")
     parser.add_argument("-S", "--store_stanza", help="storage config stanza", default="S3-dev")
     parser.add_argument("-w", "--write", help="write object to <uuid>.bson ", default=False, action="store_true")
+    parser.add_argument("-b", "--burst", help="burst object into message, metadata, and annotation files  ", default=False, action="store_true")
     parser.add_argument("-q", "--quiet", help="dont print object to stdout ", default=False, action="store_true")
     parser.add_argument("uuid",  help="uuid of object")
 
