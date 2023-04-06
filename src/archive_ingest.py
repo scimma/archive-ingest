@@ -89,7 +89,7 @@ def archive_ingest(args):
     consumer.connect()
     store.connect()
     #max_messages = consumer.test_topic_max_messages
-    max_messages = 100
+    max_messages = 10000
     msg_idx = 0
     for payload, metadata, annotations  in consumer.get_next():
         msg_idx += 1
