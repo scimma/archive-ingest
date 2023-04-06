@@ -104,7 +104,7 @@ class DbConnector:
                 'uuid': id,
             })
             for (key, topic,) in self.cur:
-                if topic != 'gcn.notice':
+                if topic not in ['gcn.notice','gcn.circular']:
                     details = {
                         'metadata': "Rendering message detail is not supported for this topic",
                         'message': "",
