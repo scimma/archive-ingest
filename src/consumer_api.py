@@ -284,10 +284,11 @@ class Hop_consumer(Base_consumer):
             self.local_auth_file      = ''
             self.secret_name      = config["hop-aws-secret-name"]
             self.region_name      = config["hop-aws-secret-region"]
-        self.test_topic       = config["hop-test-topic"]
+        #self.test_topic       = config["hop-testtopic"]
+        self.test_topic       = config["test_topic"]
         self.test_topic_max_messages       = config.get("hop-test-max-messages",10)  #demo hack
         self.vetoed_topics    = config["hop-vetoed-topics"]
-        self.vetoed_topics.append(self.test_topic)  # don't consume test topic   
+        #self.vetoed_topics.append(self.test_topic)  # don't consume test topic   
         self.refresh_interval = config["hop-topic-refresh-interval-seconds"]
         self.last_last_refresh_time = 0
 

@@ -107,7 +107,7 @@ hop-topic-refresh-interval-seconds = 300 #5 minutes
 hop-test-max-messages = 1
 
 [hop-prod]
-# a configuraiton for the production instance of the archiver.
+# a configuration for the production instance of the archiver.
 hop-type              = "hop"
 hop-hostname          = "kafka.scimma.org"
 hop-groupname         = "sys.archive-ingest-prod"

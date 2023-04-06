@@ -430,15 +430,19 @@ def mongo_schema(args):
     
     def print_schema_tree(d, indent = 0):
         t = type(d)
+        if t == type([]):
+            for item in d : print_schema_tree(item, indent + 1)
+            return
         if t != type({}) :
             s_all = d.__str__()
-            if len(s_all) > 30 : s_all = s_all[1:27] + "..."
-            print (">"*indent*3, indent, f"{s_all}")
+            if len(s_all) > 80 : s_all = s_all[1:27] + "..."
+            print (">"*indent*3, indent, f"{s_all} {type(d)}")
             return
         for key in d.keys():
             print (">"*indent*3, indent,  key)
             print_schema_tree(d[key], indent=indent+1)
-    
+
+    import pdb; pdb.set_trace()
     print_schema_tree(item)
 
     
