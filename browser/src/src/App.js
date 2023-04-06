@@ -144,6 +144,9 @@ const styles = {
     "&:hover": {
       cursor: "pointer"
     },
+  },
+  selectedButton: {
+    backgroundColor: "red",
   }
 };
 
@@ -324,7 +327,7 @@ class App extends Component {
     for (var i = 0; i < this.state.topics.length; i++) {
       let topic = this.state.topics[i]
       topicButtons.push(
-        <Button key={topic} value={topic} onClick={this.clickTopic}>{topic}</Button>
+        <Button key={topic} value={topic} className={key === this.state.topic ? classes.selectedButton : ''} onClick={this.clickTopic}>{topic}</Button>
       )
     }
     return (
