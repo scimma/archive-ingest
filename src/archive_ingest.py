@@ -30,6 +30,7 @@ import store_api
 import database_api
 import verify_api
 import decision_api
+import mongo_api
 import json
 from typing import Union
 
@@ -80,8 +81,11 @@ def archive_ingest(args):
     db     = database_api.DbFactory(args).get_db()
     consumer = consumer_api.ConsumerFactory(args).get_consumer()
     store  = store_api.StoreFactory(args).get_store()
+    mdb =  mongo_api.MongoFactory(args).get_mdb()
     db.connect()
+    mdb.connect()
     db.make_schema()
+    mdb.make_schema()
     consumer.connect()
     store.connect()
     max_messages = consumer.test_topic_max_messages
@@ -106,16 +110,17 @@ def archive_ingest(args):
         logging.info(metadata)
         logging.info(annotations)
         # logging.info(payload)
-        if decision_api.is_deemed_duplicate(annotations, metadata, db, store):
-            logging.info(f"Duplicate not logged {annotations}")
-            consumer.mark_done()
-            continue
+        #if decision_api.is_deemed_duplicate(annotations, metadata, db, store):
+        #    logging.info(f"Duplicate not logged {annotations}")
+        #    consumer.mark_done()
+        #    continue
         if args["test_topic"]:
             if payload["content"] == b"end": exit(0)
             if args["verify"] and verify_api.is_known_test_data(metadata):
                 verify_api.compare_known_data(payload, metadata)
         storeinfo = store.store(payload, metadata, annotations)
         logging.info(storeinfo)
+        mdb.insert(payload, metadata, annotations)
         db.insert(payload, metadata, annotations)
         verify_api.assert_ok(args, payload, metadata, annotations,  db, store)
         ## TODO: Do we want to parse message data for known schemas prior to marking the ingest done?
@@ -123,7 +128,7 @@ def archive_ingest(args):
         ## Parse message data for known schemas, where for now the Hopskotch topic is a proxy for a
         ## message schema. 
         ## TODO: This should instead be declared in the metadata via a "schema" field in the headers.
-        if metadata['topic'] == 'gcn.notice':
+        if metadata['topic'] == 'gcn.noticexxx':
             try:
                 ## Attempt to parse the message 
                 gcn_notice_data = parse_gcn_notice(payload)
@@ -204,6 +209,7 @@ if __name__ == "__main__":
     parser.add_argument("-D", "--database_stanza", help = "database-config-stanza", default="mock-db")
     parser.add_argument("-H", "--hop_stanza", help = "hopskotch config  stanza", default="mock-hop")
     parser.add_argument("-S", "--store_stanza", help = "storage config stanza", default="mock-store")
+    parser.add_argument("-M", "--mongo_stanza", help = "storage config stanza", default="mongo-demo")
     parser.add_argument("-t", "--test_topic", help = "consume only from test_topic", default=False, action="store_true")
     parser.add_argument("-v", "--verify", help = "check after ingest", action='store_true' ,default=False)
 

@@ -20,7 +20,7 @@ as provided by argparse, as part of their interface.
 
 import boto3
 import botocore
-import bson
+import simple_bson
 import logging
 import time
 import utility_api
@@ -99,7 +99,7 @@ class Base_store:
 
     def get_as_bson(self, payload, metadata, annotations):
         "return a blob of bson"
-        ret = bson.dumps({"message" : payload,
+        ret = simple_bson.dumps({"message" : payload,
                           "metadata" : metadata,
                           "annotations": annotations
                           })
@@ -228,7 +228,6 @@ class S3_store(Base_store):
     
     def list_object_versions(self, prefix):
         """ list all onecht verision under prefix"""
-        import pdb; pdb.set_trace()
         s3 = session.resource('s3')
         my_bucket = s3.Bucket('self.primary_bucket')
         for _object in my_bucket.objects.all():
@@ -237,7 +236,6 @@ class S3_store(Base_store):
         paginator = client.get_paginator('list_objects')
         result = paginator.paginate(Bucket=self.primary_bucket
                                     , Delimiter=prefix)
-        import pdb; pdb.set_trace()
         for prefix in result.search('CommonPrefixes'):
             print(prefix.get('Prefix'))
         return

@@ -19,8 +19,14 @@ import decision_api
 import consumer_api
 import datetime
 import boto3
+import json
+import bson
+import simple_bson
+import tabulate
+import pymongo
+
 ##################################
-#   utilities
+#   Utilitie
 ##################################
 
 def _delete_by_id(id, db, store=None):
@@ -211,7 +217,6 @@ def status(args):
      - what topics are being archived
      - is the service up
     """
-    import tabulate
     db = database_api.DbFactory(args).get_db()
     db.connect()
     import time
@@ -275,9 +280,10 @@ def status(args):
 
 def inspect(args):
     """inspect an object given a uuid"""
-    import bson
+    import simple_bson
     import access_api
-    accessor = access_api.Archive_access(args)
+    config = utility_api.merge_config(args)
+    accessor = access_api.Archive_access(config)
     uuid = args["uuid"]
     sql = f"select key from messages where uuid = '{uuid}'"
     key = accessor.query(sql)[0][0]
@@ -285,12 +291,26 @@ def inspect(args):
     if args["write"]:
         with open(f"{uuid}.bson", "wb") as f:
             f.write(bundle)
-    bundle = bson.loads(bundle)
+    bundle = simple_bson.loads(bundle)
+    if args["burst"]:
+        m_format = bundle["message"]["format"]
+        m_content = bundle["message"]["content"]
+        m_metadata = bundle["metadata"]
+        m_annotations = bundle["annotations"]
+        if m_format not in ["avro", "json"] : print ("I do not yet know how to dump {m_format}")
+        if m_format == "avro" : write_binary (f"{uuid}.content.avro", m_content)
+        if m_format == "json" : write_json (f"{uuid}.content.json", m_content)
+        write_json(f"{uuid}.annotations.json", m_annotations)
     if not args["quiet"]:
         import pprint
         pprint.pprint(bundle)
 
 
+def  write_binary(filename, data):
+     with open(filename, "wb") as f: f.write(data)
+def  write_json(filename, data):
+    with open(filename, "w") as f : json.dump(data, f)
+        
 def uuids(args):
     "print a list of uuids consistent w user supplied where clause"
     db = database_api.DbFactory(args).get_db()
@@ -385,6 +405,76 @@ def clean_duplicates(args):
         _delete_by_id(id, db, store=store)
 
 
+def mongo_schema(args):
+    """
+    print an outline form for the dictionary structure for
+    a document in the mongo database.
+
+    specify ither a topic or a uuid
+    for topics, the most recent event is chosen
+    """
+    import mongo_api
+    topic = args["topic"]
+    uuid  = args["uuid"] 
+    if not uuid and not topic:
+        logging.fatal("specify uuid or topic")
+        exit(1)
+    if uuid and  topic:
+        logging.fatal("specify either uuid or topic")
+        exit(1)
+    if topic: filter = {"SciMMA_topic": topic}
+    if uuid : filter = {"SciMMA_uuid":  uuid}
+    mdb =  mongo_api.MongoFactory(args).get_mdb()
+    mdb.connect()
+    item = mdb.collection.find_one(filter, sort=[("SciMMA_topic", pymongo.DESCENDING)])
+    
+    def print_schema_tree(d, indent = 0):
+        t = type(d)
+        if t == type([]):
+            for item in d : print_schema_tree(item, indent + 1)
+            return
+        if t != type({}) :
+            s_all = d.__str__()
+            if len(s_all) > 80 : s_all = s_all[1:27] + "..."
+            print (">"*indent*3, indent, f"{s_all} {type(d)}")
+            return
+        for key in d.keys():
+            print (">"*indent*3, indent,  key)
+            print_schema_tree(d[key], indent=indent+1)
+
+    import pdb; pdb.set_trace()
+    print_schema_tree(item)
+
+    
+def mongo_status(args):
+    "print a bried summary of the DB"
+    import mongo_api
+    mdb =  mongo_api.MongoFactory(args).get_mdb()
+    mdb.connect()
+    print(mdb.collection.distinct("SciMMA_topic"))
+    print(mdb.collection.distinct("format"))
+    data = []
+    for topic in mdb.collection.distinct("SciMMA_topic"):
+        filter = {"SciMMA_topic" : topic}
+        item  = mdb.collection.find_one(filter, sort=[("SciMMA_topic", pymongo.DESCENDING)])
+        count = "coming soon"
+        count = len( [i for i in mdb.collection.find(filter)] )
+        data.append( [item["SciMMA_topic"], item["SciMMA_uuid"], item["SciMMA_published_time"], count])
+    headers = ["topic", "uuid", "newest", "count"]
+    print(
+         tabulate.tabulate(data, headers=headers)
+         )
+
+    print(); print()
+    data = []
+    for f in mdb.collection.distinct("format"):
+        filter ={"format" : f}
+        item  = mdb.collection.find_one(filter, sort=[("SciMMA_topic", pymongo.DESCENDING)])
+        count = len( [i for i in mdb.collection.find(filter)] )
+        data.append( [item["format"], item["SciMMA_uuid"], item["SciMMA_published_time"], count])
+    headers = ["format", "uuid", "newest", "count"]
+    print(tabulate.tabulate(data, headers=headers))
+
 
 if __name__ == "__main__":
 
@@ -447,6 +537,7 @@ if __name__ == "__main__":
     parser.add_argument("-D", "--database_stanza", help="database-config-stanza", default="aws-dev-db")
     parser.add_argument("-S", "--store_stanza", help="storage config stanza", default="S3-dev")
     parser.add_argument("-w", "--write", help="write object to <uuid>.bson ", default=False, action="store_true")
+    parser.add_argument("-b", "--burst", help="burst object into message, metadata, and annotation files  ", default=False, action="store_true")
     parser.add_argument("-q", "--quiet", help="dont print object to stdout ", default=False, action="store_true")
     parser.add_argument("uuid",  help="uuid of object")
 
@@ -460,6 +551,18 @@ if __name__ == "__main__":
     parser = subparsers.add_parser('db_logs', help=db_logs.__doc__)
     parser.set_defaults(func=db_logs)
     parser.add_argument("-D", "--database_stanza", help="database-config-stanza", default="aws-dev-db")
+
+    # mongo print schema 
+    parser = subparsers.add_parser('mongo_schema', help=mongo_schema.__doc__)
+    parser.set_defaults(func=mongo_schema)
+    parser.add_argument("-t", "--topic", help="topic", default=None)
+    parser.add_argument("-u", "--uuid", help="uuid", default=None)
+    parser.add_argument("-M", "--mongo_stanza", help="mongo-config-stanza", default="mongo-demo")
+
+    # mongo status
+    parser = subparsers.add_parser('mongo_status', help=mongo_status.__doc__)
+    parser.set_defaults(func=mongo_status)
+    parser.add_argument("-M", "--mongo_stanza", help="mongo-config-stanza", default="mongo-demo")
 
 
     # clean test data

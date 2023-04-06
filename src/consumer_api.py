@@ -284,9 +284,12 @@ class Hop_consumer(Base_consumer):
             self.local_auth_file      = ''
             self.secret_name      = config["hop-aws-secret-name"]
             self.region_name      = config["hop-aws-secret-region"]
-        self.test_topic       = config["hop-test-topic"]
+        if "test_topic" in config:
+            self.test_topic = config["test_topic"]
+        else:
+            self.test_topic = config["hop-test-topic"]
         ## Max messages PER TOPIC
-        self.test_topic_max_messages       = config["hop-test-max-messages"]
+        self.test_topic_max_messages       = config.get("hop-test-max-messages",10)  #demo hack
         self.vetoed_topics    = config["hop-vetoed-topics"]
         if isinstance(self.test_topic, list):
             self.vetoed_topics.extend(self.test_topic)  # don't consume test topic
@@ -400,7 +403,13 @@ class Hop_consumer(Base_consumer):
             if result[1].headers is None :
                 headers = []
             else:
-                headers = [h for h in result[1].headers]
+                # Bson Librsy compatablity:
+                # tuple -> list
+                # Nuke Null values to empty string
+                headers = []
+                for key, val in result[1].headers:
+                    if val == None : val = ""
+                    headers.append([key, val]) 
 
             #copy out the metadata of interest to what we save
             metadata = {"timestamp" : result[1].timestamp,

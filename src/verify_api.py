@@ -10,7 +10,7 @@ support for verifying the Correctness of archiving.
    are stored accurately.
 
 """
-import bson
+import simple_bson
 import logging
 
 def get_known_data():
@@ -170,7 +170,7 @@ def assert_ok(args, recieved_payload, recieved_metadata, annotations, db, store)
 
     recorded_object = store.get_object(key)
     assert len(recorded_object) == size # the size of the bundle
-    recorded = bson.loads(recorded_object)
+    recorded = simple_bson.loads(recorded_object)
     recorded_metadata = recorded["metadata"]
 
     # kafka provided metadata items agree.

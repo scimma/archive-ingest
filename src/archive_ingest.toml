@@ -1,7 +1,16 @@
 [log]
 log-type = "log-tty"
 #filename = "output/hopstream.log"
-level = "DEBUG"
+level = "INFO"
+
+###########
+# mongo even store
+##########
+[mongo-demo]
+mongo-type = "local"
+mongo-ip  = "127.0.0.1"
+mongo-port = 27017
+
 
 ###########
 # database
@@ -61,6 +70,7 @@ store-log-every = 1
 
 [mock-hop]
 hop-type = "mock"
+hop-test-max-message = 100
 
 [hop-local]
 hop-type              = "hop"
@@ -80,6 +90,7 @@ hop-type                = "hop"
 hop-hostname            = "dev.hop.scimma.org"
 hop-port                = 9092
 hop-vetoed-topics = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
+hop-test-max-messages = 1
 
 [hop-prod-devel]
 # a configuration to use production hop in devleopment context
@@ -93,9 +104,10 @@ hop-until-eos         = false
 hop-vetoed-topics     = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
 hop-test-topic        = "sys.archive-ingest-test"
 hop-topic-refresh-interval-seconds = 300 #5 minutes
+hop-test-max-messages = 1
 
 [hop-prod]
-# a configuraiton for the production instance of the archiver.
+# a configuration for the production instance of the archiver.
 hop-type              = "hop"
 hop-hostname          = "kafka.scimma.org"
 hop-groupname         = "sys.archive-ingest-prod"
@@ -106,6 +118,7 @@ hop-until-eos         = false
 hop-vetoed-topics     = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
 hop-test-topic        = "sys.archive-ingest-test"
 hop-topic-refresh-interval-seconds = 300 #5 minutes
+hop-test-max-messages = 1
 
 [kcat-prod]
 hop-type   = "kcat"
