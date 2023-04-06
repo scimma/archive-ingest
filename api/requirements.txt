@@ -1,6 +1,8 @@
 psycopg2-binary
+boto3
 gunicorn[gevent]
 tzdata
 djangorestframework
 django
 django-cors-headers
+bson

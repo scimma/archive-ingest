@@ -33,3 +33,12 @@ class list_topics(APIView):
             'topics': topics,
         }
         return Response(status=status.HTTP_200_OK, data=data)
+
+class message_details(APIView):
+    def get(self, request, id):
+        message_details = db.message_details(id=id)
+        data = {
+            'id': id,
+            'details': message_details,
+        }
+        return Response(status=status.HTTP_200_OK, data=data)

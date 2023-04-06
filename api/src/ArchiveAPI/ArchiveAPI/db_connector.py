@@ -1,6 +1,9 @@
 import psycopg2
 import logging
 import os
+from .store_api import S3_store
+import bson
+import json
 
 # Configure logging
 logging.basicConfig(format='%(asctime)s [%(name)-12s] %(levelname)-8s %(message)s')
@@ -84,3 +87,54 @@ class DbConnector:
             log.error(str(e).strip())
         self.close_db_connection()
         return topics
+
+    def message_details(self, id=None):
+        store = self.get_store()
+        self.open_db_connection()
+        details = {
+            'metadata': "",
+            'message': "",
+        }
+        try:
+            self.cur.execute('''
+                SELECT key, topic
+                FROM messages
+                WHERE uuid = %(uuid)s
+            ''', {
+                'uuid': id,
+            })
+            for (key, topic,) in self.cur:
+                if topic != 'gcn.notice':
+                    details = {
+                        'metadata': "Rendering message detail is not supported for this topic",
+                        'message': "",
+                    }
+                    break
+                msg_object = store.get_object(key)
+                log.debug(msg_object)
+                bundle =  bson.loads(msg_object)
+                log.debug(bundle)
+                details['message'] = json.loads(bundle["message"]["content"].decode('utf-8'))
+                details['metadata'] = bundle["metadata"]
+                log.debug(f'''metadata:\n{details['metadata']}''')
+                log.debug(f'''message:\n{details['message']}''')
+        except Exception as e:
+            log.error(str(e).strip())
+            details = {
+                'metadata': "",
+                'message': "",
+            }
+        self.close_db_connection()
+        return details
+
+    def get_store(self):
+        config = {
+            'store-primary-bucket': os.environ.get('S3_PRIMARY_BUCKET', "hop-messages"),
+            'store-backup-bucket': os.environ.get('S3_BACKUP_BUCKET', "hop-messages-backup"),
+            'store-endpoint-url': os.environ.get('S3_ENDPOINT_URL', "http://object-store:9000"),
+            'store-region-name': os.environ.get('S3_REGION_NAME', ""),
+            'store-log-every': os.environ.get('S3_LOG_EVERY', 20),
+        }
+        store  = S3_store(config)
+        store.connect()
+        return store
