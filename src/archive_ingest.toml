@@ -72,7 +72,7 @@ hop-until-eos         = false
 hop-vetoed-topics     = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
 hop-test-topic        = "gcn.notice,igwn.gwalert,gcn.circular,hermes.message,hermes.test"
 hop-topic-refresh-interval-seconds = 300 #5 minutes
-hop-test-max-messages = 100
+hop-test-max-messages = 20
 
 [hop-devel-devel]
 # a configuration to use the development hop (not complete)
