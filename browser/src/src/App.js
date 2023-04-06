@@ -10,6 +10,11 @@ import {
   Grid,
   Button,
   ButtonGroup,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
@@ -155,12 +160,18 @@ class App extends Component {
           field: 'timestamp',
           sort: 'desc',
         }],
+      details: {
+        open: false,
+        id: null,
+        bodyText: "",
+      }
     }
     this.setTopic = this.setTopic.bind(this);
     this.getTopics = this.getTopics.bind(this);
     this.listTopic = this.listTopic.bind(this);
     this.setSortModel = this.setSortModel.bind(this);
     this.clickTopic = this.clickTopic.bind(this);
+    this.closeDetails = this.closeDetails.bind(this);
   }
 
   async listTopic() {
@@ -225,7 +236,7 @@ class App extends Component {
       type: 'dateTime',
       sortable: true,
       flex: 1,
-      minWidth: 100,
+      minWidth: 50,
     },
     {
       field: 'id',
@@ -233,7 +244,7 @@ class App extends Component {
       description: 'Unique message ID',
       sortable: false,
       flex: 1,
-      minWidth: 100
+      minWidth: 50
     },
     {
       field: 'key',
@@ -241,7 +252,7 @@ class App extends Component {
       description: 'Message key',
       sortable: true,
       flex: 1,
-      minWidth: 100
+      minWidth: 50
     },
   ]
 
@@ -260,6 +271,41 @@ class App extends Component {
     }, () => {
       // console.log(`topic: ${selectedTopic}`)
       this.listTopic()
+    })
+  }
+
+	async fetchDetails(id) {
+    const endpoint = `${config.protocol}://${config.hostname}:${config.port}${config.baseApiUrl}/message/${id}`;
+    let response = await fetch(endpoint, {
+      method: "GET",
+    });
+    if (response.status >= 200 && response.status <= 299) {
+      let data = await response.json();
+      // console.log( JSON.stringify(data, null, 2));
+      let metadataJson = JSON.stringify(data.details.metadata, null, 2)
+      // console.log(metadataJson);
+      let messageJson = JSON.stringify(data.details.message, null, 2)
+      // console.log(messageJson);
+      this.setState({
+        details: {
+          // ...details,
+          id: id,
+          bodyText: `metadata:\n${metadataJson}\n\nmessage:\n${messageJson}`,
+          open: true,
+        }
+      })
+    } else {
+      console.log(JSON.stringify(response.statusText, null, 2));
+    }
+  }
+
+  closeDetails() {
+    this.setState({
+      details: {
+        id: null,
+        bodyText: "",
+        open: false,
+      }
     })
   }
 
@@ -342,8 +388,8 @@ class App extends Component {
                     }}
                   >
                     <ButtonGroup
-                      orientation="vertical"
-                      aria-label="vertical outlined button group"
+                      orientation="horizontal"
+                      aria-label="horizontal outlined button group"
                       variant="outlined"
                     >
                       {topicButtons}
@@ -358,18 +404,44 @@ class App extends Component {
               </Grid>
             </Container>
             <Container className={classes.messageTableContainer}>
-              <div style={{ height: '70vh', width: '100%' }}>
                 <DataGrid
+                  sx={{
+                    height: '60vh',
+                    width: '100%',
+                  }}
                   rows={this.state.messages}
                   columns={this.columns}
                   // autoHeight
                   autoPageSize={false}
                   pageSizeOptions={[20, 50, 100]}
-                  // checkboxSelection
+                  onRowClick={(params, event, details) => {this.fetchDetails(params.id)}}
                   onSortModelChange={(model) => this.setSortModel(model)}
                   sortModel={this.state.sortModel}
                 />
-              </div>
+                      
+              <Dialog
+                open={this.state.details.open}
+                onClose={this.closeDetails}
+                scroll={'paper'}
+                aria-labelledby="scroll-dialog-title"
+                aria-describedby="scroll-dialog-description"
+                fullWidth={true}
+                maxWidth="lg"
+              >
+                <DialogTitle id="scroll-dialog-title">Message ID: <code>{this.state.details.id}</code></DialogTitle>
+                <DialogContent dividers={true}>
+                  <DialogContentText
+                    id="scroll-dialog-description"
+                    // ref={descriptionElementRef}
+                    tabIndex={-1}
+                  >
+                    <pre sx={{whiteSpace: "pre-wrap"}}>{this.state.details.bodyText}</pre>
+                  </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                  <Button onClick={this.closeDetails}>Close</Button>
+                </DialogActions>
+              </Dialog>
             </Container>
           </Box>
         </Box>
