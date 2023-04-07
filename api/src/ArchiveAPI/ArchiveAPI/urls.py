@@ -18,13 +18,14 @@ from django.urls import path, include
 import os
 from . import views
 
-base_path = os.environ.get('URL_BASE_PATH', '').strip('/')
+base_path = os.environ.get('DJANGO_URL_BASE_PATH', '').strip('/')
 trailing_slash = ''
 if base_path:
     trailing_slash = '/'
 
 urlpatterns = [
     path(f'''{base_path}{trailing_slash}admin/''', admin.site.urls),
+    path(f'''{base_path}{trailing_slash}api/topic/range''', views.list_topic_range.as_view(), name="get-messages-range"),
     path(f'''{base_path}{trailing_slash}api/topic/<str:topic>''', views.list_topic.as_view(), name="get-messages"),
     path(f'''{base_path}{trailing_slash}api/topics''', views.list_topics.as_view(), name="get-topics"),
     path(f'''{base_path}{trailing_slash}api/message/<str:id>''', views.message_details.as_view(), name="get-message"),
