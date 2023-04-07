@@ -110,10 +110,10 @@ def archive_ingest(args):
         logging.info(metadata)
         logging.info(annotations)
         # logging.info(payload)
-        #if decision_api.is_deemed_duplicate(annotations, metadata, db, store):
-        #    logging.info(f"Duplicate not logged {annotations}")
-        #    consumer.mark_done()
-        #    continue
+        if decision_api.is_deemed_duplicate(annotations, metadata, db, store):
+           logging.info(f"Duplicate not logged {annotations}")
+           consumer.mark_done()
+           continue
         if args["test_topic"]:
             if payload["content"] == b"end": exit(0)
             if args["verify"] and verify_api.is_known_test_data(metadata):

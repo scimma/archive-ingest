@@ -364,7 +364,15 @@ class Hop_consumer(Base_consumer):
     def authorize(self):
         if self.local_auth_file:
             self.username = os.environ['HOP_USERNAME']
-            self.auth  = hop.auth.load_auth(self.local_auth_file)
+            try:
+                self.auth  = hop.auth.Auth(
+                    user=self.username,
+                    password=os.environ['HOP_PASSWORD'],
+                    host="kafka.scimma.org:9092",
+                    ssl_ca_location="/usr/local/lib/python3.6/site-packages/certifi/cacert.pem",
+                )
+            except:
+                self.auth  = hop.auth.load_auth(self.local_auth_file)
         else:
             "authorize using AWS secrets"
             from hop.auth import Auth
