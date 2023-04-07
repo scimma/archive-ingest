@@ -89,7 +89,7 @@ def archive_ingest(args):
     consumer.connect()
     store.connect()
     max_messages = consumer.test_topic_max_messages
-    num_topics = len(consumer.test_topic.split(','))
+    num_topics = len(consumer.test_topics)
     msg_count = {}
     for payload, metadata, annotations in consumer.get_next():
         if max_messages > 0:

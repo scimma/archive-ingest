@@ -284,17 +284,15 @@ class Hop_consumer(Base_consumer):
             self.local_auth_file      = ''
             self.secret_name      = config["hop-aws-secret-name"]
             self.region_name      = config["hop-aws-secret-region"]
-        if "test_topic" in config:
-            self.test_topic = config["test_topic"]
-        else:
-            self.test_topic = config["hop-test-topic"]
+        self.test_topic = config['test_topic']
+        self.test_topics = []
+        if "hop-test-topic" in config:
+            self.test_topics = config["hop-test-topic"].split(',')
         ## Max messages PER TOPIC
         self.test_topic_max_messages       = config.get("hop-test-max-messages",10)  #demo hack
         self.vetoed_topics    = config["hop-vetoed-topics"]
-        if isinstance(self.test_topic, list):
-            self.vetoed_topics.extend(self.test_topic)  # don't consume test topic
-        else:
-            self.vetoed_topics.append(self.test_topic)  # don't consume test topic
+        if not self.test_topic:
+            self.vetoed_topics.extend(self.test_topics)  # don't consume test topics
         self.refresh_interval = config["hop-topic-refresh-interval-seconds"]
         self.last_last_refresh_time = 0
 
@@ -324,7 +322,7 @@ class Hop_consumer(Base_consumer):
         self.last_last_refresh_time = time.time()
         if self.test_topic:
             # trivial refresh this topic supports  test and debug.
-            topics = self.test_topic
+            topics = ','.join(self.test_topics)
             self.url = (f"{self.base_url}{topics}")
             logging.info(f'''Consuming hop-test-topic URL: "{self.url}"''')
         else:

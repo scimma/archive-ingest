@@ -101,7 +101,7 @@ services:
           echo waiting for db_ready...;
           sleep 2;
         done;
-        bash copy_auth.sh && ./archive_ingest.py run -H hop-local -D local-db -S local-store && sleep 1000d;
+        bash copy_auth.sh && ./archive_ingest.py run -H hop-local -D local-db -S local-store --test_topic && sleep 1000d;
     volumes:
       - ./src:/root/src
       - waitforit:/tmp
