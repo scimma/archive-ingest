@@ -128,7 +128,8 @@ def archive_ingest(args):
         ## Parse message data for known schemas, where for now the Hopskotch topic is a proxy for a
         ## message schema. 
         ## TODO: This should instead be declared in the metadata via a "schema" field in the headers.
-        if metadata['topic'] == 'gcn.noticexxx':
+        ## Disable proof-of-concept gcn.notice parser now that MongoDB is storing message data
+        if False and metadata['topic'] == 'gcn.notice':
             try:
                 ## Attempt to parse the message 
                 gcn_notice_data = parse_gcn_notice(payload)
