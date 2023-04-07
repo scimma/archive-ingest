@@ -8,6 +8,7 @@ import io
 from avro.datafile import DataFileReader
 from avro.io import DatumReader
 import boto3
+from datetime import datetime, timedelta
 
 # Configure logging
 logging.basicConfig(format='%(asctime)s [%(name)-12s] %(levelname)-8s %(message)s')
@@ -63,22 +64,58 @@ class DbConnector:
                 self.cnx = None
                 return False, error
 
+    def list_time_range(self, start_date='', end_date=''):
+        self.open_db_connection()
+        messages = []
+        try:
+            # last_day_date_time = datetime.now() - timedelta(days=7)
+            # log.debug(last_day_date_time.strftime('%Y-%m-%d %H'))
+            # last_day_date_time_sec = 1000 * int(last_day_date_time.strftime('%s'))
+            log.debug(f'''start_date: {start_date}''')
+            log.debug(f'''end_date: {end_date}''')
+            start_date = datetime.strptime(start_date, '%Y-%m-%d')
+            end_date = datetime.strptime(end_date, '%Y-%m-%d')
+            start_date_ms = 1000 * int(start_date.strftime('%s'))
+            end_date_ms = 1000 * int(end_date.strftime('%s'))
+            log.debug(f'''start_date_ms: {start_date_ms}''')
+            log.debug(f'''end_date_ms: {end_date_ms}''')
+            self.cur.execute('''
+                SELECT uuid, timestamp, key, topic
+                FROM messages
+                WHERE timestamp >= %(mintime)s AND timestamp <= %(maxtime)s 
+            ''', {
+                'mintime': start_date_ms,
+                'maxtime': end_date_ms,
+            })
+            for (uuid, timestamp, key, topic) in self.cur:
+                messages.append({
+                    'uuid': uuid,
+                    'timestamp': timestamp,
+                    'key': key,
+                    'topic': topic,
+                })
+        except Exception as e:
+            log.error(str(e).strip())
+        self.close_db_connection()
+        return messages
+
     def list_topic(self, topic):
         self.open_db_connection()
         messages = []
         try:
             self.cur.execute('''
-                SELECT uuid, timestamp, key
+                SELECT uuid, timestamp, key, topic
                 FROM messages
                 WHERE topic = %(topic)s
             ''', {
                 'topic': topic,
             })
-            for (uuid, timestamp, key) in self.cur:
+            for (uuid, timestamp, key, topic) in self.cur:
                 messages.append({
                     'uuid': uuid,
                     'timestamp': timestamp,
                     'key': key,
+                    'topic': topic,
                 })
         except Exception as e:
             log.error(str(e).strip())

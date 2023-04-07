@@ -23,6 +23,18 @@ mongodb = MongoDbConnector(
     port=os.environ.get('MONGO_DB_PORT', '27017'),
 )
 
+class list_topic_range(APIView):
+    def post(self, request):
+        if 'start_date' not in request.data or 'end_date' not in request.data:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        
+        messages = db.list_time_range(start_date=request.data['start_date'],end_date=request.data['end_date'])
+        data = {
+            'topic': "",
+            'messages': messages,
+        }
+        return Response(status=status.HTTP_200_OK, data=data)
+
 class list_topic(APIView):
     def get(self, request, topic):
         if not topic:
