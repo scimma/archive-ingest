@@ -8,7 +8,7 @@ ARG_BUILD="false"
 ARG_LOGS="false"
 ARG_DOWN="false"
 ARG_RESET="false"
-CONFIG_FILE=".env"
+CONFIG_FILE="archiver/.env"
 PARAMS=""
 while (( "$#" )); do
   case "$1" in
@@ -69,21 +69,21 @@ done
 eval set -- "$PARAMS"
 
 
-## Initialize environment config file
-if [[ "${CONFIG_FILE}" == ".env" ]]
-then
-  if [[ ! -f "${CONFIG_FILE}" ]]; then
-    echo "Environment config file \"${CONFIG_FILE}\" missing. Initializing..."
-    cp env.tpl "${CONFIG_FILE}"
-  else
-    echo "Environment config file \"${CONFIG_FILE}\" already exists."
-  fi
-else
-  if [[ ! -f "${CONFIG_FILE}" ]]; then
-    echo "Specified config file \"${CONFIG_FILE}\" not found. Aborting."
-    exit 1
-  fi
-fi
+# ## Initialize environment config file
+# if [[ "${CONFIG_FILE}" == "archiver/.env" ]]
+# then
+#   if [[ ! -f "${CONFIG_FILE}" ]]; then
+#     echo "Environment config file \"${CONFIG_FILE}\" missing. Initializing..."
+#     cp env.tpl "${CONFIG_FILE}"
+#   else
+#     echo "Environment config file \"${CONFIG_FILE}\" already exists."
+#   fi
+# else
+#   if [[ ! -f "${CONFIG_FILE}" ]]; then
+#     echo "Specified config file \"${CONFIG_FILE}\" not found. Aborting."
+#     exit 1
+#   fi
+# fi
 
 ## Detect the Docker Compose base command
 dc_version="$(docker-compose version 2>/dev/null)"

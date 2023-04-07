@@ -18,7 +18,7 @@ services:
   object-store:
     image: quay.io/minio/minio:RELEASE.2023-01-31T02-24-19Z
     container_name: hop-archiver-object-store
-    env_file: .env
+    env_file: archiver/.env
     ports:
       - 127.0.0.1:9000:9000
       - 127.0.0.1:9001:9001
@@ -37,7 +37,7 @@ services:
   mongo-db:
     image: mongo:4.4.19
     container_name: mongo-db
-    env_file: .env
+    env_file: archiver/.env
     ports:
       - 27017:27017
     networks:
@@ -50,7 +50,7 @@ services:
   archive-db:
     image: bitnami/postgresql:latest
     container_name: archive-db
-    env_file: .env
+    env_file: archiver/.env
     networks:
       - internal
     volumes:
@@ -61,7 +61,7 @@ services:
   archiver-init-db:
     image: bitnami/postgresql:latest
     container_name: hop-archiver-db-init
-    env_file: .env
+    env_file: archiver/.env
     depends_on:
       - archive-db
     networks:
@@ -71,8 +71,6 @@ services:
       - -c
       - >
         until pg_isready \
-            --username=${POSTGRESQL_USERNAME} \
-            --dbname=${POSTGRESQL_DATABASE} \
             --host=archive-db \
             --port=5432;
           do echo waiting for database;
@@ -88,11 +86,20 @@ services:
   archiver:
     image: hub.ncsa.illinois.edu/scimma/archive-ingest:latest
     build:
-      context: .
+      context: ./archiver/
     container_name: hop-archiver
-    env_file: .env
+    env_file: archiver/.env
     networks:
       - internal
+    # command:
+    #   - '/bin/bash'
+    #   - '-c'
+    #   - >
+    #     while [[ ! -f /tmp/db_ready ]]; do
+    #       echo waiting for db_ready...;
+    #       sleep 2;
+    #     done;
+    #     bash copy_auth.sh && ./archive_ingest.py run -H hop-local -D local-db -S local-store --test_topic && sleep 1000d;
     command:
       - '/bin/bash'
       - '-c'
@@ -101,9 +108,9 @@ services:
           echo waiting for db_ready...;
           sleep 2;
         done;
-        bash copy_auth.sh && ./archive_ingest.py run -H hop-local -D local-db -S local-store --test_topic && sleep 1000d;
+        ./archive_ingest.py run -H hop-local -D local-db -S local-store --test_topic && sleep 1000d;
     volumes:
-      - ./src:/root/src
+      - ./archiver/src:/root/src
       - waitforit:/tmp
   ## 
   ## Archive API server Django database
@@ -120,7 +127,7 @@ services:
   ## Archive API initialization: Django database migration
   ##
   archive-api-init-django-migrate:
-    image: hub.ncsa.illinois.edu/scimma/archive-api:dev
+    image: hub.ncsa.illinois.edu/scimma/archive-api:latest
     build:
       context: ./api/
     container_name: archive-api-init-django-migrate
@@ -144,7 +151,7 @@ services:
   ## Archive API initialization: create Django admin account if it does not exist
   ##
   archive-api-init-django-createsuperuser:
-    image: hub.ncsa.illinois.edu/scimma/archive-api:dev
+    image: hub.ncsa.illinois.edu/scimma/archive-api:latest
     build:
       context: ./api/
     container_name: archive-api-init-django-createsuperuser
@@ -167,7 +174,7 @@ services:
   ## Archive API server
   ##
   archive-api-server:
-    image: hub.ncsa.illinois.edu/scimma/archive-api:dev
+    image: hub.ncsa.illinois.edu/scimma/archive-api:latest
     build:
       context: ./api/
     container_name: archive-api-server
@@ -192,7 +199,7 @@ services:
   ## Archive browser web app
   ##
   archive-browser:
-    image: hub.ncsa.illinois.edu/scimma/archive-browser:dev
+    image: hub.ncsa.illinois.edu/scimma/archive-browser:latest
     build:
       context: ./browser/
     container_name: archive-browser
@@ -201,9 +208,9 @@ services:
       - 127.0.0.1:3000:3000
     networks:
       - internal
-    # command:
-    #   - '/bin/bash'
-    #   - '-c'
-    #   - yarn start
+    command:
+      - '/bin/bash'
+      - '-c'
+      - yarn start
     volumes:
       - ./browser/src:/usr/src/app
