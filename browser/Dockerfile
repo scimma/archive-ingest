@@ -8,14 +8,14 @@ RUN yarn install
 COPY src/src ./src
 COPY src/public ./public
 # build application
-ARG REMOTE_HOSTNAME="localhost"
-ENV REACT_APP_REMOTE_HOSTNAME "$REMOTE_HOSTNAME"
+# ARG REMOTE_HOSTNAME="localhost"
+# ENV REACT_APP_REMOTE_HOSTNAME "$REMOTE_HOSTNAME"
 
 ## Use in development to make build faster:
 ##
-CMD ["yarn", "start"]
+# CMD ["yarn", "start"]
 
 ## Use in production:
 ##
-# RUN yarn build
-# CMD ["yarn", "serve"]
+RUN yarn build
+CMD ["yarn", "serve"]
