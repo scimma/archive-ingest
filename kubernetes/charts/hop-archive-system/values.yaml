@@ -1,0 +1,96 @@
+archiveDb:
+  fullnameOverride: archive-db
+  global:
+    postgresql:
+      auth:
+        username: "archive"
+        database: "archive"
+        existingSecret: "archive-db"
+        secretKeys:
+          adminPasswordKey: "password-admin"
+          userPasswordKey: "password-user"
+          replicationPasswordKey: "password-replication"
+  primary:
+    persistence:
+      storageClass: longhorn
+      size: 10Gi
+      subPath: "data"
+
+archiveApiDb:
+  fullnameOverride: archive-api-db
+  global:
+    postgresql:
+      auth:
+        ## Use the same credentials as the archive database because why not?
+        username: "archive"
+        database: "archive"
+        existingSecret: "archive-db"
+        secretKeys:
+          adminPasswordKey: "password-admin"
+          userPasswordKey: "password-user"
+          replicationPasswordKey: "password-replication"
+  primary:
+    persistence:
+      storageClass: longhorn
+      size: 200Mi
+      subPath: "data"
+
+mongoDb:
+  fullnameOverride: mongo-db
+  auth:
+    existingSecret: "mongo-db"
+    usernames:
+    - dummy
+    databases:
+    - "SCiMMA_archive"
+  collection: "SCiMMA_public"
+
+archiver:
+  image:
+    repository: "hub.ncsa.illinois.edu/scimma/archive-ingest"
+    tag: "latest"
+  deployment:
+    annotations: {}
+  hop:
+    auth:
+      existingSecret: "hop-auth"
+      secretKeys:
+        userNameKey: "username"
+        userPasswordKey: "password"
+
+archiveApi:
+  debug: "true"
+  image:
+    repository: "hub.ncsa.illinois.edu/scimma/archive-api"
+    tag: "latest"
+  deployment:
+    annotations: {}
+  ingress:
+    hostname: "explore.archive.scimma.org"
+    basePath: "api"
+    tls: true
+    annotations:
+      kubernetes.io/tls-acme: "true"
+      traefik.ingress.kubernetes.io/router.tls: "true"
+  django:
+    admin:
+      email: admin@localhost
+      auth:
+        username: "admin"
+        existingSecret: "archive-api"
+        secretKeys:
+          adminPasswordKey: "django-admin-password"
+
+archiveBrowser:
+  image:
+    repository: "hub.ncsa.illinois.edu/scimma/archive-browser"
+    tag: "latest"
+  deployment:
+    annotations: {}
+  ingress:
+    hostname: "explore.archive.scimma.org"
+    basePath: ""
+    tls: true
+    annotations:
+      kubernetes.io/tls-acme: "true"
+      traefik.ingress.kubernetes.io/router.tls: "true"

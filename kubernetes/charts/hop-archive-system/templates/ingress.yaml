@@ -1,0 +1,54 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: archive-api
+  {{- with .Values.archiveApi.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.archiveApi.ingress.tls }}
+  tls:
+    - hosts:
+      - {{ .Values.archiveApi.ingress.hostname }}
+      secretName: {{ .Values.archiveApi.ingress.hostname | replace "." "-" | printf "%s-tls" | quote }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.archiveApi.ingress.hostname | quote }}
+      http:
+        paths:
+        - backend:
+            service:
+              name: "archive-api"
+              port:
+                number: 80
+          path: /{{ .Values.archiveApi.ingress.basePath }}
+          pathType: Prefix
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: archive-browser
+  {{- with .Values.archiveBrowser.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.archiveBrowser.ingress.tls }}
+  tls:
+    - hosts:
+      - {{ .Values.archiveBrowser.ingress.hostname }}
+      secretName: {{ .Values.archiveBrowser.ingress.hostname | replace "." "-" | printf "%s-tls" | quote }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.archiveBrowser.ingress.hostname | quote }}
+      http:
+        paths:
+        - backend:
+            service:
+              name: "archive-browser"
+              port:
+                number: 80
+          path: /{{ .Values.archiveBrowser.ingress.basePath }}
+          pathType: Prefix

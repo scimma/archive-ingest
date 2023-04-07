@@ -1,0 +1,18 @@
+apiVersion: v2
+name: hop-archive-system
+description: SCiMMA Hopskotch topic archiving system
+type: application
+version: 0.1.0
+dependencies:
+- name: postgresql
+  alias: archiveDb
+  version: "12.2.x"
+  repository: https://charts.bitnami.com/bitnami
+- name: postgresql
+  alias: archiveApiDb
+  version: "12.2.x"
+  repository: https://charts.bitnami.com/bitnami
+- name: mongodb
+  alias: mongoDb
+  version: "13.9.x"
+  repository: https://charts.bitnami.com/bitnami

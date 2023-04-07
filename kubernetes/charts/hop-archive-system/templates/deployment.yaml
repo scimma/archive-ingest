@@ -1,0 +1,133 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: archiver
+  # {{- with .Values.archiver.deployment.annotations }}
+  # annotations:
+  #   {{- toYaml . | nindent 4 }}
+  # {{- end }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: archiver
+  template:
+    metadata:
+      labels:
+        app: archiver
+    spec:
+      initContainers:
+      - image: bitnami/postgresql:15.2.0-debian-11-r16
+        name: wait-for-db
+        command:
+          - sh
+          - -c
+          - >
+            until pg_isready \
+                --username={{ .Values.archiveDb.global.postgresql.auth.username | quote }} \
+                --dbname={{ .Values.archiveDb.global.postgresql.auth.database | quote }} \
+                --host={{ .Values.archiveDb.fullnameOverride | quote }} \
+                --port=5432;
+              do echo waiting for database;
+              sleep 2;
+              done;
+      containers:
+      - name: archiver
+        image: {{ .Values.archiver.image.repository }}:{{ .Values.archiver.image.tag }}
+        env:
+          {{- include "archiver.env" . | nindent 10 }}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: archive-api
+  {{- with .Values.archiveApi.deployment.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: archive-api
+  template:
+    metadata:
+      labels:
+        app: archive-api
+    spec:
+      initContainers:
+        - image: bitnami/postgresql:15.2.0-debian-11-r16
+          name: wait-for-db
+          command:
+            - sh
+            - -c
+            - >
+              until pg_isready \
+                  --username={{ .Values.archiveApiDb.global.postgresql.auth.username | quote }} \
+                  --dbname={{ .Values.archiveApiDb.global.postgresql.auth.database | quote }} \
+                  --host={{ .Values.archiveApiDb.fullnameOverride | quote }} \
+                  --port=5432;
+                do echo waiting for database;
+                sleep 2;
+                done;
+        - name: django-apply-db-migrations
+          image: {{ .Values.archiveApi.image.repository }}:{{ .Values.archiveApi.image.tag }}
+          env:
+            {{- include "api.env" . | nindent 10 }}
+          command:
+            - '/bin/bash'
+            - '-c'
+            - python manage.py migrate --no-input && python manage.py makemigrations --no-input
+        - name: django-createsuperuser
+          image: {{ .Values.archiveApi.image.repository }}:{{ .Values.archiveApi.image.tag }}
+          env:
+            {{- include "api.env" . | nindent 10 }}
+          command:
+            - '/bin/bash'
+            - '-c'
+            - 'bash ../provisionsuperuser.sh'
+      containers:
+        - name: archive-api
+          image: {{ .Values.archiveApi.image.repository }}:{{ .Values.archiveApi.image.tag }}
+          env:
+            {{- include "api.env" . | nindent 10 }}
+          command:
+            - gunicorn
+            - --bind=0.0.0.0:8000
+            - --worker-class=gevent
+            - --workers={{ .Values.gunicornWorkers | default 2 }}
+            - --timeout={{ .Values.gunicornTimeout | default 300 }}
+            - --access-logfile=-
+            - --error-logfile=-
+            - ArchiveAPI.wsgi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: archive-browser
+  {{- with .Values.archiveBrowser.deployment.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: archive-browser
+  template:
+    metadata:
+      labels:
+        app: archive-browser
+    spec:
+      containers:
+        - name: archive-browser
+          image: {{ .Values.archiveBrowser.image.repository }}:{{ .Values.archiveBrowser.image.tag }}
+          env:
+            {{- include "browser.env" . | nindent 10 }}
+          command:
+            - '/bin/bash'
+            - '-c'
+            - yarn serve
