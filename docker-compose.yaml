@@ -13,7 +13,7 @@ volumes:
 
 services:
   ## 
-  ## MinIO: S3-compatible object store for archived messages
+  ## MinIO: S3-compatible object store for archived message data
   ##
   object-store:
     image: quay.io/minio/minio:RELEASE.2023-01-31T02-24-19Z
@@ -32,7 +32,7 @@ services:
     volumes:
       - objectstoredata:/data
   ## 
-  ## MongoDB: document database for archived messages
+  ## MongoDB: document database for archived message data
   ##
   mongo-db:
     image: mongo:4.4.19
@@ -45,7 +45,7 @@ services:
     volumes:
       - mongodbdata:/data
   ## 
-  ## Archive database for storing Hopskotch messages
+  ## Archive database for storing Hopskotch message metadata from public topics
   ##
   archive-db:
     image: bitnami/postgresql:latest
@@ -56,7 +56,7 @@ services:
     volumes:
       - dbdata:/bitnami/postgresql
   ## 
-  ## Semaphore to await archive database availability
+  ## Archiver initialization: Semaphore to await Archive database availability
   ##
   archiver-init-db:
     image: bitnami/postgresql:latest
@@ -83,10 +83,10 @@ services:
       - waitforit:/tmp
   ## 
   ## Archiver system that ingests public Hopskotch topics and stores them 
-  ## in the Archive database
+  ## in the Archive database, the S3 store, and the Mongo database
   ##
   archiver:
-    image: scimma/archive-ingest:dev
+    image: hub.ncsa.illinois.edu/scimma/archive-ingest:latest
     build:
       context: .
     container_name: hop-archiver
@@ -120,7 +120,7 @@ services:
   ## Archive API initialization: Django database migration
   ##
   archive-api-init-django-migrate:
-    image: scimma/archive-api:dev
+    image: hub.ncsa.illinois.edu/scimma/archive-api:dev
     build:
       context: ./api/
     container_name: archive-api-init-django-migrate
@@ -144,7 +144,7 @@ services:
   ## Archive API initialization: create Django admin account if it does not exist
   ##
   archive-api-init-django-createsuperuser:
-    image: scimma/archive-api:dev
+    image: hub.ncsa.illinois.edu/scimma/archive-api:dev
     build:
       context: ./api/
     container_name: archive-api-init-django-createsuperuser
@@ -167,7 +167,7 @@ services:
   ## Archive API server
   ##
   archive-api-server:
-    image: scimma/archive-api:dev
+    image: hub.ncsa.illinois.edu/scimma/archive-api:dev
     build:
       context: ./api/
     container_name: archive-api-server
@@ -192,7 +192,7 @@ services:
   ## Archive browser web app
   ##
   archive-browser:
-    image: scimma/archive-browser:dev
+    image: hub.ncsa.illinois.edu/scimma/archive-browser:dev
     build:
       context: ./browser/
     container_name: archive-browser

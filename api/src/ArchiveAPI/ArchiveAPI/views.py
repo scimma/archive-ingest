@@ -3,10 +3,9 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
 import os
-from .db_connector import DbConnector
+from .db_connector import DbConnector, MongoDbConnector
 
 
-# Get global instance of the job handler database interface
 db = DbConnector(
     hostname=os.environ.get('ARCHIVE_DB_HOST', 'archive-db'),
     username=os.environ.get('ARCHIVE_DB_USERNAME', 'archiver'),
@@ -14,6 +13,15 @@ db = DbConnector(
     database=os.environ.get('ARCHIVE_DB_DATABASE', 'archiver'),
 )
 
+# Get global instance of the job handler database interface
+mongodb = MongoDbConnector(
+    hostname=os.environ.get('MONGO_DB_HOSTNAME', 'mongo-db'),
+    username=os.environ.get('MONGO_DB_USERNAME', 'root'),
+    password=os.environ.get('MONGO_DB_PASSWORD', 'password'),
+    database=os.environ.get('MONGO_DB_DATABASE', 'SCiMMA_archive'),
+    collection=os.environ.get('MONGO_DB_COLLECTION', 'SCiMMA_public'),
+    port=os.environ.get('MONGO_DB_PORT', '27017'),
+)
 
 class list_topic(APIView):
     def get(self, request, topic):
@@ -36,7 +44,8 @@ class list_topics(APIView):
 
 class message_details(APIView):
     def get(self, request, id):
-        message_details = db.message_details(id=id)
+        message_details = mongodb.message_details(id=id)
+        # message_details = db.message_details(id=id)
         data = {
             'id': id,
             'details': message_details,

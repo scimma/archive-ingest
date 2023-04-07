@@ -11,7 +11,7 @@ COPY src/public ./public
 ARG REMOTE_HOSTNAME="localhost"
 ENV REACT_APP_REMOTE_HOSTNAME "$REMOTE_HOSTNAME"
 
-## Use in development:
+## Use in development to make build faster:
 ##
 CMD ["yarn", "start"]
 

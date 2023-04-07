@@ -1,8 +1,10 @@
 psycopg2-binary
+pymongo
 boto3
 gunicorn[gevent]
 tzdata
 djangorestframework
 django
 django-cors-headers
-bson
+simple-bson
+avro
