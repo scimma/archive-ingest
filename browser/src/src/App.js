@@ -18,11 +18,15 @@ import {
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import { DataGrid } from '@mui/x-data-grid';
+import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import { withStyles } from '@mui/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import config from "./app.config";
 // import SelectTopic from './SelectTopic.jsx'
+import TextField from '@mui/material/TextField';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
 
 const theme = createTheme({
@@ -154,6 +158,10 @@ class App extends Component {
 
   constructor(props) {
     super(props);
+		let startDate = new Date();
+    startDate.setDate(startDate.getDate() - 7);
+		let endDate = new Date();
+    endDate.setDate(endDate.getDate() + 1);
     this.state = {
       topic: null,
       topics: [],
@@ -167,27 +175,78 @@ class App extends Component {
         open: false,
         id: null,
         bodyText: "",
-      }
+      },
+      startDate: startDate,
+      endDate: endDate,
     }
+    this.setStartDate = this.setStartDate.bind(this);
+    this.setEndDate = this.setEndDate.bind(this);
     this.setTopic = this.setTopic.bind(this);
     this.getTopics = this.getTopics.bind(this);
     this.listTopic = this.listTopic.bind(this);
     this.setSortModel = this.setSortModel.bind(this);
     this.clickTopic = this.clickTopic.bind(this);
     this.closeDetails = this.closeDetails.bind(this);
+    this.convertDateString = this.convertDateString.bind(this);
+  }
+
+
+	setStartDate(date) {
+		this.setState({
+			startDate: date
+		})
+	}
+
+	setEndDate(date) {
+		this.setState({
+			endDate: date
+		})
+	}
+
+	convertDateString(date) {
+		if (date == null) {
+			return date
+		} else {
+			return date.toISOString().split('T')[0]
+		}
+	}
+
+  async listInDateRange() {
+    const endpoint = `${config.protocol}://${config.hostname}:${config.port}${config.baseApiUrl}/topic/range`;
+    const payload = {
+      start_date: this.convertDateString(this.state.startDate),
+      end_date: this.convertDateString(this.state.endDate),
+    };
+    let response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload)
+    });
+    if (response.status >= 200 && response.status <= 299) {
+      let data = await response.json();
+      // console.log(JSON.stringify(data, null, 2));
+      let messages = data.messages.map((message, index, array) => {
+        return {
+          id: message['uuid'],
+          timestamp: new Date(message['timestamp']),
+          key: message['key'],
+          topic: message['topic'],
+        }
+      });
+      this.setState({
+        messages: messages,
+      })
+    } else {
+      console.log(JSON.stringify(response.statusText, null, 2));
+    }
   }
 
   async listTopic() {
     const endpoint = `${config.protocol}://${config.hostname}:${config.port}${config.baseApiUrl}/topic/${this.state.topic}`;
-    // const payload = {
-    //   param1: this.state.topic,
-    //   param2: "param1 is the selected topic",
-    // };
     let response = await fetch(endpoint, {
       method: "GET",
-      // headers: {
-      //   "Content-Type": "application/json",
-      // },
       // body: JSON.stringify(payload)
     });
     // this.handleResponselistTopic(response)
@@ -199,6 +258,7 @@ class App extends Component {
           id: message['uuid'],
           timestamp: new Date(message['timestamp']),
           key: message['key'],
+          topic: message['topic'],
         }
       });
       this.setState({
@@ -233,6 +293,14 @@ class App extends Component {
 
   columns = [
     {
+      field: 'topic',
+      headerName: 'Topic',
+      description: 'Hopskotch topic name',
+      sortable: true,
+      flex: 1,
+      minWidth: 50,
+    },
+    {
       field: 'timestamp',
       headerName: 'Time',
       description: 'Time stamp (UTC)',
@@ -261,6 +329,15 @@ class App extends Component {
 
   componentDidMount() {
     this.getTopics()
+  }
+
+  clickDateSearch = (event) => {
+    event.preventDefault();
+    this.setState({
+      topic: null
+    }, () => {
+      this.listInDateRange()
+    })
   }
 
   clickTopic = (event) => {
@@ -327,7 +404,7 @@ class App extends Component {
     for (var i = 0; i < this.state.topics.length; i++) {
       let topic = this.state.topics[i]
       topicButtons.push(
-        <Button key={topic} value={topic} className={key === this.state.topic ? classes.selectedButton : ''} onClick={this.clickTopic}>{topic}</Button>
+        <Button key={topic} value={topic} onClick={this.clickTopic}>{topic}</Button>
       )
     }
     return (
@@ -397,6 +474,49 @@ class App extends Component {
                     >
                       {topicButtons}
                     </ButtonGroup>
+                    </Box>
+                </Grid>
+                </Grid>
+              <Grid container spacing={4} marginTop={0} >
+                <Grid item sm={12} md={12}>
+                      <Typography> Select Date range for recent message filter</Typography>
+                </Grid>
+                <Grid item sm={12} md={4}>
+                      <LocalizationProvider dateAdapter={AdapterDayjs}>
+                        <DatePicker
+                          label="Start Date"
+                          value={this.state.startDate }
+                          onChange={this.setStartDate}
+                          renderInput={(params) => <TextField {...params} sx={{ width: '80%', minWidth: '12rem'}}/>}
+                          />
+                      </LocalizationProvider>
+                    </Grid>
+                <Grid item sm={12} md={4}>
+                      <LocalizationProvider dateAdapter={AdapterDayjs}>
+                        <DatePicker
+                          label="End Date"
+                          value={this.state.endDate }
+                          onChange={this.setEndDate}
+                          renderInput={(params) => <TextField {...params} sx={{ width: '80%', minWidth: '12rem'}}/>}
+                          />
+                      </LocalizationProvider>
+                    </Grid>
+                <Grid item sm={12} md={4}>
+                    <Box
+                    sx={{
+                      display: 'flex',
+                      '& > *': {
+                        m: 1,
+                      },
+                    }}
+                    >
+                    <ButtonGroup
+                      orientation="horizontal"
+                      aria-label="horizontal outlined button group"
+                      variant="outlined"
+                      >
+                      <Button key="dateSearch" value="dateSearch" onClick={this.clickDateSearch}>Search by date range</Button>
+                    </ButtonGroup>
                   </Box>
                 </Grid>
               </Grid>
@@ -420,6 +540,7 @@ class App extends Component {
                   onRowClick={(params, event, details) => {this.fetchDetails(params.id)}}
                   onSortModelChange={(model) => this.setSortModel(model)}
                   sortModel={this.state.sortModel}
+                  slots={{ toolbar: GridToolbar }}
                 />
                       
               <Dialog
@@ -438,7 +559,7 @@ class App extends Component {
                     // ref={descriptionElementRef}
                     tabIndex={-1}
                   >
-                    <pre sx={{whiteSpace: "pre-wrap"}}>{this.state.details.bodyText}</pre>
+                    <Typography sx={{whiteSpace: "pre-wrap"}}>{this.state.details.bodyText}</Typography>
                   </DialogContentText>
                 </DialogContent>
                 <DialogActions>
