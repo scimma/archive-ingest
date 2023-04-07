@@ -1,14 +1,14 @@
 [log]
 log-type = "log-tty"
 #filename = "output/hopstream.log"
-level = "INFO"
+level = "DEBUG"
 
 ###########
-# mongo even store
+# mongo event store
 ##########
 [mongo-demo]
 mongo-type = "local"
-mongo-ip  = "127.0.0.1"
+mongo-ip  = "mongo-db"
 mongo-port = 27017
 
 

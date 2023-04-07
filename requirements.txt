@@ -1,6 +1,7 @@
 psycopg2-binary
 boto3
 toml
-bson
 hop-client == 0.8.0
-
+pymongo
+simple-bson
+avro

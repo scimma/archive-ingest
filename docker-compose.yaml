@@ -38,6 +38,8 @@ services:
     image: mongo:4.4.19
     container_name: mongo-db
     env_file: .env
+    ports:
+      - 27017:27017
     networks:
       - internal
     volumes:
@@ -47,10 +49,8 @@ services:
   ##
   archive-db:
     image: bitnami/postgresql:latest
-    container_name: hop-archiver-db
+    container_name: archive-db
     env_file: .env
-    # ports:
-    #   - 5432:5432
     networks:
       - internal
     volumes:
@@ -91,8 +91,6 @@ services:
       context: .
     container_name: hop-archiver
     env_file: .env
-    depends_on:
-      - archive-db
     networks:
       - internal
     command:
@@ -127,9 +125,6 @@ services:
       context: ./api/
     container_name: archive-api-init-django-migrate
     env_file: api/.env
-    # depends_on:
-    #   - archive-db
-    #   - archiver-init-db
     networks:
       - internal
     command:
@@ -154,10 +149,6 @@ services:
       context: ./api/
     container_name: archive-api-init-django-createsuperuser
     env_file: api/.env
-    # depends_on:
-    #   - archive-db
-    #   - archiver-init-db
-    #   - archive-api-init-django-migrate
     networks:
       - internal
     command:
@@ -181,11 +172,6 @@ services:
       context: ./api/
     container_name: archive-api-server
     env_file: api/.env
-    # depends_on:
-    #   - archive-db
-    #   - archiver-init-db
-    #   - archive-api-init-django-migrate
-    #   - archive-api-init-django-createsuperuser
     ports:
       - 127.0.0.1:8000:8000
     networks:
@@ -211,12 +197,6 @@ services:
       context: ./browser/
     container_name: archive-browser
     env_file: browser/.env
-    # depends_on:
-    #   - archive-db
-    #   - archiver-init-db
-    #   - archive-api-init-django-migrate
-    #   - archive-api-init-django-createsuperuser
-    #   - archive-api-server
     ports:
       - 127.0.0.1:3000:3000
     networks:
