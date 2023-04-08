@@ -107,7 +107,7 @@
 - name: MONGO_DB_COLLECTION
   value: {{ .Values.mongoDb.collection }}
 - name: MONGO_DB_PORT
-  value: 27017
+  value: "27017"
 {{- if eq .Values.archiveApi.debug "true" }}
 - name: LOG_LEVEL
   value: DEBUG
