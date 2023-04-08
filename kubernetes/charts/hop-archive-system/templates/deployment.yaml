@@ -72,6 +72,9 @@ spec:
         - name: static
           emptyDir:
             sizeLimit: 512Mi
+        - name: nginx-confd
+          configMap:
+            name: archive-api-nginx
       initContainers:
         - image: bitnami/postgresql:15.2.0-debian-11-r16
           name: wait-for-db
@@ -131,6 +134,36 @@ spec:
             - --error-logfile=-
             - ArchiveAPI.wsgi
           volumeMounts:
+            - name: static
+              mountPath: /static
+              readOnly: true
+        - name: nginx
+          image: "{{ .Values.archiveApi.nginx.image.repository }}:{{ .Values.archiveApi.nginx.image.tag }}"
+          imagePullPolicy: {{ .Values.archiveApi.nginx.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            initialDelaySeconds: 15
+            timeoutSeconds: 3
+            httpGet:
+              path: /healthz
+              port: http
+          readinessProbe:
+            initialDelaySeconds: 15
+            timeoutSeconds: 3
+            httpGet:
+              path: /healthz
+              port: http
+          securityContext:
+            {{- toYaml .Values.archiveApi.nginx.securityContext | nindent 10 }}
+          resources:
+            {{- toYaml .Values.archiveApi.nginx.resources | nindent 10 }}
+          volumeMounts:
+            - name: nginx-confd
+              mountPath: /etc/nginx/conf.d
+              readOnly: true
             - name: static
               mountPath: /static
               readOnly: true
