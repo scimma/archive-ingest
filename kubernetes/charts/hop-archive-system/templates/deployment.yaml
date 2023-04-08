@@ -68,6 +68,10 @@ spec:
       labels:
         app: archive-api
     spec:
+      volumes:
+        - name: static
+          emptyDir:
+            sizeLimit: 512Mi
       initContainers:
         - image: bitnami/postgresql:15.2.0-debian-11-r16
           name: wait-for-db
@@ -91,6 +95,19 @@ spec:
             - '/bin/bash'
             - '-c'
             - python manage.py migrate --no-input && python manage.py makemigrations --no-input
+        - name: django-collectstatic
+          image: {{ .Values.archiveApi.image.repository }}:{{ .Values.archiveApi.image.tag }}
+          command:
+          - python
+          - manage.py
+          - collectstatic
+          - --no-input
+          env:
+            {{- include "api.env" . | nindent 10 }}
+          volumeMounts:
+            - name: static
+              mountPath: /static
+              readOnly: false
         - name: django-createsuperuser
           image: {{ .Values.archiveApi.image.repository }}:{{ .Values.archiveApi.image.tag }}
           env:
@@ -113,6 +130,10 @@ spec:
             - --access-logfile=-
             - --error-logfile=-
             - ArchiveAPI.wsgi
+          volumeMounts:
+            - name: static
+              mountPath: /static
+              readOnly: true
 
 ---
 apiVersion: apps/v1
