@@ -68,7 +68,6 @@
     secretKeyRef:
       name: {{ .Values.archiveApi.django.secretKey.existingSecret }}
       key: {{ .Values.archiveApi.django.secretKey.secretKey }}
-  value: 1234
 - name: DJANGO_HOSTNAME
   value: {{ .Values.archiveApi.ingress.hostname }}
 - name: DJANGO_URL_BASE_PATH
