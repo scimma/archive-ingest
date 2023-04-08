@@ -37,6 +37,7 @@ archiveApiDb:
 
 mongoDb:
   fullnameOverride: mongo-db
+  useStatefulSet: true
   auth:
     existingSecret: "mongo-db"
     usernames:
@@ -44,6 +45,10 @@ mongoDb:
     databases:
     - "SCiMMA_archive"
   collection: "SCiMMA_public"
+  persistence:
+    storageClass: longhorn
+    size: 20Gi
+    subPath: "data"
 
 archiver:
   image:
