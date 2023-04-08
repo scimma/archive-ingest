@@ -32,6 +32,11 @@
       name: {{ .Values.mongoDb.auth.existingSecret }}
       key: "mongodb-root-password"
 
+- name: S3_ACCESS_KEY_ID
+  value: minioadmin
+- name: S3_SECRET_ACCESS_KEY
+  value: minioadmin
+
 {{- end }}
 
 
