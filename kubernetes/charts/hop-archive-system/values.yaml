@@ -73,6 +73,9 @@ archiveApi:
       kubernetes.io/tls-acme: "true"
       traefik.ingress.kubernetes.io/router.tls: "true"
   django:
+    secretKey:
+      existingSecret: "archive-api"
+      secretKey: "django-secret-key"
     admin:
       email: admin@localhost
       auth:

@@ -64,6 +64,10 @@
 - name: DJANGO_DEBUG
   value: {{ .Values.archiveApi.debug | quote }}
 - name: DJANGO_SECRET_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.archiveApi.django.secretKey.existingSecret }}
+      key: {{ .Values.archiveApi.django.secretKey.secretKey }}
   value: 1234
 - name: DJANGO_HOSTNAME
   value: {{ .Values.archiveApi.ingress.hostname }}
