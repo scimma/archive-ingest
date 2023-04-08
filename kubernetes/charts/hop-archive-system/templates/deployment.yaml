@@ -44,7 +44,7 @@ spec:
             ./archive_ingest.py run \
                 -H hop-local \
                 -D local-db \
-                -S local-store \
+                -S mock-store \
                 --test_topic \
             && sleep 1000d
 
