@@ -81,7 +81,7 @@ data:
 
     [hop-local]
     hop-type              = "hop"
-    hop-local-auth        = ""
+    hop-local-auth        = "/root/.config/hop/auth.toml"
     hop-hostname          = "kafka.scimma.org"
     hop-groupname         = "random"
     hop-port              = 9092
