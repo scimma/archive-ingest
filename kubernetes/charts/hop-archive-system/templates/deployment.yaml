@@ -75,6 +75,12 @@ spec:
         - name: nginx-confd
           configMap:
             name: archive-api-nginx
+        - name: nginx-var-cache-nginx
+          emptyDir:
+        - name: nginx-var-run
+          emptyDir:
+            medium: Memory
+            sizeLimit: 16Mi
       initContainers:
         - image: bitnami/postgresql:15.2.0-debian-11-r16
           name: wait-for-db
@@ -167,6 +173,12 @@ spec:
             - name: static
               mountPath: /static
               readOnly: true
+            - name: nginx-var-cache-nginx
+              mountPath: /var/cache/nginx
+              readOnly: false
+            - name: nginx-var-run
+              mountPath: /var/run
+              readOnly: false
 
 ---
 apiVersion: apps/v1
