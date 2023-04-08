@@ -83,7 +83,7 @@ data:
     hop-type              = "hop"
     hop-local-auth        = "/root/.config/hop/auth.toml"
     hop-hostname          = "kafka.scimma.org"
-    hop-groupname         = "random"
+    hop-groupname         = "archive-ingest"
     hop-port              = 9092
     hop-until-eos         = false
     hop-vetoed-topics     = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
