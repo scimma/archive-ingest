@@ -54,6 +54,7 @@ spec:
           volumeMounts:
             - name: archiver-config
               mountPath: /root/src/archive_ingest.toml
+              subPath: "archive_ingest.toml"
               readOnly: true
 
 
