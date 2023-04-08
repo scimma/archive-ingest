@@ -17,36 +17,44 @@ spec:
       labels:
         app: archiver
     spec:
+      volumes:
+        - name: archiver-config
+          configMap:
+            name: archiver-config
       initContainers:
-      - image: bitnami/postgresql:15.2.0-debian-11-r16
-        name: wait-for-db
-        command:
-          - sh
-          - -c
-          - >
-            until pg_isready \
-                --username={{ .Values.archiveDb.global.postgresql.auth.username | quote }} \
-                --dbname={{ .Values.archiveDb.global.postgresql.auth.database | quote }} \
-                --host={{ .Values.archiveDb.fullnameOverride | quote }} \
-                --port=5432;
-              do echo waiting for database;
-              sleep 2;
-              done;
+        - image: bitnami/postgresql:15.2.0-debian-11-r16
+          name: wait-for-db
+          command:
+            - sh
+            - -c
+            - >
+              until pg_isready \
+                  --username={{ .Values.archiveDb.global.postgresql.auth.username | quote }} \
+                  --dbname={{ .Values.archiveDb.global.postgresql.auth.database | quote }} \
+                  --host={{ .Values.archiveDb.fullnameOverride | quote }} \
+                  --port=5432;
+                do echo waiting for database;
+                sleep 2;
+                done;
       containers:
-      - name: archiver
-        image: {{ .Values.archiver.image.repository }}:{{ .Values.archiver.image.tag }}
-        env:
-          {{- include "archiver.env" . | nindent 10 }}
-        command:
-          - '/bin/bash'
-          - '-c'
-          - >
-            ./archive_ingest.py run \
-                -H hop-local \
-                -D local-db \
-                -S mock-store \
-                --test_topic \
-            && sleep 1000d
+        - name: archiver
+          image: {{ .Values.archiver.image.repository }}:{{ .Values.archiver.image.tag }}
+          env:
+            {{- include "archiver.env" . | nindent 10 }}
+          command:
+            - '/bin/bash'
+            - '-c'
+            - >
+              ./archive_ingest.py run \
+                  -H hop-local \
+                  -D local-db \
+                  -S mock-store \
+                  --test_topic \
+              && sleep 1000d
+          volumeMounts:
+            - name: archiver-config
+              mountPath: /root/src/archive_ingest.toml
+              readOnly: true
 
 
 ---
