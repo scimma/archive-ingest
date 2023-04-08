@@ -62,7 +62,7 @@
       key: {{ .Values.archiveDb.global.postgresql.auth.secretKeys.userPasswordKey }}
 
 - name: DJANGO_DEBUG
-  value: {{ .Values.archiveApi.debug }}
+  value: {{ .Values.archiveApi.debug | quote }}
 - name: DJANGO_SECRET_KEY
   value: 1234
 - name: DJANGO_HOSTNAME
