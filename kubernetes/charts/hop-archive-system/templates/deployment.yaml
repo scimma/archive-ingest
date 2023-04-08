@@ -37,6 +37,17 @@ spec:
         image: {{ .Values.archiver.image.repository }}:{{ .Values.archiver.image.tag }}
         env:
           {{- include "archiver.env" . | nindent 10 }}
+        command:
+          - '/bin/bash'
+          - '-c'
+          - >
+            ./archive_ingest.py run \
+                -H hop-local \
+                -D local-db \
+                -S local-store \
+                --test_topic \
+            && sleep 1000d
+
 
 ---
 apiVersion: apps/v1
