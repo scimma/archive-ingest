@@ -8,7 +8,7 @@ metadata:
   #   {{- toYaml . | nindent 4 }}
   # {{- end }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.archiver.replicas }}
   selector:
     matchLabels:
       app: archiver
@@ -68,7 +68,7 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.archiveApi.replicas }}
   selector:
     matchLabels:
       app: archive-api
@@ -199,7 +199,7 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.archiveBrowser.replicas }}
   selector:
     matchLabels:
       app: archive-browser

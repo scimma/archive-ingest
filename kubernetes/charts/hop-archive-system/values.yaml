@@ -51,6 +51,7 @@ mongoDb:
     subPath: "data"
 
 archiver:
+  replicas: 1
   image:
     repository: "hub.ncsa.illinois.edu/scimma/archive-ingest"
     tag: "latest"
@@ -64,6 +65,7 @@ archiver:
         userPasswordKey: "password"
 
 archiveApi:
+  replicas: 3
   debug: "true"
   image:
     repository: "hub.ncsa.illinois.edu/scimma/archive-api"
@@ -110,6 +112,7 @@ archiveApi:
       runAsGroup: 101
 
 archiveBrowser:
+  replicas: 3
   image:
     repository: "hub.ncsa.illinois.edu/scimma/archive-browser"
     tag: "latest"
