@@ -22,4 +22,29 @@ These software components are, respectively,
 
 <img src="images/architecture.drawio.png" style="width:100%; max-width:600px;">
 
-## Configuration
+## Archive API
+
+The Archive API server implements a RESTful web API, allowing access to archived data via the standard HTTP protocol. Full documentation specified in OpenAPI format will be made available in the future.
+
+API endpoints include:
+
+* `api/topics`
+
+   Fetch a list of all archived topics.
+
+* `api/topic/[TOPIC_NAME]`
+
+   Fetch all messages available from a specified topic.
+
+* `api/message/[MESSAGE_UUID]`
+
+   Fetch message data specified by its unique identifier.
+
+* `api/topic/range`
+
+   Search for all messages across all archived topics within a date range.
+
+## Full message data search
+
+The archived message data is stored in a MongoDB document database, enabling intuitive, flexible, full-text search of dynamic message schemas. 
+
