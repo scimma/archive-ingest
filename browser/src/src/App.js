@@ -15,6 +15,10 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  InputLabel,
+  MenuItem,
+  FormControl,
+  Select,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
@@ -175,6 +179,9 @@ class App extends Component {
         open: false,
         id: null,
         bodyText: "",
+      },
+      welcome: {
+        open: true,
       },
       startDate: startDate,
       endDate: endDate,
@@ -385,6 +392,9 @@ class App extends Component {
         id: null,
         bodyText: "",
         open: false,
+      },
+      welcome: {
+        open: false,
       }
     })
   }
@@ -393,20 +403,45 @@ class App extends Component {
     const { classes } = this.props;
     const drawerWidth = 240;
     let selectedTopic = <></>;
-    if (this.state.topic !== null) {
-      selectedTopic = (
-        <Typography>
-          Downloading messages in topic <Typography variant="bold">{this.state.topic}</Typography>...
-        </Typography>
-      )
-    }
-    let topicButtons = [];
+    // if (this.state.topic !== null) {
+      //   selectedTopic = (
+        //     <Typography>
+        //       Downloading messages in topic <Typography variant="bold">{this.state.topic}</Typography>...
+        //     </Typography>
+        //   )
+        // }
+        let topicButtons = [];
+        let topicSelectItems = [];
     for (var i = 0; i < this.state.topics.length; i++) {
       let topic = this.state.topics[i]
       topicButtons.push(
         <Button key={topic} value={topic} onClick={this.clickTopic}>{topic}</Button>
+        )
+        topicSelectItems.push(
+          <MenuItem value={topic}><code>{topic}</code></MenuItem>
+          )
+        }
+    let dataGrid = <></>;
+    if (this.state.topic !== null) {
+      dataGrid = (
+        <DataGrid
+          sx={{
+            height: '50vh',
+            width: '100%',
+          }}
+          rows={this.state.messages}
+          columns={this.columns}
+          // autoHeight
+          autoPageSize={false}
+          pageSizeOptions={[20, 50, 100]}
+          onRowClick={(params, event, details) => {this.fetchDetails(params.id)}}
+          onSortModelChange={(model) => this.setSortModel(model)}
+          sortModel={this.state.sortModel}
+          slots={{ toolbar: GridToolbar }}
+        />
       )
     }
+
     return (
       <ThemeProvider theme={theme}>
         <CssBaseline />
@@ -467,13 +502,26 @@ class App extends Component {
                       },
                     }}
                   >
-                    <ButtonGroup
+                    {/* <ButtonGroup
                       orientation="horizontal"
                       aria-label="horizontal outlined button group"
                       variant="outlined"
                     >
                       {topicButtons}
-                    </ButtonGroup>
+                    </ButtonGroup> */}
+
+                    <FormControl fullWidth>
+                      <InputLabel id="select-topic">Select a topic</InputLabel>
+                      <Select
+                        labelId="select-topic"
+                        id="select-topic"
+                        value={this.state.topic}
+                        label="Topic"
+                        onChange={this.clickTopic}
+                      >
+                        {topicSelectItems}
+                      </Select>
+                    </FormControl>
                     </Box>
                 </Grid>
                 </Grid>
@@ -527,22 +575,9 @@ class App extends Component {
               </Grid>
             </Container>
             <Container className={classes.messageTableContainer}>
-                <DataGrid
-                  sx={{
-                    height: '60vh',
-                    width: '100%',
-                  }}
-                  rows={this.state.messages}
-                  columns={this.columns}
-                  // autoHeight
-                  autoPageSize={false}
-                  pageSizeOptions={[20, 50, 100]}
-                  onRowClick={(params, event, details) => {this.fetchDetails(params.id)}}
-                  onSortModelChange={(model) => this.setSortModel(model)}
-                  sortModel={this.state.sortModel}
-                  slots={{ toolbar: GridToolbar }}
-                />
-                      
+
+              {dataGrid}
+
               <Dialog
                 open={this.state.details.open}
                 onClose={this.closeDetails}
@@ -566,6 +601,35 @@ class App extends Component {
                   <Button onClick={this.closeDetails}>Close</Button>
                 </DialogActions>
               </Dialog>
+
+
+              <Dialog
+                open={this.state.welcome.open}
+                onClose={this.closeDetails}
+                scroll={'paper'}
+                aria-labelledby="scroll-dialog-title"
+                aria-describedby="scroll-dialog-description"
+                fullWidth={true}
+                maxWidth="lg"
+              >
+                <DialogTitle id="scroll-dialog-title">Welcome the Hop Ark Demo</DialogTitle>
+                <DialogContent dividers={true}>
+                  <DialogContentText
+                    id="scroll-dialog-description"
+                    // ref={descriptionElementRef}
+                    tabIndex={-1}
+                  >
+                    <Typography>
+                      Welcome to the SCiMMA Hopskotch Archive Browser.
+                    </Typography>
+                  </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                  <Button onClick={this.closeDetails}>Close</Button>
+                </DialogActions>
+              </Dialog>
+
+
             </Container>
           </Box>
         </Box>
