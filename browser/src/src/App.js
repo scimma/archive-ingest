@@ -167,7 +167,7 @@ class App extends Component {
 		let endDate = new Date();
     endDate.setDate(endDate.getDate() + 1);
     this.state = {
-      topic: null,
+      topic: '',
       topics: [],
       messages: [],
       sortModel: [
@@ -341,7 +341,7 @@ class App extends Component {
   clickDateSearch = (event) => {
     event.preventDefault();
     this.setState({
-      topic: null
+      topic: ''
     }, () => {
       this.listInDateRange()
     })
@@ -418,11 +418,11 @@ class App extends Component {
         <Button key={topic} value={topic} onClick={this.clickTopic}>{topic}</Button>
         )
         topicSelectItems.push(
-          <MenuItem value={topic}><code>{topic}</code></MenuItem>
+          <MenuItem key={topic} value={topic}><code>{topic}</code></MenuItem>
           )
         }
     let dataGrid = <></>;
-    if (this.state.topic !== null) {
+    if (this.state.messages.length > 0) {
       dataGrid = (
         <DataGrid
           sx={{
@@ -438,6 +438,7 @@ class App extends Component {
           onSortModelChange={(model) => this.setSortModel(model)}
           sortModel={this.state.sortModel}
           slots={{ toolbar: GridToolbar }}
+          disableRowSelectionOnClick
         />
       )
     }
@@ -487,85 +488,96 @@ class App extends Component {
 
             <Container className={classes.container}>
               <Grid container spacing={4} marginTop={0} >
-                <Grid item sm={12} md={3}>
-                  <Typography>
-                    Select a topic to browse the SCiMMA Hopskotch message archive.
-                  </Typography>
-                </Grid>
-                <Grid item sm={12} md={9}>
-                  {/* <SelectTopic setTopic={this.setTopic} topics={this.state.topics} topic={this.state.topic} /> */}
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      '& > *': {
-                        m: 1,
-                      },
-                    }}
-                  >
-                    {/* <ButtonGroup
-                      orientation="horizontal"
-                      aria-label="horizontal outlined button group"
-                      variant="outlined"
-                    >
-                      {topicButtons}
-                    </ButtonGroup> */}
+                <Grid item xs={12} md={4}>
+                  <Grid container spacing={4} marginTop={0} >
+                    <Grid item xs={12} md={12}>
+                      <Typography>
+                        Select a SCiMMA Hopskotch topic to list all archived messages in that topic.
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12} md={12}>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          '& > *': {
+                            m: 1,
+                          },
+                        }}
+                      >
+                        {/* <ButtonGroup
+                          orientation="horizontal"
+                          aria-label="horizontal outlined button group"
+                          variant="outlined"
+                        >
+                          {topicButtons}
+                        </ButtonGroup> */}
 
-                    <FormControl fullWidth>
-                      <InputLabel id="select-topic">Select a topic</InputLabel>
-                      <Select
-                        labelId="select-topic"
-                        id="select-topic"
-                        value={this.state.topic}
-                        label="Topic"
-                        onChange={this.clickTopic}
-                      >
-                        {topicSelectItems}
-                      </Select>
-                    </FormControl>
-                    </Box>
-                </Grid>
-                </Grid>
-              <Grid container spacing={4} marginTop={0} >
-                <Grid item sm={12} md={12}>
-                      <Typography> Select Date range for recent message filter</Typography>
-                </Grid>
-                <Grid item sm={12} md={4}>
-                      <LocalizationProvider dateAdapter={AdapterDayjs}>
-                        <DatePicker
-                          label="Start Date"
-                          value={this.state.startDate }
-                          onChange={this.setStartDate}
-                          renderInput={(params) => <TextField {...params} sx={{ width: '80%', minWidth: '12rem'}}/>}
-                          />
-                      </LocalizationProvider>
+                        <FormControl fullWidth>
+                          <InputLabel id="select-topic">Topic</InputLabel>
+                          <Select
+                            labelId="select-topic"
+                            id="select-topic"
+                            value={this.state.topic}
+                            label="Topic"
+                            onChange={this.clickTopic}
+                            // renderValue={(selected) => {
+                            //   if (selected.length === 0) {
+                            //     return <em>Select a topic</em>;
+                            //   }
+                            //   return selected.join(', ');
+                            // }}
+                          >
+                            {topicSelectItems}
+                          </Select>
+                        </FormControl>
+                        </Box>
                     </Grid>
-                <Grid item sm={12} md={4}>
-                      <LocalizationProvider dateAdapter={AdapterDayjs}>
-                        <DatePicker
-                          label="End Date"
-                          value={this.state.endDate }
-                          onChange={this.setEndDate}
-                          renderInput={(params) => <TextField {...params} sx={{ width: '80%', minWidth: '12rem'}}/>}
-                          />
-                      </LocalizationProvider>
+                  </Grid>
+                </Grid>
+                <Grid item xs={12} md={8}>
+                  <Grid container spacing={4} marginTop={0} >
+                    <Grid item xs={12} md={6}>
+                          <Typography> Search for messages across all archived topics within the selected date range.</Typography>
                     </Grid>
-                <Grid item sm={12} md={4}>
-                    <Box
-                    sx={{
-                      display: 'flex',
-                      '& > *': {
-                        m: 1,
-                      },
-                    }}
-                    >
-                    <ButtonGroup
-                      orientation="horizontal"
-                      aria-label="horizontal outlined button group"
-                      variant="outlined"
-                      >
-                      <Button key="dateSearch" value="dateSearch" onClick={this.clickDateSearch}>Search by date range</Button>
-                    </ButtonGroup>
-                  </Box>
+                    <Grid item xs={12} md={6}>
+                        <Box
+                        sx={{
+                          display: 'flex',
+                          '& > *': {
+                            m: 1,
+                          },
+                        }}
+                        >
+                        <ButtonGroup
+                          orientation="horizontal"
+                          aria-label="horizontal outlined button group"
+                          variant="outlined"
+                          >
+                          <Button key="dateSearch" value="dateSearch" onClick={this.clickDateSearch}>Search</Button>
+                        </ButtonGroup>
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                          <LocalizationProvider dateAdapter={AdapterDayjs}>
+                            <DatePicker
+                              label="Start Date"
+                              value={this.state.startDate }
+                              onChange={this.setStartDate}
+                              renderInput={(params) => <TextField {...params} sx={{ width: '80%', minWidth: '12rem'}}/>}
+                              />
+                          </LocalizationProvider>
+                        </Grid>
+                    <Grid item xs={12} md={4}>
+                          <LocalizationProvider dateAdapter={AdapterDayjs}>
+                            <DatePicker
+                              label="End Date"
+                              value={this.state.endDate }
+                              onChange={this.setEndDate}
+                              renderInput={(params) => <TextField {...params} sx={{ width: '80%', minWidth: '12rem'}}/>}
+                              />
+                          </LocalizationProvider>
+                        </Grid>
+                  </Grid>
                 </Grid>
               </Grid>
               <Grid container spacing={4} marginTop={2} >
@@ -610,18 +622,42 @@ class App extends Component {
                 aria-labelledby="scroll-dialog-title"
                 aria-describedby="scroll-dialog-description"
                 fullWidth={true}
-                maxWidth="lg"
+                maxWidth="md"
               >
-                <DialogTitle id="scroll-dialog-title">Welcome the Hop Ark Demo</DialogTitle>
+                <DialogTitle id="scroll-dialog-title">Welcome to the Hopskotch Archive Browser!</DialogTitle>
                 <DialogContent dividers={true}>
                   <DialogContentText
                     id="scroll-dialog-description"
                     // ref={descriptionElementRef}
                     tabIndex={-1}
                   >
+                    <Box marginBottom={1}>
+
                     <Typography>
-                      Welcome to the SCiMMA Hopskotch Archive Browser.
+                    <Link href="https://hop.scimma.org" target="_blank"><b>Hopskotch</b></Link> is the protocol powering the 
+                    event streaming hub for multi-messenger astronomy operated by the <Link href="https://scimma.org" target="_blank">SCiMMA</Link> project.
+                    The Hopskotch Archive System permanently stores public messages from
+                    the ephemeral data streams, or "topics", and 
+                    provides a RESTful web API for the scientific community to utilize the data.
                     </Typography>
+                    </Box>
+
+                    <Box marginBottom={1}>
+                    <Typography>
+                    This Archive Browser is a web app designed as an <b>interactive demonstration</b> of a small fraction of the functionality we envision for a fully developed
+                      archive system. It shows how researchers can easily list messages in topics of interest and download the message data. 
+                      Queries of arbitrary complexity against the archive's document database are possible; here, we sample this capability by listing  
+                      messages across all archived topics within a specified date range.
+                    </Typography>
+                    </Box>
+                    <Box>
+
+                    <Typography>
+                      For more details about the system architecture, as well as the open source code, please
+                      see <Link href="https://github.com/scimma/archive-ingest" target="_blank">our git repo here</Link>.
+                      
+                    </Typography>
+                    </Box>
                   </DialogContentText>
                 </DialogContent>
                 <DialogActions>
