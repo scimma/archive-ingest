@@ -19,6 +19,8 @@ import {
   MenuItem,
   FormControl,
   Select,
+  Avatar,
+  Divider,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
@@ -31,13 +33,16 @@ import TextField from '@mui/material/TextField';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { padding } from "@mui/system";
 
 
 const theme = createTheme({
   palette: {
     primary: {
       // main: "#18381b"
-      main: "#5daefd"
+      // main: "#FF6347"
+      // main: "#FF7F50"
+      main: "#212529"
     },
     secondary: {
       main: "#e8a114"
@@ -426,8 +431,10 @@ class App extends Component {
       dataGrid = (
         <DataGrid
           sx={{
-            height: '50vh',
+            
+            height: { xs: '40vh', sm: '50vh', md: '70vh'},
             width: '100%',
+          
           }}
           rows={this.state.messages}
           columns={this.columns}
@@ -465,6 +472,7 @@ class App extends Component {
               >
                 <MenuIcon />
               </IconButton>
+              <Avatar alt="SCiMMA" src="logo512.png" sx={{margin: "0 1rem 0 0"}}/>
               <Link className={classes.bannerText} style={{ color: "#ffffff", textDecoration: "none" }}
                 sx={{
                   fontSize: { xs: '1rem', sm: '1.5rem' },
@@ -475,7 +483,7 @@ class App extends Component {
               // }}
               >
                 <Typography variant="h5">
-                  SCiMMA // Archive Browser
+                  SCiMMA // Hopskotch Archive Browser
                 </Typography>
               </Link>
               <Typography variant="body1" style={{ flex: 1 }} />
@@ -606,7 +614,7 @@ class App extends Component {
                     // ref={descriptionElementRef}
                     tabIndex={-1}
                   >
-                    <Typography sx={{whiteSpace: "pre-wrap"}}>{this.state.details.bodyText}</Typography>
+                    <Typography component={'span'} sx={{whiteSpace: "pre-wrap"}}>{this.state.details.bodyText}</Typography>
                   </DialogContentText>
                 </DialogContent>
                 <DialogActions>
@@ -626,39 +634,30 @@ class App extends Component {
               >
                 <DialogTitle id="scroll-dialog-title">Welcome to the Hopskotch Archive Browser!</DialogTitle>
                 <DialogContent dividers={true}>
-                  <DialogContentText
-                    id="scroll-dialog-description"
-                    // ref={descriptionElementRef}
-                    tabIndex={-1}
-                  >
-                    <Box marginBottom={1}>
-
-                    <Typography>
+                  <Box margin={2}>
+                    <Typography component={'span'} >
                     <Link href="https://hop.scimma.org" target="_blank"><b>Hopskotch</b></Link> is the protocol powering the 
                     event streaming hub for multi-messenger astronomy operated by the <Link href="https://scimma.org" target="_blank">SCiMMA</Link> project.
                     The Hopskotch Archive System permanently stores public messages from
                     the ephemeral data streams, or "topics", and 
                     provides a RESTful web API for the scientific community to utilize the data.
                     </Typography>
-                    </Box>
-
-                    <Box marginBottom={1}>
-                    <Typography>
+                  </Box>
+                  <Box margin={2}>
+                    <Typography component={'span'} >
                     This Archive Browser is a web app designed as an <b>interactive demonstration</b> of a small fraction of the functionality we envision for a fully developed
                       archive system. It shows how researchers can easily list messages in topics of interest and download the message data. 
                       Queries of arbitrary complexity against the archive's document database are possible; here, we sample this capability by listing  
                       messages across all archived topics within a specified date range.
                     </Typography>
-                    </Box>
-                    <Box>
-
-                    <Typography>
+                  </Box>
+                  <Box margin={2}>
+                    <Typography component={'span'} >
                       For more details about the system architecture, as well as the open source code, please
                       see <Link href="https://github.com/scimma/archive-ingest" target="_blank">our git repo here</Link>.
                       
                     </Typography>
-                    </Box>
-                  </DialogContentText>
+                  </Box>
                 </DialogContent>
                 <DialogActions>
                   <Button onClick={this.closeDetails}>Close</Button>
