@@ -446,6 +446,7 @@ class App extends Component {
           sortModel={this.state.sortModel}
           slots={{ toolbar: GridToolbar }}
           disableRowSelectionOnClick
+          density="compact"
         />
       )
     }
