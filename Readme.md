@@ -22,6 +22,14 @@ These software components are, respectively,
 
 <img src="images/architecture.drawio.png" style="width:100%; max-width:600px;">
 
+## Archive storage
+
+There are three data storage components to which the Archiver stores messages:
+
+* Message metadata (PostgreSQL)
+* Full message data (MongoDB)
+* Redundant full message data (S3-compatible object store)
+
 ## Archive API
 
 The Archive API server implements a RESTful web API, allowing access to archived data via the standard HTTP protocol. Full documentation specified in OpenAPI format will be made available in the future.
