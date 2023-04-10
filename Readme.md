@@ -17,8 +17,8 @@ This repo contains an integrated system that
 These software components are, respectively,
 
 * Archiver (`/archiver`) - Python
-* Archive API (`/api`) - Django REST Framework
-* Archive Browser (`/browser`) - React
+* Archive API (`/api`) - Django REST Framework, configured for production operation behind an NGINX reverse proxy
+* Archive Browser (`/browser`) - React-based single page web application
 
 <img src="images/architecture.drawio.png" style="width:100%; max-width:600px;">
 
@@ -28,23 +28,27 @@ The Archive API server implements a RESTful web API, allowing access to archived
 
 API endpoints include:
 
-* `api/topics`
+* `GET api/topics`
 
    Fetch a list of all archived topics.
 
-* `api/topic/[TOPIC_NAME]`
+* `GET api/topic/[TOPIC_NAME]`
 
    Fetch all messages available from a specified topic.
 
-* `api/message/[MESSAGE_UUID]`
+* `GET api/message/[MESSAGE_UUID]`
 
    Fetch message data specified by its unique identifier.
 
-* `api/topic/range`
+* `POST api/topic/range`
 
    Search for all messages across all archived topics within a date range.
 
 ## Full message data search
 
-The archived message data is stored in a MongoDB document database, enabling intuitive, flexible, full-text search of dynamic message schemas. 
+The archived message data is stored in a MongoDB document database, enabling intuitive, flexible, full-text search of dynamic message schemas.
+
+## Deployment
+
+The Hopskotch archive system is deployed on a Kubernetes cluster hosted at the [National Center for Supercomputing Applications](https://www.ncsa.illinois.edu/) (NCSA) and operated by NCSA staff. The PostgreSQL databases and the Mongo database are deployed via Bitnami Helm charts, which are professionally developed and can scale to support heavy utilization and redundancy by enabling replication. The Archive API server and the Archive Browser web app run in multiple replicas across the Kubernetes cluster worker nodes, robustly handling traffic and supporting high-availability services. The entire application state is captured in this source code repo following the GitOps paradigm to ensure reproducibility. 
 
