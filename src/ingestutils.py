@@ -24,7 +24,13 @@ import bson
 import simple_bson
 import tabulate
 import pymongo
-
+import access_api
+import simple_bson
+import io
+import avro.schema
+from avro.datafile import DataFileReader, DataFileWriter
+from avro.io import DatumReader, DatumWriter
+import time 
 ##################################
 #   Utilitie
 ##################################
@@ -277,11 +283,62 @@ def status(args):
     result = db.query(sql)
     print(result)
 
+def key_tree(d, indent = 0):
+    t = type(d)
+    if t != type({}) :
+        s_all = d.__str__()
+        if len(s_all) > 80 : s_all = s_all[1:27] + "..."
+        print (">"*indent*3, indent, f"{s_all}")
+        return
+    for key in d.keys():
+        print (">"*indent*3, indent,  key)
+        key_tree(d[key], indent=indent+1)
+        
+def dog(filename):
+    import avro.schema
+    from avro.datafile import DataFileReader, DataFileWriter
+    from avro.io import DatumReader, DatumWriter
+    import io
 
+
+def lvk(args):
+    """ one-off for LVK """
+    week_in_msec = 60*60*24*7*1000
+    now_in_msec  =  time.time() * 1000
+    last_week = now_in_msec - week_in_msec
+    sql = f"""
+       SELECT
+          key
+       FROM
+          messages
+       WHERE
+          topic = 'igwn.gwalert'
+       AND
+          timestamp > {last_week}
+       """
+    print(args)
+    config = utility_api.merge_config(args)
+    accessor = access_api.Archive_access(config)
+    db = database_api.DbFactory(config).get_db()
+    db.connect()
+    logging.info(sql)
+    keys = db.query(sql)
+    for key in keys:
+        (message, metadata) = accessor.get_all(key[0])
+        f = io.BytesIO(message)
+        reader = DataFileReader(f, DatumReader())
+        for d in reader:
+            alert_type = d.get('alert_type', None)
+            time_created = d.get('time_created', None)
+            urls = d.get('urls', None)
+            external_conic = d.get('external_coinc', None)
+            #key_tree(x)
+            print (alert_type, time_created, urls, external_conic)
+            continue
+
+    
 def inspect(args):
     """inspect an object given a uuid"""
-    import simple_bson
-    import access_api
     config = utility_api.merge_config(args)
     accessor = access_api.Archive_access(config)
     uuid = args["uuid"]
@@ -298,7 +355,9 @@ def inspect(args):
         m_metadata = bundle["metadata"]
         m_annotations = bundle["annotations"]
         if m_format not in ["avro", "json"] : print ("I do not yet know how to dump {m_format}")
-        if m_format == "avro" : write_binary (f"{uuid}.content.avro", m_content)
+        if m_format == "avro" :
+            write_binary (f"{uuid}.content.avro", m_content)
+            dog(f"{uuid}.content.avro")
         if m_format == "json" : write_json (f"{uuid}.content.json", m_content)
         write_json(f"{uuid}.annotations.json", m_annotations)
     if not args["quiet"]:
@@ -311,16 +370,6 @@ def  write_binary(filename, data):
 def  write_json(filename, data):
     with open(filename, "w") as f : json.dump(data, f)
         
-def uuids(args):
-    "print a list of uuids consistent w user supplied where clause"
-    db = database_api.DbFactory(args).get_db()
-    db.connect()
-    sql = f'select uuid from messages {args["where"]}'
-    logging.info(sql)
-    uuids = db.query(sql)
-    for uuid in uuids:
-        print(uuid[0])
-
 
 def db_logs(args):
     "print recent db logs"
@@ -541,13 +590,14 @@ if __name__ == "__main__":
     parser.add_argument("-q", "--quiet", help="dont print object to stdout ", default=False, action="store_true")
     parser.add_argument("uuid",  help="uuid of object")
 
-    # uuids get uuids consistent with a where clause.
-    parser = subparsers.add_parser('uuids', help=uuids.__doc__)
-    parser.set_defaults(func=uuids)
-    parser.add_argument("-D", "--database_stanza", help="database-config-stanza", default="aws-dev-db")
-    parser.add_argument("where",  help="where clause")
+    # one-off LVK this week.
+    parser = subparsers.add_parser('lvk', help=lvk.__doc__)
+    parser.set_defaults(func=lvk)
+    parser.add_argument("-D", "--database_stanza",
+                        help="database-config-stanza", default="aws-prod-db")
+    parser.add_argument("-S", "--store_stanza", help="storage config stanza", default="S3-prod")
 
-    # db_logs get recent database logs.
+    # db_logs get recent database logs
     parser = subparsers.add_parser('db_logs', help=db_logs.__doc__)
     parser.set_defaults(func=db_logs)
     parser.add_argument("-D", "--database_stanza", help="database-config-stanza", default="aws-dev-db")
