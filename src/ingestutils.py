@@ -301,6 +301,33 @@ def dog(filename):
     import io
 
 
+def amon(args):
+    """
+    one off for icecube
+
+    list dates of events in archive
+    """
+    sql = f"""
+       SELECT
+          timestamp, uuid
+       FROM
+          messages
+       WHERE
+          topic = 'amon.nuem'
+       ORDER BY
+         timestamp
+       """
+    config = utility_api.merge_config(args)
+    db = database_api.DbFactory(config).get_db()
+    db.connect()
+    logging.info(sql)
+    for (timestamp, _)  in  db.query(sql):
+        time_published = timestamp/1000
+        dt = datetime.datetime.fromtimestamp(time_published)
+        isodate =  dt.isoformat()
+        print (isodate)
+    
+       
 def lvk(args):
     """ one-off for LVK """
     week_in_msec = 60*60*24*7*1000
@@ -323,18 +350,30 @@ def lvk(args):
     db.connect()
     logging.info(sql)
     keys = db.query(sql)
+    results = []
     for key in keys:
         (message, metadata) = accessor.get_all(key[0])
         f = io.BytesIO(message)
         reader = DataFileReader(f, DatumReader())
         for d in reader:
+            #key_tree(d, indent = 3)
             alert_type = d.get('alert_type', None)
             time_created = d.get('time_created', None)
+            created_timestamp = datetime.datetime.strptime(time_created, "%Y-%m-%dT%H:%M:%S%z").timestamp()
+            published_timestamp = metadata["timestamp"]/1000
+            latency = published_timestamp  -created_timestamp
             urls = d.get('urls', None)
-            external_conic = d.get('external_coinc', None)
-            #key_tree(x)
-            print (alert_type, time_created, urls, external_conic)
+            superevent_id = d.get('superevent_id', None)
+            if "MS" in superevent_id : continue 
+            results.append([alert_type, time_created, latency, superevent_id, urls])
+            print (alert_type, time_created, latency, superevent_id, urls)
             continue
+    headers = ["alert type", "time_created", "latency to publish(sec)", "superevent", "url"]
+    table = tabulate.tabulate(
+        results,
+        headers=headers,
+        tablefmt="github")
+    print(table)
 
     
 def inspect(args):
@@ -343,6 +382,7 @@ def inspect(args):
     accessor = access_api.Archive_access(config)
     uuid = args["uuid"]
     sql = f"select key from messages where uuid = '{uuid}'"
+    logging.info (f"{sql}")
     key = accessor.query(sql)[0][0]
     bundle = accessor.get_raw_object(key)
     if args["write"]:
@@ -358,7 +398,9 @@ def inspect(args):
         if m_format == "avro" :
             write_binary (f"{uuid}.content.avro", m_content)
             dog(f"{uuid}.content.avro")
-        if m_format == "json" : write_json (f"{uuid}.content.json", m_content)
+        elif m_format == "json" : write_json (f"{uuid}.content.json", m_content)
+        else :
+            with open(f"{uuid}.content.{m_format}", "wb") as f:  f.write(m_content)
         write_json(f"{uuid}.annotations.json", m_annotations)
     if not args["quiet"]:
         import pprint
@@ -491,7 +533,6 @@ def mongo_schema(args):
             print (">"*indent*3, indent,  key)
             print_schema_tree(d[key], indent=indent+1)
 
-    import pdb; pdb.set_trace()
     print_schema_tree(item)
 
     
@@ -593,6 +634,13 @@ if __name__ == "__main__":
     # one-off LVK this week.
     parser = subparsers.add_parser('lvk', help=lvk.__doc__)
     parser.set_defaults(func=lvk)
+    parser.add_argument("-D", "--database_stanza",
+                        help="database-config-stanza", default="aws-prod-db")
+    parser.add_argument("-S", "--store_stanza", help="storage config stanza", default="S3-prod")
+
+    # one-off amon this week.
+    parser = subparsers.add_parser('amon', help=amon.__doc__)
+    parser.set_defaults(func=amon)
     parser.add_argument("-D", "--database_stanza",
                         help="database-config-stanza", default="aws-prod-db")
     parser.add_argument("-S", "--store_stanza", help="storage config stanza", default="S3-prod")
