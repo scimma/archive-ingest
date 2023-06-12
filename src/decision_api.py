@@ -87,14 +87,14 @@ def is_content_identical (ids, db, store):
 # routines to decide if a message is idenitcal to one ...
 # already in the archive.
 ###################
-
+ 
 
 def is_deemed_duplicate(annotations, metadata, db, store):
     "Decide if this message is a duplicate"
     # storage decision_data
     if annotations['con_is_client_uuid']:
         # Use the fact that client side UUID are unique
-        duplicate = uuid_in_db(db, annotations['con_text_uuid'])
+        duplicate = is_uuid_in_db(db, annotations['con_text_uuid'])
     else:
         # server side UUID.
         topic = metadata["topic"]
@@ -105,7 +105,7 @@ def is_deemed_duplicate(annotations, metadata, db, store):
     return duplicate
 
 
-def uuid_in_db(db, uuid):
+def is_uuid_in_db(db, uuid):
     """
     Determine if this UUID is in the database
     """

@@ -1,5 +1,5 @@
 """
-Provide classes and API to sources of archive-ingest data.
+provide classes and API to sources of archive-ingest data.
 
 There are two types archive-ingest classes
 
@@ -284,8 +284,10 @@ class Hop_consumer(Base_consumer):
             self.local_auth_file      = ''
             self.secret_name      = config["hop-aws-secret-name"]
             self.region_name      = config["hop-aws-secret-region"]
-        #self.test_topic       = config["hop-testtopic"]
-        self.test_topic       = config["test_topic"]
+
+        # if a test run. configure the test topic
+        self.use_test_topic = config.get("use_test_topic", False)
+        self.hop_test_topic = config["hop-test-topic"]
         self.test_topic_max_messages       = config.get("hop-test-max-messages",10)  #demo hack
         self.vetoed_topics    = config["hop-vetoed-topics"]
         #self.vetoed_topics.append(self.test_topic)  # don't consume test topic   
@@ -316,9 +318,9 @@ class Hop_consumer(Base_consumer):
 
         # interval exceeded -- reset time, and refresh topic list
         self.last_last_refresh_time = time.time()
-        if self.test_topic:
+        if self.use_test_topic:
             # trivial refresh this topic supports  test and debug.
-            topics = self.test_topic
+            topics = self.hop_test_topic
             self.url = (f"{self.base_url}{topics}")
             logging.info(f'''Consuming hop-test-topic URL: "{self.url}"''')
         else:

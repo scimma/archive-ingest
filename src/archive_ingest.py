@@ -15,7 +15,7 @@ Support testing via
 - reading from a mock topic
 - in-line comparison of as-sent test data
   to as-recieved test data.
-- in-line comparision of as-recieved data
+  in-line comparision of as-recieved data
   to as-stored data.
 
 @author: Mahmoud Parvizi (parvizim@msu.edu)
@@ -30,7 +30,7 @@ import store_api
 import database_api
 import verify_api
 import decision_api
-import mongo_api
+#import mongo_api
 import json
 from typing import Union
 
@@ -81,35 +81,29 @@ def archive_ingest(args):
     db     = database_api.DbFactory(args).get_db()
     consumer = consumer_api.ConsumerFactory(args).get_consumer()
     store  = store_api.StoreFactory(args).get_store()
-    mdb =  mongo_api.MongoFactory(args).get_mdb()
+    #mdb =  mongo_api.MongoFactory(args).get_mdb()
     db.connect()
-    mdb.connect()
+    #mdb.connect()
     db.make_schema()
-    mdb.make_schema()
+    #mdb.make_schema()
     consumer.connect()
     store.connect()
     #max_messages = consumer.test_topic_max_messages
-    max_messages = 10000
-    msg_idx = 0
     for payload, metadata, annotations  in consumer.get_next():
-        msg_idx += 1
-        ## If max_messages is set to zero, there is no maximum
-        if max_messages > 0 and msg_idx > max_messages:
-            break
-        logging.info(metadata)
-        logging.info(annotations)
+        logging.debug(metadata)
+        logging.debug(annotations)
         # logging.info(payload)
-        #if decision_api.is_deemed_duplicate(annotations, metadata, db, store):
-        #    logging.info(f"Duplicate not logged {annotations}")
-        #    consumer.mark_done()
-        #    continue
-        if args["test_topic"]:
+        if decision_api.is_deemed_duplicate(annotations, metadata, db, store):
+            logging.info(f"Duplicate not logged {annotations}")
+            consumer.mark_done()
+            continue
+        if args["use_test_topic"]:
             if payload["content"] == b"end": exit(0)
             if args["verify"] and verify_api.is_known_test_data(metadata):
                 verify_api.compare_known_data(payload, metadata)
         storeinfo = store.store(payload, metadata, annotations)
         logging.info(storeinfo)
-        mdb.insert(payload, metadata, annotations)
+        #mdb.insert(payload, metadata, annotations)
         db.insert(payload, metadata, annotations)
         verify_api.assert_ok(args, payload, metadata, annotations,  db, store)
         ## TODO: Do we want to parse message data for known schemas prior to marking the ingest done?
@@ -199,7 +193,7 @@ if __name__ == "__main__":
     parser.add_argument("-H", "--hop_stanza", help = "hopskotch config  stanza", default="mock-hop")
     parser.add_argument("-S", "--store_stanza", help = "storage config stanza", default="mock-store")
     parser.add_argument("-M", "--mongo_stanza", help = "storage config stanza", default="mongo-demo")
-    parser.add_argument("-t", "--test_topic", help = "consume only from test_topic", default=False, action="store_true")
+    parser.add_argument("-t", "--use_test_topic", help = "consume only from test_topic", default=False, action="store_true")
     parser.add_argument("-v", "--verify", help = "check after ingest", action='store_true' ,default=False)
 
     #list -- list stanzas

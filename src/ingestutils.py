@@ -432,7 +432,7 @@ def clean_tests(args):
     db.connect()
     store = store_api.StoreFactory(args).get_store()
     store.connect()
-    args["test_topic"] = True  #signal consumer to read test topic
+    args["use_test_topic"] = True  #signal consumer to read test topic
     consumer = consumer_api.ConsumerFactory(args).get_consumer()
     consumer.until_eos  = True  #stop when toic is dry 
     consumer.connect()
