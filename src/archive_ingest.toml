@@ -86,11 +86,12 @@ hop-test-max-messages = 1
 
 [hop-devel-devel]
 # a configuration to use the development hop (not complete)
+# apropos of nothing scimma-admin is at https://admin.dev.hop.scimma.org
 hop-type              = "hop"
 hop-hostname          = "dev.hop.scimma.org"
 hop-port              = 9092
 hop-groupname         = "archive-ingest-devel-devel"
-hop-aws-secret-name   = "hopDevel-archive-ingest-hop-devel-credentials"
+hop-aws-secret-name   = "hopDevel-archive-ingest-hop-dev-credentials"
 hop-aws-secret-region = "us-west-2"
 hop-vetoed-topics     = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
 hop-until-eos         = false

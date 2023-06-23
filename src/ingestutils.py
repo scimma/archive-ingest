@@ -434,7 +434,7 @@ def clean_tests(args):
     store.connect()
     args["use_test_topic"] = True  #signal consumer to read test topic
     consumer = consumer_api.ConsumerFactory(args).get_consumer()
-    consumer.until_eos  = True  #stop when toic is dry 
+    consumer.until_eos  = True  #stop when toic is dry
     consumer.connect()
 
     def delete_from_store(key):

@@ -263,7 +263,7 @@ class Hop_consumer(Base_consumer):
     also written to the topics.log  in the currnet working
     directory
 
-    Howeer, for testing the consumder will
+    However, for testing the consumder will
     consume only from a configured test topic.
     This provides a defined environemt.
     
