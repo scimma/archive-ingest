@@ -321,11 +321,11 @@ def amon(args):
     db = database_api.DbFactory(config).get_db()
     db.connect()
     logging.info(sql)
-    for (timestamp, _)  in  db.query(sql):
+    for (timestamp, uuid)  in  db.query(sql):
         time_published = timestamp/1000
         dt = datetime.datetime.fromtimestamp(time_published)
         isodate =  dt.isoformat()
-        print (isodate)
+        print (isodate, uuid)
     
        
 def lvk(args):
@@ -624,7 +624,7 @@ if __name__ == "__main__":
     # inspect display an object and or write it out.
     parser = subparsers.add_parser('inspect', help=inspect.__doc__)
     parser.set_defaults(func=inspect)
-    parser.add_argument("-D", "--database_stanza", help="database-config-stanza", default="aws-dev-db")
+    parser.add_argument("-D", "--database_stanza", help="database-config-stanza", default="aws-prod-db")
     parser.add_argument("-S", "--store_stanza", help="storage config stanza", default="S3-dev")
     parser.add_argument("-w", "--write", help="write object to <uuid>.bson ", default=False, action="store_true")
     parser.add_argument("-b", "--burst", help="burst object into message, metadata, and annotation files  ", default=False, action="store_true")

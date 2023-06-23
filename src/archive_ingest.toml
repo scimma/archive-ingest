@@ -86,10 +86,16 @@ hop-test-max-messages = 1
 
 [hop-devel-devel]
 # a configuration to use the development hop (not complete)
-hop-type                = "hop"
-hop-hostname            = "dev.hop.scimma.org"
-hop-port                = 9092
-hop-vetoed-topics = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
+hop-type              = "hop"
+hop-hostname          = "dev.hop.scimma.org"
+hop-port              = 9092
+hop-groupname         = "archive-ingest-devel-devel"
+hop-aws-secret-name   = "hopDevel-archive-ingest-hop-devel-credentials"
+hop-aws-secret-region = "us-west-2"
+hop-vetoed-topics     = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
+hop-until-eos         = false
+hop-test-topic        = "sys.archive-ingest-test"
+hop-topic-refresh-interval-seconds = 300
 hop-test-max-messages = 1
 
 [hop-prod-devel]
@@ -100,7 +106,6 @@ hop-groupname         = "archive-ingest-devel"
 hop-aws-secret-name   = "hopDevel-archive-ingest-hop-prod-credentials"
 hop-aws-secret-region = "us-west-2"
 hop-port              = 9092
-hop-until-eos         = false
 hop-vetoed-topics     = ["sys.heartbeat", "__consumer_offsets", "sys.heartbeat-cit"]
 hop-test-topic        = "sys.archive-ingest-test"
 hop-topic-refresh-interval-seconds = 300 #5 minutes

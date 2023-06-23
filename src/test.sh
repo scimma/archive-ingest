@@ -19,6 +19,7 @@
 
 case "$1" in
     "devel")
+        # the devel uses prod hop, but devel storage"
         hop_flag="-H hop-prod"
         store_flag="-S S3-dev"
         db_flag="-D aws-dev-db"
@@ -26,13 +27,24 @@ case "$1" in
         
         ;;
     "prod")
+        "the prod hop uses the prod databases"
         hop_flag="-H hop-prod"
         store_flag="-S S3-prod"
         db_flag="-D aws-prod-db"
         hop_mock_flag="-H mock-hop"
         ;;
+    "int")
+        # the integrationn environment uses the development HOP
+        # e.g we are testing against new hop/ of other changes in
+        # AWS we rely on as a step towards making these production.
+  
+        hop_flag="-H hop-devel-devel"
+        store_flag="-S S3-dev"
+        db_flag="-D aws-dev-db"
+        hop_mock_flag="-H mock-hop"
+        ;;
     *)
-        echo choose "prod" or "devel"
+        echo choose prod or devel or int
         exit 1
         ;;
 esac
