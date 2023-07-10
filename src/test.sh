@@ -54,7 +54,7 @@ LOGS=test.log
 runit() {
     cmd=$*
     echo $cmd
-    $cmd 2>> $LOGS
+    $cmd 2> >(tee >> $LOGS)
     if [ $? -ne  0 ] ; then
         echo test failed on $cmd
         tail -20 $LOGS

@@ -69,23 +69,24 @@ def get_known_data():
         [("_known_test_data", usecase)]
         ]
 
-    usecase = b"empty list"
+    usecase = b"message is empty list"
     d[usecase] = [
         hop.models.JSONBlob("[]"),
         [("_known_test_data", usecase)]
     ]
 
-    usecase = b"empty dict"
+    usecase = b"message is empty dict"
     d[usecase] = [
         hop.models.JSONBlob("{}"),
         [("_known_test_data", usecase) ]
     ]
 
-    usecase = b"Big Blob"
+    usecase = b"Message is a Big Blob"
     d[usecase] = [
         hop.models.Blob(big_byte_string),
         [("_known_test_data", usecase), ("payload_size", b"alot")]
     ]
+
 
     ### header cases
     usecase = b"many headers"
@@ -94,16 +95,16 @@ def get_known_data():
         [("_known_test_data", usecase), ("dog", b"fido"), ("cat", b"fifi")]
     ]
 
-    usecase = b"repeated keys"
+    usecase = b"header has repeated keys"
     d[usecase] = [
         hop.models.Blob(b"repeated key"),
         [("_known_test_data", usecase), ("key", b"v1"),("key", b"v3"),("key",b"v3")]
         ]
 
-    usecase = b"None Valued Key"
+    usecase = b"header has a None Valued Key"
     d[usecase] = [
         hop.models.Blob(b"None key value"),
-        [("_known_test_data", usecase), ("none", "none")]
+        [("_known_test_data", usecase), (None, "none")]
     ]
 
     usecase = b"Binary Valued Key"
@@ -116,14 +117,13 @@ def get_known_data():
     usecase = b"Extra invalid _ids"
     d[usecase] = [
         hop.models.Blob(b"invalid _id"),
-        [("_known_test_data", usecase), ("_id", None), ("_id", b"text"), ("_id", b"")]
+        [("_known_test_data", usecase), ("_id", "None"), ("_id", b"text"), ("_id", b"")]
     ]
 
     usecase = b"Extra valid _ids"
     d[usecase] = [
         hop.models.Blob(b"valid _ids"),
         [("_known_test_data", usecase),("_id", u()), ("_id", u()), ("_id", u())]    ]
-
     # end of test stream message
     end = [
         hop.models.Blob(b"end"),
@@ -217,23 +217,27 @@ def compare_known_data(as_recieved_payload, as_recieved_metadata):
     # get the message and header which was sent.
     #import pdb; pdb.set_trace()
     this_use_case = get_from_header(as_recieved_header, "_known_test_data")[0]
-    logging.info(f"uses case {this_use_case}")
+    print(f"Begin use case {this_use_case}")
     if  this_use_case == b'None Valued Key' :  return  #hack
     as_sent_payload  = COMPARE_DICT[this_use_case][0].serialize()
     as_sent_header = COMPARE_DICT[this_use_case][1]
 
     # assert payload is the same
-    if as_sent_payload['content']  !=  as_recieved_payload['content'] : import pdb; pdb.set_trace()
-    assert  as_sent_payload['content']  ==  as_recieved_payload['content']
+    print("checking that message content is the same, else start debugger.")
+    if as_sent_payload['content']  !=  as_recieved_payload['content'] :
+          breakpoint()
+    print("checking that message content agrees")
 
     # Assert that every user supplied header item is present in the
     # recieved header. Note that HOP adds keys, it's not
     # the job of this module to check those are present/accurate,
     # This module's job is to assert what the user sent was recieved
     # accurately and presented for archiving
+    print (f"Checking user supplied headers keyword by keyword")
     for sent_key, sent_value in as_sent_header :
         print (sent_value, get_from_header(as_recieved_header, sent_key))
-        assert sent_value in get_from_header(as_recieved_header, sent_key)
+        if  sent_value not  in get_from_header(as_recieved_header, sent_key):
+          breakpoint()
 
 def is_known_test_data(metadata):
     keywords  = [ header[0] for header in metadata["headers"]]

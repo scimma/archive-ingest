@@ -339,7 +339,6 @@ class Hop_consumer(Base_consumer):
                 f.write(f"{datetime.datetime.utcnow().isoformat()} {topics}\n")
 
 
-
     def connect(self):
         "connect to HOP a a consumer (archiver)"
         start_at = StartPosition.EARLIEST
@@ -352,7 +351,6 @@ class Hop_consumer(Base_consumer):
         # the topics.
         self.refresh_url()
         group_id = f"{self.username}-{self.groupname}"
-        group_id = f"{self.username}-{self.groupname}{random.randint(0,10000)}"
         self.client = stream.open(url=self.url, group_id=group_id)
         # self.client = stream.open(url=self.url)
         logging.info(f"opening stream at {self.url} group: {group_id} startpos {start_at}")
@@ -382,7 +380,7 @@ class Hop_consumer(Base_consumer):
         return True
 
     def get_next(self):
-        self.refresh_url() # needed bfore first call to set topic list.
+        self.refresh_url() # needed before first call to set topic list.
         for result in self.client.read(metadata=True, autocommit=False):
             # What happens on error? GEt nothing back? None?
             # -- seems to stall in self.client.read
@@ -397,7 +395,7 @@ class Hop_consumer(Base_consumer):
             if result[1].headers is None :
                 headers = []
             else:
-                # Bson Librsy compatablity:
+                # Bson Library compatablity:
                 # tuple -> list
                 # Nuke Null values to empty string
                 headers = []

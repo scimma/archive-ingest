@@ -89,7 +89,7 @@ def connect(args):
 
 
 def publish(args):
-    "publish some test data to a topic"
+    "publish test  data defined in verify.py to a topic"
     import sys
     publisher = publisher_api.PublisherFactory(args).get_publisher()
     publisher.connect()
@@ -111,8 +111,10 @@ def publish(args):
                 import pdb; pdb.set_trace()
             else:
                 pass
+        print ("******* Published one message")
         publisher.publish(message, header)
     publisher.publish(end_message[0], end_message[1])
+    print ("******* Published end message")
 
 
 def list(args):
