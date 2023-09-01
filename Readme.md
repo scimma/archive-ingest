@@ -1,62 +1,24 @@
-# Hop Ark: Hopskotch archive system
+# Hopskotch archiver
 
-<img src="images/hop_ark.png" width="50px"> 
+This repository contains the tool which ingests data from Apache Kafka and places it in the Hopskotch long-term data archive. 
 
-## Demo
+At this time, the archiver simply archives all messages on all topics for which it has read permission, unless a topic is included on its veto list. 
+This means that archiving should be controlled via the permissions granted to the Kafka credential used by the archiver. 
+Since public topics in Hopskotch are alway readable to all authenticated users, topics with high message rates but little long-term message value, like the system heartbeat, should be placed on the veto list to prevent the archiver consuming them.
 
-**The system is currently configured for a concept demo. While the architecture is poised for scalability and there is a clear path to more general use, at the moment the focus is on simplicity and ease of deployment for the purposes of demonstration.**
+## Environment and Configuration
 
-## Overview
+This tool supports configuration via command-line options, environment variables, a TOML configration file, or any combination of these. Run `archive_ingest.py --help` for a full listing of supported options. 
 
-This repo contains an integrated system that 
+Major comfiguration settings include:
 
-* archives messages from public [Hopskotch](https://hop.scimma.org/) topics for persistent storage of the otherwise ephemeral Hopskotch data streams, 
-* provides an HTTP API to access archived data, and
-* includes a web app client to the API server.
-
-These software components are, respectively,
-
-* Archiver (`/archiver`) - Python
-* Archive API (`/api`) - Django REST Framework, configured for production operation behind an NGINX reverse proxy
-* Archive Browser (`/browser`) - React-based single page web application
-
-<img src="images/architecture.drawio.png" style="width:100%; max-width:600px;">
-
-## Archive storage
-
-There are three data storage components to which the Archiver stores messages:
-
-* Message metadata (PostgreSQL)
-* Full message data (MongoDB)
-* Redundant full message data (S3-compatible object store)
-
-## Archive API
-
-The Archive API server implements a RESTful web API, allowing access to archived data via the standard HTTP protocol. Full documentation specified in OpenAPI format will be made available in the future.
-
-API endpoints include:
-
-* `GET api/topics`
-
-   Fetch a list of all archived topics.
-
-* `GET api/topic/[TOPIC_NAME]`
-
-   Fetch all messages available from a specified topic.
-
-* `GET api/message/[MESSAGE_UUID]`
-
-   Fetch message data specified by its unique identifier.
-
-* `POST api/topic/range`
-
-   Search for all messages across all archived topics within a date range.
-
-## Full message data search
-
-The archived message data is stored in a MongoDB document database, enabling intuitive, flexible, full-text search of dynamic message schemas.
-
-## Deployment
-
-The Hopskotch archive system is deployed on a Kubernetes cluster hosted at the [National Center for Supercomputing Applications](https://www.ncsa.illinois.edu/) (NCSA) and operated by NCSA staff. The PostgreSQL databases and the Mongo database are deployed via Bitnami Helm charts, which are professionally developed and can scale to support heavy utilization and redundancy by enabling replication. The Archive API server and the Archive Browser web app run in multiple replicas across the Kubernetes cluster worker nodes, robustly handling traffic and supporting high-availability services. The entire application state is captured in this source code repo following the GitOps paradigm to ensure reproducibility. 
-
+- `--hop-hostname`/`HOP_HOSTNAME`: The name of the Kafka broker host
+- `HOP_PASSWORD`: The password to use for authenticating with Hopskotch/Kafka if credentials are not being read from a file or an AWS secret; this option can only be set as an environment variable
+- `--hop-aws-secret-name`/`HOP_AWS_SECRET_NAME`: The name of an AWS secret from which to read a  Hopskotch/Kafka credential
+- `--hop-vetoed-topics`/`HOP_VETOED_TOPICS`: Topics which should not ever be archived (e.g. `sys.heartbeat`)
+- `--db-type`/`DB_TYPE`: `sql` to use a PostgreSQL database directly, `aws` to use an AWS hosted PostgreSQL instance. 
+- `DB_PASSWORD`: The database password, if connecting to a PostgreSQl database without special AWS handling; this option can only be set as an environment variable
+- `--store-endpoint-url`/`STORE_ENDPOINT_URL`: The URL at which to connect to the object store. If not set, AWS S3 is assumed. 
+- `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`: If not using AWS S3, these variables specify the credential pair used to authenticate with the object store. These can only be specified as environment variables. 
+- `--store-primary-bucket`/`STORE_PRIMARY_BUCKET`: The primary object store bucket in which archived data should be placed
+- `--store-backup-bucket`/`STORE_BACKUP_BUCKET`: The backup object store bucket
