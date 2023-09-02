@@ -8,9 +8,9 @@ Since public topics in Hopskotch are alway readable to all authenticated users, 
 
 ## Environment and Configuration
 
-This tool supports configuration via command-line options, environment variables, a TOML configration file, or any combination of these. Run `archive_ingest.py --help` for a full listing of supported options. 
+This tool supports configuration via command-line options, environment variables, a TOML configuration file, or any combination of these. Run `archive_ingest.py --help` for a full listing of supported options. 
 
-Major comfiguration settings include:
+Major configuration settings include:
 
 - `--hop-hostname`/`HOP_HOSTNAME`: The name of the Kafka broker host
 - `HOP_PASSWORD`: The password to use for authenticating with Hopskotch/Kafka if credentials are not being read from a file or an AWS secret; this option can only be set as an environment variable

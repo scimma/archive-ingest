@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
 '''
-Log messages, metadata, and annotatopns to S3.
+Log messages, metadata, and annotations to S3.
 Record meta-data about stored data in relational DB.  Omit duplicate due to
 more-than-once delivery, user error, or cursor resets.
 
 Run time configuration is via command line options, corresponding environment
 variables, or entries in a TOML configuration file. In general, CLI option
 --foo-bar is associated with the environment variable FOO_BAR or the TOML key
-foo_bar. Environment variables take precendence over built-in default values,
+foo_bar. Environment variables take precedence over built-in default values,
 and command line arguments and values read from a configuration file take
 precedence in the order they are encountered (i.e. last wins). 
 
@@ -24,8 +24,8 @@ Support testing via
 - reading limited to a test topic
 - reading from a mock topic
 - in-line comparison of as-sent test data
-  to as-recieved test data.
-- in-line comparision of as-recieved data
+  to as-received test data.
+- in-line comparison of as-received data
   to as-stored data.
 
 @author: Mahmoud Parvizi (parvizim@msu.edu)
