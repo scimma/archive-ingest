@@ -21,11 +21,9 @@ import datetime
 import boto3
 import json
 import bson
-import simple_bson
 import tabulate
-import pymongo
+#import pymongo
 import access_api
-import simple_bson
 import io
 import avro.schema
 from avro.datafile import DataFileReader, DataFileWriter
@@ -195,6 +193,7 @@ def verify_store_to_db(args):
     
     Exit with the number of defective S3 objects. 
     """
+    breakpoint()
     db = database_api.DbFactory(args).get_db()
     store = store_api.StoreFactory(args).get_store()
     db.connect()
@@ -390,7 +389,7 @@ def inspect(args):
     if args["write"]:
         with open(f"{uuid}.bson", "wb") as f:
             f.write(bundle)
-    bundle = simple_bson.loads(bundle)
+    bundle = bson.loads(bundle)
     if args["burst"]:
         m_format = bundle["message"]["format"]
         m_content = bundle["message"]["content"]
