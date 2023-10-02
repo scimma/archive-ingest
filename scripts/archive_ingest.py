@@ -67,6 +67,7 @@ async def archive_ingest(config):
     consumer.close()
 
 if __name__ == "__main__":
+    import os
 
     parser = argparse.ArgumentParser(
         description=__doc__,
@@ -77,6 +78,12 @@ if __name__ == "__main__":
     access_api.add_parser_options(parser)
 
     config = parser.parse_args().__dict__
+
+    # intentionally 'parse' an empty list of arguments to set defaults
+    raw_config = parser.parse_args([])
+    if "CONFIG_FILE" in os.environ:
+        utility_api.load_toml_config(os.environ["CONFIG_FILE"], raw_config)
+    config = raw_config.__dict__
 
     utility_api.make_logging(config)
     logging.info(config)
