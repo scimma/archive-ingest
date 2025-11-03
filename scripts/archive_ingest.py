@@ -61,7 +61,7 @@ async def archive_ingest(config):
     await access.connect()
     await access.db.make_schema()
     for payload, metadata in consumer.get_next():
-        stored, reason = await access.store_message(payload, metadata)
+        stored, store_metadata, reason = await access.store_message(payload, metadata)
         consumer.mark_done(metadata)
 
     consumer.close()
