@@ -20,7 +20,7 @@ container: Dockerfile
 
 set-release-tags:
 	@$(eval TAG_SUFFIX := $(shell if [ ! -z "$$(git status --porcelain)" ]; then echo '-modified'; fi))
-	@$(eval RELEASE_TAG := $(shell git describe --tags --abbrev=0 | awk -F- '{print $$2}')"$(TAG_SUFFIX)")
+	@$(eval RELEASE_TAG := $(shell git describe --tags --abbrev=0 | sed 's|^v||')"$(TAG_SUFFIX)")
 	@echo RELEASE_TAG =  $(RELEASE_TAG)
 	@$(eval MAJOR_TAG   := $(shell echo $(RELEASE_TAG) | awk -F. '{print $$1}'))
 	@echo MAJOR_TAG = $(MAJOR_TAG)
@@ -28,7 +28,7 @@ set-release-tags:
 	@echo MINOR_TAG = $(MINOR_TAG)
 
 push: set-release-tags
-	@(echo $(RELEASE_TAG) | grep '^[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]$$' > /dev/null ) || (echo Bad release tag: $(RELEASE_TAG) && exit 1)
+	@(echo $(RELEASE_TAG) | grep '^[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$$' > /dev/null ) || (echo Bad release tag: $(RELEASE_TAG) && exit 1)
 	/usr/local/bin/aws ecr get-login-password | docker login --username AWS --password-stdin $(AWSREG)
 	docker tag $(CNT_IMG) $(AWSREG)/$(CNT_NAME):$(RELEASE_TAG)
 	docker tag $(CNT_IMG) $(AWSREG)/$(CNT_NAME):$(MAJOR_TAG)
