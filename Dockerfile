@@ -10,6 +10,7 @@ RUN apt-get update && \
    apt-get purge -y --auto-remove git && \
    rm -rf /var/lib/apt/lists/*
 ADD scripts/archive_ingest.py /root/archive_ingest.py
+COPY scripts/initialize_db.py scripts/reindex_text.py /root/
 RUN chmod ugo+rx /root/archive_ingest.py
 WORKDIR /tmp
 ENTRYPOINT ["/root/archive_ingest.py"]
