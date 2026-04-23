@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+
+import argparse
+import time
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--tolerance", default=1200, type=int,
+                    help="Maximum number of seconds since a successful completion of the main script to treat as acceptable")
+args = parser.parse_args()
+
+# convert to ns
+tolerance = args.tolerance*1e9
+
+clock = time.CLOCK_TAI if hasattr(time, "CLOCK_TAI") else time.CLOCK_REALTIME
+check_time = time.clock_gettime_ns(clock)
+
+try:
+	with open("/tmp/last_run",'r') as f:
+		last_time = int(f.read())
+except:
+	print(f"Check failure: No successful completion yet logged")
+	exit(1)
+
+if check_time-last_time > tolerance:
+	print(f"Check failure: time since last successful completion {(check_time-last_time)/1e9}s")
+	exit(1)
+
+print(f"Check OK: time since last successful completion {(check_time-last_time)/1e9}s")

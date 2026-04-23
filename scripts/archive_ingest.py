@@ -35,6 +35,7 @@ Support testing via
 import logging
 import argparse
 import asyncio
+import time
 from archive import utility_api
 from archive import consumer_api
 from archive import access_api
@@ -55,7 +56,15 @@ async def archive_ingest(config):
     - Log to DB
     - Mark message processed in kafka.
     """
-    consumer = consumer_api.ConsumerFactory(config)
+    if config["liveness_file"]:
+        clock = time.CLOCK_TAI if hasattr(time, "CLOCK_TAI") else time.CLOCK_REALTIME
+        def liveness_callback():
+            with open(config["liveness_file"], 'w') as f:
+                f.write(str(time.clock_gettime_ns(clock)))
+    else:
+        liveness_callback = None
+    
+    consumer = consumer_api.ConsumerFactory(config, liveness_callback)
     access   = access_api.Archive_access(config)
     consumer.connect()
     await access.connect()
@@ -75,6 +84,10 @@ if __name__ == "__main__":
     utility_api.add_parser_options(parser)
     consumer_api.add_parser_options(parser)
     access_api.add_parser_options(parser)
+    
+    parser.add_argument("--liveness-file", help="Write heartbeats to this file",
+                        action=utility_api.EnvDefault, envvar="LIVENESS_FILE",
+                        default="/tmp/last_run", required=False)
 
     config = parser.parse_args().__dict__
 
